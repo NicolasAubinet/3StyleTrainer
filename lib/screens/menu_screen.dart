@@ -86,7 +86,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 // height: 30,
                 child: NumberInputField(
                   decimal: true,
-                  onChanged: (value) async {
+                  onTapOutside: (value) async {
                     SharedPreferences prefs =
                         await SharedPreferences.getInstance();
                     var doubleValue = double.tryParse(value);
@@ -94,7 +94,11 @@ class _MenuScreenState extends State<MenuScreen> {
                       prefs.setDouble("target_time", doubleValue);
                     } else {
                       prefs.remove("target_time");
+                      doubleValue = DEFAULT_TARGET_TIME;
                     }
+                    setState(() {
+                      _targetTime = doubleValue!;
+                    });
                   },
                   defaultValue: _targetTime.toString(),
                 ),

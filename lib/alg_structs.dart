@@ -1,3 +1,8 @@
+enum AlgType {
+  Corner,
+  Edge,
+}
+
 class Alg {
   final String name;
 

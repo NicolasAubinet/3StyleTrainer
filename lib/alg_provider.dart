@@ -16,18 +16,77 @@ double _getProgression(int originalLength, int currentLength) {
 }
 
 class LetterPairScheme {
-  final Speffz = "ABCDEFGHIJMLNOPQRSTUVWX";
+  static const Speffz = "ABCDEFGHIJKLMNOPQRSTUVWX";
+
+  static const AudioEdgeConsonants =
+      "bcd?fgh?jlmnprstvwxz"; // TODO turn to list
+  static const AudioEdgeVowels = "aei?AEI?oOUuèÈéÉ"; // TODO turn to list
+}
+
+List<List<int>> _cornerCollidingIndices = [
+  // indices to different stickers of same corner pieces
+  [0, 4, 17],
+  [1, 13, 16],
+  [2, 9, 12],
+  [3, 5, 8],
+  [20, 6, 11],
+  [21, 10, 15],
+  [22, 14, 19],
+  [23, 7, 18],
+];
+
+List<int> _getCollidingIndices(AlgType algType, int index) {
+  if (algType == AlgType.Corner) {
+    for (List<int> collidingIndices in _cornerCollidingIndices) {
+      for (int collidingIndex in collidingIndices) {
+        if (collidingIndex == index) {
+          return collidingIndices;
+        }
+      }
+    }
+  } else {
+    // TODO edges
+  }
+
+  return [];
+}
+
+List<int> _getBufferIndices(AlgType algType, String buffer) {
+  if (algType == AlgType.Corner) {
+    if (buffer == "UFR") {
+      return [2, 9, 12];
+    }
+  } else if (algType == AlgType.Edge) {
+    if (buffer == "UF") {
+      return [3, 7];
+    }
+  }
+
+  throw UnimplementedError();
 }
 
 class LetterPairProvider implements AlgProvider {
-  final originalLetterPairs = [
-    Alg('AB'),
-    Alg('AD'),
-    Alg('AE'),
-  ];
+  var originalLetterPairs = <Alg>[];
   var letterPairsToExecute = <Alg>[];
 
-  LetterPairProvider() {
+  LetterPairProvider(
+      {required AlgType algType,
+      required String buffer,
+      required String scheme,
+      required List<int> setIndices}) {
+    for (int setIndex in setIndices) {
+      assert(setIndex > 0 && setIndex < scheme.length);
+      List<int> collidingIndices = _getCollidingIndices(algType, setIndex);
+      List<int> bufferIndices = _getBufferIndices(algType, buffer);
+      var l1 = scheme[setIndex];
+      for (int l2Index = 0; l2Index < scheme.length; ++l2Index) {
+        var l2 = scheme[l2Index];
+        if (!collidingIndices.contains(l2Index) &&
+            !bufferIndices.contains(l2Index)) {
+          originalLetterPairs.add(Alg(l1 + l2));
+        }
+      }
+    }
     reset();
   }
 
@@ -90,7 +149,16 @@ class CustomProvider implements AlgProvider {
   }
 }
 
-class CornersAlgProvider extends LetterPairProvider {}
+class CornersAlgProvider extends LetterPairProvider {
+  // TODO set and buffer
+  CornersAlgProvider()
+      : super(
+          algType: AlgType.Corner,
+          buffer: "UFR",
+          scheme: LetterPairScheme.Speffz,
+          setIndices: [1],
+        );
+}
 
 class EdgesAlgProvider extends CustomProvider {
   EdgesAlgProvider() : super.fromFileContent(CustomEdges.TEST);

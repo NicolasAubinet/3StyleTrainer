@@ -29,6 +29,10 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
+  void _unfocusTextField() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,6 +43,7 @@ class _MenuScreenState extends State<MenuScreen> {
           ElevatedButton(
             child: Text(AppLocalizations.of(context)!.corners),
             onPressed: () {
+              _unfocusTextField();
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -54,6 +59,7 @@ class _MenuScreenState extends State<MenuScreen> {
           ElevatedButton(
             child: Text(AppLocalizations.of(context)!.edges),
             onPressed: () {
+              _unfocusTextField();
               Navigator.push(
                 context,
                 MaterialPageRoute(

@@ -5,26 +5,20 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../alg_provider.dart';
 import '../alg_structs.dart';
-import '../custom_edges.dart';
 import '../utils.dart';
 import 'session_summary_screen.dart';
 
-AlgProvider getNewAlgProvider() {
-  // return LetterPairProvider();
-  return CustomProvider.fromFileContent(CustomEdges.TEST);
-}
-
 class TimerScreen extends StatefulWidget {
-  double targetTime;
+  final double targetTime;
+  final AlgProvider algProvider;
 
-  TimerScreen(this.targetTime);
+  TimerScreen(this.targetTime, this.algProvider);
 
   @override
   State<TimerScreen> createState() => _TimerScreenState();
 }
 
 class _TimerScreenState extends State<TimerScreen> {
-  AlgProvider algProvider = getNewAlgProvider();
   bool isPressed = false;
   var stopwatch = Stopwatch();
   var times = <AlgTime>[];
@@ -50,13 +44,13 @@ class _TimerScreenState extends State<TimerScreen> {
 
     setState(() {
       do {
-        alg = algProvider.getNextAlg();
+        alg = widget.algProvider.getNextAlg();
       } while (alg != null && skippedAlgs.contains(alg!.name));
 
       isPressed = false;
       stopwatch.reset();
       if (alg == null) {
-        algProvider = getNewAlgProvider();
+        widget.algProvider.reset();
         times.clear();
       } else {
         stopwatch.start();

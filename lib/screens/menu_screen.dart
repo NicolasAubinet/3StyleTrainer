@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:three_style_trainer/alg_provider.dart';
 
 import '../widgets/number_input_field.dart';
 import 'timer_screen.dart';
@@ -36,17 +37,33 @@ class _MenuScreenState extends State<MenuScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           ElevatedButton(
-              child: Text(AppLocalizations.of(context)!.corners),
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => TimerScreen(_targetTime)));
-              }),
+            child: Text(AppLocalizations.of(context)!.corners),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TimerScreen(
+                    _targetTime,
+                    CornersAlgProvider(),
+                  ),
+                ),
+              );
+            },
+          ),
           SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () {},
             child: Text(AppLocalizations.of(context)!.edges),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TimerScreen(
+                    _targetTime,
+                    EdgesAlgProvider(),
+                  ),
+                ),
+              );
+            },
           ),
           SizedBox(height: 50),
           Row(

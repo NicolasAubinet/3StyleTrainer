@@ -19,12 +19,12 @@ ThemeData mainTheme = ThemeData(
   ),
   textTheme: TextTheme(
     displayLarge: const TextStyle(
-      fontSize: 72,
+      fontSize: 54,
       fontWeight: FontWeight.bold,
       color: textColor,
     ),
     displayMedium: const TextStyle(
-      fontSize: 48,
+      fontSize: 44,
       fontWeight: FontWeight.normal,
       color: textColor,
     ),

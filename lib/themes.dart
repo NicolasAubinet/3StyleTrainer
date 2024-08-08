@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 const Color textColor = Colors.white;
 const Color titleColor = Colors.grey;
@@ -12,55 +13,55 @@ ThemeData mainTheme = ThemeData(
   appBarTheme: AppBarTheme(
     backgroundColor: Colors.black54,
     foregroundColor: Colors.white,
-    titleTextStyle: TextStyle(
+    titleTextStyle: GoogleFonts.firaCode(
       fontSize: 38,
       color: Colors.white,
     ),
   ),
   textTheme: TextTheme(
-    displayLarge: const TextStyle(
-      fontSize: 54,
+    displayLarge: GoogleFonts.firaCode(
+      fontSize: 72,
       fontWeight: FontWeight.bold,
       color: textColor,
     ),
-    displayMedium: const TextStyle(
+    displayMedium: GoogleFonts.firaCode(
       fontSize: 44,
       fontWeight: FontWeight.normal,
       color: textColor,
     ),
-    displaySmall: const TextStyle(
+    displaySmall: GoogleFonts.firaCode(
       fontSize: 32,
       fontWeight: FontWeight.normal,
       color: textColor,
     ),
-    labelLarge: const TextStyle(
+    labelLarge: GoogleFonts.firaCode(
       fontSize: 24,
       fontWeight: FontWeight.normal,
       color: textColor,
     ),
-    labelMedium: const TextStyle(
+    labelMedium: GoogleFonts.firaCode(
       fontSize: 18,
       fontWeight: FontWeight.normal,
       color: textColor,
     ),
-    labelSmall: const TextStyle(
+    labelSmall: GoogleFonts.firaCode(
       fontSize: 14,
       fontWeight: FontWeight.normal,
       color: textColor,
     ),
-    titleLarge: const TextStyle(
+    titleLarge: GoogleFonts.firaCode(
       fontSize: 48,
       // fontStyle: FontStyle.italic,
       fontWeight: FontWeight.normal,
       color: titleColor,
     ),
-    titleMedium: const TextStyle(
+    titleMedium: GoogleFonts.firaCode(
       fontSize: 32,
       // fontStyle: FontStyle.italic,
       fontWeight: FontWeight.normal,
       color: titleColor,
     ),
-    titleSmall: const TextStyle(
+    titleSmall: GoogleFonts.firaCode(
       fontSize: 24,
       // fontStyle: FontStyle.italic,
       fontWeight: FontWeight.normal,

@@ -92,7 +92,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
               ElevatedButton(
                   onPressed: () => {Navigator.pop(context, 'repeat_all')},
                   child: Text(AppLocalizations.of(context)!.repeatAll)),
-              SizedBox(height: 5),
+              SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -103,7 +103,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                           Text(AppLocalizations.of(context)!.repeatTargetTime)),
                 ],
               ),
-              SizedBox(height: 5),
+              SizedBox(height: 8),
               ElevatedButton(
                   onPressed: () => {Navigator.pop(context, 'back')},
                   child: Text(AppLocalizations.of(context)!.back)),
@@ -122,7 +122,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                               style: theme.textTheme.displaySmall,
                             )),
                             DataCell(Text(
-                              timeToString(e.timeMs),
+                              timeToString(e.timeMs, fractionDigits: 2),
                               style: theme.textTheme.displaySmall,
                             )),
                           ]))

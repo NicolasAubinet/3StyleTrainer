@@ -7,6 +7,12 @@ abstract class AlgProvider {
   Alg? getNextAlg();
 
   void reset();
+
+  double getProgression();
+}
+
+double _getProgression(int originalLength, int currentLength) {
+  return originalLength == 0 ? 1 : 1 - (currentLength + 1) / originalLength;
 }
 
 class LetterPairScheme {
@@ -39,6 +45,12 @@ class LetterPairProvider implements AlgProvider {
   void reset() {
     letterPairsToExecute = List.from(originalLetterPairs);
   }
+
+  @override
+  double getProgression() {
+    return _getProgression(
+        originalLetterPairs.length, letterPairsToExecute.length);
+  }
 }
 
 class CustomProvider implements AlgProvider {
@@ -70,6 +82,11 @@ class CustomProvider implements AlgProvider {
   @override
   void reset() {
     letterPairsToExecute = List.from(letterPairs);
+  }
+
+  @override
+  double getProgression() {
+    return _getProgression(letterPairs.length, letterPairsToExecute.length);
   }
 }
 

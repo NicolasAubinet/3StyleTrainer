@@ -114,32 +114,50 @@ class _TimerScreenState extends State<TimerScreen> {
     var timerText = timeToString(stopwatch.elapsedMilliseconds);
 
     return Scaffold(
-        backgroundColor:
-            isPressed ? theme.colorScheme.secondary : theme.colorScheme.primary,
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context)!.timer),
-        ),
-        body: Listener(
-          behavior: HitTestBehavior.translucent,
-          onPointerDown: (_) => _onTapDown(),
-          onPointerUp: (_) => _onTapUp(),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  alg != null
-                      ? alg!.name
-                      : AppLocalizations.of(context)!.pressToStart,
-                  style: theme.textTheme.displayLarge,
+      backgroundColor:
+          isPressed ? theme.colorScheme.secondary : theme.colorScheme.primary,
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.timer),
+      ),
+      body: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => _onTapDown(),
+        onPointerUp: (_) => _onTapUp(),
+        child: Column(
+          children: [
+            Container(
+              height: 12.0,
+              padding: EdgeInsets.all(1.5),
+              color: Colors.white,
+              child: Align(
+                alignment: Alignment.center,
+                child: LinearProgressIndicator(
+                  value: widget.algProvider.getProgression(),
+                  minHeight: 10,
+                  color: theme.colorScheme.tertiary,
                 ),
-                Text(
-                  timerText,
-                  style: theme.textTheme.displaySmall,
-                )
-              ],
+              ),
             ),
-          ),
-        ));
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    alg != null
+                        ? alg!.name
+                        : AppLocalizations.of(context)!.pressToStart,
+                    style: theme.textTheme.displayLarge,
+                  ),
+                  Text(
+                    timerText,
+                    style: theme.textTheme.displaySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

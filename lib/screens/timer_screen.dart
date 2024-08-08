@@ -61,7 +61,10 @@ class _TimerScreenState extends State<TimerScreen> {
       final result = await Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (context) => SessionSummaryScreen(algTimes: timesCopy)));
+              builder: (context) => SessionSummaryScreen(
+                    algTimes: timesCopy,
+                    targetTime: widget.targetTime,
+                  )));
       if (result == "repeat_all") {
       } else if (result == "repeat_target_time") {
         bool allCasesBelowTarget = true;
@@ -103,7 +106,8 @@ class _TimerScreenState extends State<TimerScreen> {
 
   void _sendAllCasesWereSubTargetMessage() {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(AppLocalizations.of(context)!.allCasesWereSubTarget),
+      content: Text(AppLocalizations.of(context)!
+          .allCasesWereSubTarget(widget.targetTime)),
     ));
   }
 

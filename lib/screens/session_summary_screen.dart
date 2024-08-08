@@ -6,8 +6,10 @@ import '../utils.dart';
 
 class SessionSummaryScreen extends StatefulWidget {
   final List<AlgTime> algTimes;
+  final double targetTime;
 
-  const SessionSummaryScreen({super.key, required this.algTimes});
+  const SessionSummaryScreen(
+      {super.key, required this.algTimes, required this.targetTime});
 
   @override
   State<SessionSummaryScreen> createState() => _SessionSummaryScreenState();
@@ -99,8 +101,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                   ElevatedButton(
                       onPressed: () =>
                           {Navigator.pop(context, 'repeat_target_time')},
-                      child:
-                          Text(AppLocalizations.of(context)!.repeatTargetTime)),
+                      child: Text(AppLocalizations.of(context)!
+                          .repeatTargetTime(widget.targetTime))),
                 ],
               ),
               SizedBox(height: 8),

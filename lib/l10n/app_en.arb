@@ -4,8 +4,8 @@
   "repeatAll": "Repeat all",
   "targetTime": "Target time: ",
   "back": "Back",
-  "allCasesWereSubTarget": "All cases were sub target time",
-  "repeatTargetTime": "Repeat cases above target time",
+  "allCasesWereSubTarget": "All cases were sub {targetTime}",
+  "repeatTargetTime": "Repeat cases above {targetTime}s",
   "corners": "Corners",
   "edges": "Edges",
   "pressToStart": "Press to start"

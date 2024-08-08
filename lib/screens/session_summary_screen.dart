@@ -107,26 +107,31 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
               ElevatedButton(
                   onPressed: () => {Navigator.pop(context, 'back')},
                   child: Text(AppLocalizations.of(context)!.back)),
-              DataTable(
-                  sortColumnIndex: _sortColumnIndex,
-                  sortAscending: _sortAscending,
-                  columns: getColumns(context),
-                  rows: widget.algTimes
-                      .map((e) => DataRow(cells: [
-                            DataCell(Text(
-                              (e.index).toString(),
-                              style: theme.textTheme.displaySmall,
-                            )),
-                            DataCell(Text(
-                              e.alg.name,
-                              style: theme.textTheme.displaySmall,
-                            )),
-                            DataCell(Text(
-                              timeToString(e.timeMs, fractionDigits: 2),
-                              style: theme.textTheme.displaySmall,
-                            )),
-                          ]))
-                      .toList()),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: DataTable(
+                      sortColumnIndex: _sortColumnIndex,
+                      sortAscending: _sortAscending,
+                      columns: getColumns(context),
+                      rows: widget.algTimes
+                          .map((e) => DataRow(cells: [
+                                DataCell(Text(
+                                  (e.index).toString(),
+                                  style: theme.textTheme.displaySmall,
+                                )),
+                                DataCell(Text(
+                                  e.alg.name,
+                                  style: theme.textTheme.displaySmall,
+                                )),
+                                DataCell(Text(
+                                  timeToString(e.timeMs, fractionDigits: 2),
+                                  style: theme.textTheme.displaySmall,
+                                )),
+                              ]))
+                          .toList()),
+                ),
+              ),
             ],
           ),
         ),

@@ -1,10 +1,6 @@
 import 'dart:math';
 
-class Alg {
-  final String name;
-
-  const Alg(this.name);
-}
+import 'alg_structs.dart';
 
 abstract class AlgProvider {
   Alg? getNextAlg();

@@ -1,0 +1,12 @@
+{
+  "sessionSummary": "Session summary",
+  "timer": "Timer",
+  "repeatAll": "Repeat all",
+  "targetTime": "Target time: ",
+  "back": "Back",
+  "allCasesWereSubTarget": "All cases were sub target time",
+  "repeatTargetTime": "Repeat cases below target time",
+  "corners": "Corners",
+  "edges": "Edges",
+  "pressToStart": "Press to start"
+}

@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'alg_structs.dart';
-import 'custom_edges.dart';
 
 abstract class AlgProvider {
   Alg? getNextAlg();
@@ -16,11 +15,86 @@ double _getProgression(int originalLength, int currentLength) {
 }
 
 class LetterPairScheme {
-  static const Speffz = "ABCDEFGHIJKLMNOPQRSTUVWX";
+  static const Speffz = [
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'J',
+    'K',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'Q',
+    'R',
+    'S',
+    'T',
+    'U',
+    'V',
+    'W',
+    'X',
+  ];
 
-  static const AudioEdgeConsonants =
-      "bcd?fgh?jlmnprstvwxz"; // TODO turn to list
-  static const AudioEdgeVowels = "aei?AEI?oOUuèÈéÉ"; // TODO turn to list
+  static const AudioEdgeConsonants = [
+    'b',
+    'c',
+    'd',
+    '?',
+    'f',
+    'g',
+    'h',
+    '?',
+    'j',
+    'l',
+    'm',
+    'n',
+    'p',
+    'r',
+    's',
+    't',
+    'v',
+    'w',
+    'x',
+    'z',
+    'pr',
+    'y',
+    'gn',
+    'ch',
+  ];
+
+  static const AudioEdgeVowels = [
+    'a',
+    'e',
+    'i',
+    '?',
+    'A',
+    'E',
+    'I',
+    '?',
+    'o',
+    'O',
+    'U',
+    'u',
+    'è',
+    'È',
+    'é',
+    'É',
+    'AN',
+    'IN',
+    'ON',
+    'OU',
+    'an',
+    'in',
+    'on',
+    'ou',
+  ];
 }
 
 List<List<int>> _cornerCollidingIndices = [
@@ -35,19 +109,37 @@ List<List<int>> _cornerCollidingIndices = [
   [23, 7, 18],
 ];
 
+List<List<int>> _edgeCollidingIndices = [
+  // indices to different stickers of same edge pieces
+  [0, 4],
+  [1, 5],
+  [2, 6],
+  [3, 7],
+  [8, 9],
+  [10, 11],
+  [12, 13],
+  [14, 15],
+  [16, 20],
+  [17, 21],
+  [18, 22],
+  [19, 23],
+];
+
 List<int> _getCollidingIndices(AlgType algType, int index) {
+  List<List<int>> collidingIndicesList;
   if (algType == AlgType.Corner) {
-    for (List<int> collidingIndices in _cornerCollidingIndices) {
-      for (int collidingIndex in collidingIndices) {
-        if (collidingIndex == index) {
-          return collidingIndices;
-        }
-      }
-    }
+    collidingIndicesList = _cornerCollidingIndices;
   } else {
-    // TODO edges
+    collidingIndicesList = _edgeCollidingIndices;
   }
 
+  for (List<int> collidingIndices in collidingIndicesList) {
+    for (int collidingIndex in collidingIndices) {
+      if (collidingIndex == index) {
+        return collidingIndices;
+      }
+    }
+  }
   return [];
 }
 
@@ -72,15 +164,23 @@ class LetterPairProvider implements AlgProvider {
   LetterPairProvider(
       {required AlgType algType,
       required String buffer,
-      required String scheme,
+      required List<String> scheme,
+      List<String>?
+          secondLetterScheme, // for custom schemes where the second letter is from a different set than the first
       required List<int> setIndices}) {
+    if (secondLetterScheme != null) {
+      assert(scheme.length == secondLetterScheme.length);
+    }
+
     for (int setIndex in setIndices) {
-      assert(setIndex > 0 && setIndex < scheme.length);
+      assert(setIndex >= 0 && setIndex < scheme.length);
       List<int> collidingIndices = _getCollidingIndices(algType, setIndex);
       List<int> bufferIndices = _getBufferIndices(algType, buffer);
       var l1 = scheme[setIndex];
       for (int l2Index = 0; l2Index < scheme.length; ++l2Index) {
-        var l2 = scheme[l2Index];
+        var l2 = secondLetterScheme == null
+            ? scheme[l2Index]
+            : secondLetterScheme[l2Index];
         if (!collidingIndices.contains(l2Index) &&
             !bufferIndices.contains(l2Index)) {
           originalLetterPairs.add(Alg(l1 + l2));
@@ -150,16 +250,28 @@ class CustomProvider implements AlgProvider {
 }
 
 class CornersAlgProvider extends LetterPairProvider {
-  // TODO set and buffer
+  // TODO set
   CornersAlgProvider()
       : super(
           algType: AlgType.Corner,
           buffer: "UFR",
           scheme: LetterPairScheme.Speffz,
-          setIndices: [1],
+          setIndices: [0],
         );
 }
 
-class EdgesAlgProvider extends CustomProvider {
-  EdgesAlgProvider() : super.fromFileContent(CustomEdges.TEST);
+class EdgesAlgProvider extends LetterPairProvider {
+  // TODO set
+  EdgesAlgProvider()
+      : super(
+          algType: AlgType.Edge,
+          buffer: "UF",
+          scheme: LetterPairScheme.AudioEdgeConsonants,
+          secondLetterScheme: LetterPairScheme.AudioEdgeVowels,
+          setIndices: [0],
+        );
 }
+
+// class EdgesAlgProvider extends CustomProvider {
+//   EdgesAlgProvider() : super.fromFileContent(CustomEdges.TEST);
+// }

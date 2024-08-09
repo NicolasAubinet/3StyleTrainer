@@ -30,7 +30,7 @@ class _TimerScreenState extends State<TimerScreen> {
   bool isReady = false;
 
   void _onTapDown() {
-    if (!isReady) {
+    if (!isReady || alg == null) {
       return;
     }
 
@@ -47,7 +47,7 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   void _onTapUp() async {
-    if (!isReady) {
+    if (!isReady || alg == null) {
       return;
     }
 

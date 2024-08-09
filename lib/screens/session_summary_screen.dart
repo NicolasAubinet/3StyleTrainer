@@ -84,7 +84,10 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         width: COLUMN_WIDTH_3,
         child: Text(
           timeToString(algTime.timeMs, fractionDigits: 2),
-          style: theme.textTheme.displaySmall,
+          style: theme.textTheme.displaySmall?.copyWith(
+              color: algTime.timeMs / 1000 < widget.targetTime
+                  ? Colors.green
+                  : Colors.red),
         ),
       )),
     ]);

@@ -87,7 +87,7 @@ class _TimerScreenState extends State<TimerScreen> {
           }
         }
         widget.algProvider.reset(skippedAlgs: skippedAlgs);
-      } else if (result == "back") {
+      } else {
         Navigator.pop(context);
       }
     }

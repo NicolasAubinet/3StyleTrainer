@@ -77,6 +77,19 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     });
   }
 
+  String getFormatedAverage() {
+    if (widget.algTimes.isEmpty) {
+      return "";
+    }
+
+    int totalTime = 0;
+    for (AlgTime algTime in widget.algTimes) {
+      totalTime += algTime.timeMs;
+    }
+    int averageTimeMs = (totalTime / widget.algTimes.length).round();
+    return timeToString(averageTimeMs, fractionDigits: 2);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -109,6 +122,10 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
               ElevatedButton(
                   onPressed: () => {Navigator.pop(context, 'back')},
                   child: Text(AppLocalizations.of(context)!.back)),
+              SizedBox(height: 3),
+              Text(AppLocalizations.of(context)!.average(getFormatedAverage()),
+                  style: theme.textTheme.displaySmall),
+              SizedBox(height: 5),
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.vertical,

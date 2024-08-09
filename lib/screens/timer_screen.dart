@@ -68,19 +68,11 @@ class _TimerScreenState extends State<TimerScreen> {
                   )));
       if (result == "repeat_all") {
       } else if (result == "repeat_target_time") {
-        bool allCasesBelowTarget = true;
         for (AlgTime algTime in timesCopy) {
           double execTime = algTime.timeMs / 1000;
           if (execTime < widget.targetTime) {
             skippedAlgs.add(algTime.alg.name);
-          } else {
-            allCasesBelowTarget = false;
           }
-        }
-
-        if (allCasesBelowTarget) {
-          _sendAllCasesWereSubTargetMessage();
-          back();
         }
       } else if (result == "back") {
         back();
@@ -117,13 +109,6 @@ class _TimerScreenState extends State<TimerScreen> {
 
   void back() {
     Navigator.pop(context);
-  }
-
-  void _sendAllCasesWereSubTargetMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(AppLocalizations.of(context)!
-          .allCasesWereSubTarget(widget.targetTime)),
-    ));
   }
 
   @override

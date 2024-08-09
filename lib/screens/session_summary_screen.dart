@@ -127,6 +127,26 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     return timeToString(averageTimeMs, fractionDigits: 2);
   }
 
+  void _onRepeatTargetTimePressed() {
+    bool allCasesBelowTarget = true;
+    for (AlgTime algTime in widget.algTimes) {
+      double execTime = algTime.timeMs / 1000;
+      if (execTime >= widget.targetTime) {
+        allCasesBelowTarget = false;
+        break;
+      }
+    }
+
+    if (allCasesBelowTarget) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context)!
+            .allCasesWereSubTarget(widget.targetTime)),
+      ));
+    } else {
+      Navigator.pop(context, 'repeat_target_time');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -149,8 +169,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton(
-                      onPressed: () =>
-                          {Navigator.pop(context, 'repeat_target_time')},
+                      onPressed: () => _onRepeatTargetTimePressed(),
                       child: Text(AppLocalizations.of(context)!
                           .repeatTargetTime(widget.targetTime))),
                 ],

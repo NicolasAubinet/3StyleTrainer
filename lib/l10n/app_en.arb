@@ -10,6 +10,7 @@
   "edges": "Edges",
   "start": "Start",
   "algSet": "Alg set",
-  "selectSetsToPractice": "Select sets to practice",
+  "selectSetsToPractice": "Select sets to practice ({count} selected)",
+  "selectAtLeastOneSet": "Select at least one set",
   "pressToStart": "Press to start"
 }

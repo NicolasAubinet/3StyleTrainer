@@ -17,7 +17,7 @@ class AlgSetSelectorScreen extends StatefulWidget {
 
 class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
   List<String> selectableAlgSets = [];
-  Set<int> selectedIndexes = {};
+  Set<int> selectedIndices = {};
 
   @override
   void initState() {
@@ -29,7 +29,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
     List<String> allAlgSets = getAlgSets(widget.algType);
     List<int> algSetIndices = [];
     // Convert indices to original alg set list that contains buffers
-    for (int selectedIndex in selectedIndexes) {
+    for (int selectedIndex in selectedIndices) {
       String algSet = selectableAlgSets[selectedIndex];
       int index = allAlgSets.indexOf(algSet);
       assert(index >= 0);
@@ -42,10 +42,10 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
 
   void onAlgSetTap(int index) {
     setState(() {
-      if (selectedIndexes.contains(index)) {
-        selectedIndexes.remove(index);
+      if (selectedIndices.contains(index)) {
+        selectedIndices.remove(index);
       } else {
-        selectedIndexes.add(index);
+        selectedIndices.add(index);
       }
     });
   }
@@ -79,48 +79,66 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
         title: Text(AppLocalizations.of(context)!.algSet),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              AppLocalizations.of(context)!.selectSetsToPractice,
+              AppLocalizations.of(context)!
+                  .selectSetsToPractice(selectedIndices.length),
               style: theme.textTheme.labelSmall,
             ),
+            SizedBox(height: 5),
             Expanded(
-              child: ListView.builder(
-                itemCount: selectableAlgSets.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Center(
-                      child: Text(
-                        selectableAlgSets[index],
-                        style: selectedIndexes.contains(index)
-                            ? theme.textTheme.displayMedium
-                                ?.copyWith(color: Colors.black)
-                            : theme.textTheme.displayMedium,
+              child: Card(
+                color: Colors.black12,
+                child: ListView.builder(
+                  itemCount: selectableAlgSets.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Center(
+                        child: Text(
+                          selectableAlgSets[index],
+                          style: selectedIndices.contains(index)
+                              ? theme.textTheme.displayMedium
+                                  ?.copyWith(color: Colors.black)
+                              : theme.textTheme.displayMedium,
+                        ),
                       ),
-                    ),
-                    onTap: () => onAlgSetTap(index),
-                    selected: selectedIndexes.contains(index),
-                    selectedTileColor: theme.colorScheme.onPrimary,
-                  );
-                },
+                      onTap: () => onAlgSetTap(index),
+                      selected: selectedIndices.contains(index),
+                      selectedTileColor: theme.colorScheme.onPrimary,
+                    );
+                  },
+                ),
               ),
             ),
+            SizedBox(height: 10),
             ElevatedButton(
-              child: Text(AppLocalizations.of(context)!.start),
+              style: ElevatedButton.styleFrom(
+                fixedSize: Size(300, 50),
+              ),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TimerScreen(
-                      widget.targetTime,
-                      getAlgProvider(),
+                if (selectedIndices.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          AppLocalizations.of(context)!.selectAtLeastOneSet),
                     ),
-                  ),
-                );
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TimerScreen(
+                        widget.targetTime,
+                        getAlgProvider(),
+                      ),
+                    ),
+                  );
+                }
               },
+              child: Text(AppLocalizations.of(context)!.start),
             ),
           ],
         ),

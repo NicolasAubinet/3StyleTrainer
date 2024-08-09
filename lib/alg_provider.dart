@@ -14,6 +14,12 @@ double _getProgression(int originalLength, int currentLength) {
   return originalLength == 0 ? 1 : 1 - (currentLength + 1) / originalLength;
 }
 
+List<String> getAlgSets(AlgType algType) {
+  return algType == AlgType.Corner
+      ? LetterPairScheme.Speffz
+      : LetterPairScheme.AudioEdgeConsonants;
+}
+
 class LetterPairScheme {
   static const Speffz = [
     'A',
@@ -143,7 +149,7 @@ List<int> _getCollidingIndices(AlgType algType, int index) {
   return [];
 }
 
-List<int> _getBufferIndices(AlgType algType, String buffer) {
+List<int> getBufferIndices(AlgType algType, String buffer) {
   if (algType == AlgType.Corner) {
     if (buffer == "UFR") {
       return [2, 9, 12];
@@ -175,7 +181,7 @@ class LetterPairProvider implements AlgProvider {
     for (int setIndex in setIndices) {
       assert(setIndex >= 0 && setIndex < scheme.length);
       List<int> collidingIndices = _getCollidingIndices(algType, setIndex);
-      List<int> bufferIndices = _getBufferIndices(algType, buffer);
+      List<int> bufferIndices = getBufferIndices(algType, buffer);
       var l1 = scheme[setIndex];
       for (int l2Index = 0; l2Index < scheme.length; ++l2Index) {
         var l2 = secondLetterScheme == null
@@ -250,25 +256,23 @@ class CustomProvider implements AlgProvider {
 }
 
 class CornersAlgProvider extends LetterPairProvider {
-  // TODO set
-  CornersAlgProvider()
+  CornersAlgProvider(List<int> setIndices)
       : super(
           algType: AlgType.Corner,
           buffer: "UFR",
           scheme: LetterPairScheme.Speffz,
-          setIndices: [0],
+          setIndices: setIndices,
         );
 }
 
 class EdgesAlgProvider extends LetterPairProvider {
-  // TODO set
-  EdgesAlgProvider()
+  EdgesAlgProvider(List<int> setIndices)
       : super(
           algType: AlgType.Edge,
           buffer: "UF",
           scheme: LetterPairScheme.AudioEdgeConsonants,
           secondLetterScheme: LetterPairScheme.AudioEdgeVowels,
-          setIndices: [0],
+          setIndices: setIndices,
         );
 }
 

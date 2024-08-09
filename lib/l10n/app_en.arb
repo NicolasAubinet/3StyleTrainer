@@ -8,5 +8,8 @@
   "repeatTargetTime": "Repeat cases above {targetTime}s",
   "corners": "Corners",
   "edges": "Edges",
+  "start": "Start",
+  "algSet": "Alg set",
+  "selectSetsToPractice": "Select sets to practice",
   "pressToStart": "Press to start"
 }

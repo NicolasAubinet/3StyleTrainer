@@ -14,7 +14,7 @@ ThemeData mainTheme = ThemeData(
     backgroundColor: Colors.black54,
     foregroundColor: Colors.white,
     titleTextStyle: GoogleFonts.firaCode(
-      fontSize: 38,
+      fontSize: 32,
       color: Colors.white,
     ),
   ),

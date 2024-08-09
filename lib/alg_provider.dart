@@ -5,7 +5,7 @@ import 'alg_structs.dart';
 abstract class AlgProvider {
   Alg? getNextAlg();
 
-  void reset();
+  void reset({List<String> skippedAlgs = const []});
 
   double getProgression();
 }
@@ -207,7 +207,8 @@ class LetterPairProvider implements AlgProvider {
   }
 
   @override
-  void reset() {
+  void reset({List<String> skippedAlgs = const []}) {
+    originalLetterPairs.removeWhere((alg) => skippedAlgs.contains(alg.name));
     letterPairsToExecute = List.from(originalLetterPairs);
   }
 
@@ -245,7 +246,8 @@ class CustomProvider implements AlgProvider {
   }
 
   @override
-  void reset() {
+  void reset({List<String> skippedAlgs = const []}) {
+    letterPairs.removeWhere((alg) => skippedAlgs.contains(alg));
     letterPairsToExecute = List.from(letterPairs);
   }
 

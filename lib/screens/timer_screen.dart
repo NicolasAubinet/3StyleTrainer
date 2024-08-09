@@ -58,7 +58,6 @@ class _TimerScreenState extends State<TimerScreen> {
       isPressed = false;
       stopwatch.reset();
       if (alg == null) {
-        widget.algProvider.reset();
         times.clear();
       } else {
         stopwatch.start();
@@ -73,8 +72,13 @@ class _TimerScreenState extends State<TimerScreen> {
                     algTimes: timesCopy,
                     targetTime: widget.targetTime,
                   )));
-      isReady = false;
+
+      setState(() {
+        isReady = false;
+      });
+
       if (result == "repeat_all") {
+        widget.algProvider.reset();
       } else if (result == "repeat_target_time") {
         for (AlgTime algTime in timesCopy) {
           double execTime = algTime.timeMs / 1000;
@@ -82,6 +86,7 @@ class _TimerScreenState extends State<TimerScreen> {
             skippedAlgs.add(algTime.alg.name);
           }
         }
+        widget.algProvider.reset(skippedAlgs: skippedAlgs);
       } else if (result == "back") {
         Navigator.pop(context);
       }

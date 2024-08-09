@@ -4,8 +4,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../alg_structs.dart';
 import '../utils.dart';
 
-const double COLUMN_WIDTH_1 = 70;
-const double COLUMN_WIDTH_2 = 150;
+const double COLUMN_WIDTH_1 = 45;
+const double COLUMN_WIDTH_2 = 110;
 const double COLUMN_WIDTH_3 = 100;
 
 class SessionSummaryScreen extends StatefulWidget {
@@ -188,6 +188,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                   child: SingleChildScrollView(
                     scrollDirection: Axis.vertical,
                     child: DataTable(
+                        horizontalMargin: 10,
+                        columnSpacing: 5,
                         sortColumnIndex: _sortColumnIndex,
                         sortAscending: _sortAscending,
                         columns: getColumns(context),

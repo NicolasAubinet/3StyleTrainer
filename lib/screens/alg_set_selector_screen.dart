@@ -116,7 +116,8 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
             SizedBox(height: 10),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                fixedSize: Size(300, 50),
+                fixedSize: Size(315, 60),
+                padding: EdgeInsets.all(2),
               ),
               onPressed: () {
                 if (selectedIndices.isEmpty) {
@@ -138,7 +139,13 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                   );
                 }
               },
-              child: Text(AppLocalizations.of(context)!.start),
+              child: Text(
+                AppLocalizations.of(context)!.start,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
             ),
           ],
         ),

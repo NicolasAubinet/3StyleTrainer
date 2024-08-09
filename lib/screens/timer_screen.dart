@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../alg_provider.dart';
@@ -92,12 +93,26 @@ class _TimerScreenState extends State<TimerScreen> {
     super.initState();
     refreshTimer = Timer.periodic(
         Duration(milliseconds: 50), (Timer t) => setState(() {}));
+    ServicesBinding.instance.keyboard.addHandler(_onKey);
   }
 
   @override
   void dispose() {
     super.dispose();
     refreshTimer.cancel();
+    ServicesBinding.instance.keyboard.removeHandler(_onKey);
+  }
+
+  bool _onKey(KeyEvent event) {
+    if (LogicalKeyboardKey.space == event.logicalKey) {
+      if (event is KeyDownEvent) {
+        _onTapDown();
+      } else if (event is KeyUpEvent) {
+        _onTapUp();
+      }
+    }
+
+    return false;
   }
 
   void back() {

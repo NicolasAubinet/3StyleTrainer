@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 const Color textColor = Colors.white;
-const Color titleColor = Colors.grey;
+const Color titleColor = Colors.white70;
 
 ThemeData mainTheme = ThemeData(
   brightness: Brightness.light,

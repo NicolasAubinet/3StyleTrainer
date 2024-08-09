@@ -1,8 +1,9 @@
-import 'dart:async';
+import 'dart:async' as async;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:timer_count_down/timer_count_down.dart';
 
 import '../alg_provider.dart';
 import '../alg_structs.dart';
@@ -25,9 +26,14 @@ class _TimerScreenState extends State<TimerScreen> {
   var times = <AlgTime>[];
   var skippedAlgs = <String>[];
   Alg? alg;
-  late Timer refreshTimer;
+  late async.Timer refreshTimer;
+  bool isReady = false;
 
   void _onTapDown() {
+    if (!isReady) {
+      return;
+    }
+
     setState(() {
       isPressed = true;
 
@@ -41,13 +47,14 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   void _onTapUp() async {
+    if (!isReady) {
+      return;
+    }
+
     List<AlgTime> timesCopy = List.from(times);
 
     setState(() {
-      do {
-        alg = widget.algProvider.getNextAlg();
-      } while (alg != null && skippedAlgs.contains(alg!.name));
-
+      _fetchNextAlg();
       isPressed = false;
       stopwatch.reset();
       if (alg == null) {
@@ -66,6 +73,7 @@ class _TimerScreenState extends State<TimerScreen> {
                     algTimes: timesCopy,
                     targetTime: widget.targetTime,
                   )));
+      isReady = false;
       if (result == "repeat_all") {
       } else if (result == "repeat_target_time") {
         for (AlgTime algTime in timesCopy) {
@@ -75,16 +83,23 @@ class _TimerScreenState extends State<TimerScreen> {
           }
         }
       } else if (result == "back") {
-        back();
+        Navigator.pop(context);
       }
     }
+  }
+
+  Alg? _fetchNextAlg() {
+    do {
+      alg = widget.algProvider.getNextAlg();
+    } while (alg != null && skippedAlgs.contains(alg!.name));
+    return alg;
   }
 
   @override
   void initState() {
     super.initState();
-    refreshTimer = Timer.periodic(
-        Duration(milliseconds: 50), (Timer t) => setState(() {}));
+    refreshTimer = async.Timer.periodic(
+        Duration(milliseconds: 50), (async.Timer t) => setState(() {}));
     ServicesBinding.instance.keyboard.addHandler(_onKey);
   }
 
@@ -107,10 +122,6 @@ class _TimerScreenState extends State<TimerScreen> {
     return false;
   }
 
-  void back() {
-    Navigator.pop(context);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -123,45 +134,61 @@ class _TimerScreenState extends State<TimerScreen> {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.timer),
       ),
-      body: Listener(
-        behavior: HitTestBehavior.translucent,
-        onPointerDown: (_) => _onTapDown(),
-        onPointerUp: (_) => _onTapUp(),
-        child: Column(
-          children: [
-            Container(
-              height: 12.0,
-              padding: EdgeInsets.all(1.5),
-              color: Colors.white,
-              child: Align(
-                alignment: Alignment.center,
-                child: LinearProgressIndicator(
-                  value: widget.algProvider.getProgression(),
-                  minHeight: 10,
-                  color: theme.colorScheme.tertiary,
-                ),
-              ),
-            ),
-            Expanded(
+      body: isReady
+          ? Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (_) => _onTapDown(),
+              onPointerUp: (_) => _onTapUp(),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    alg != null
-                        ? alg!.name
-                        : AppLocalizations.of(context)!.pressToStart,
-                    style: theme.textTheme.displayLarge,
+                  Container(
+                    height: 12.0,
+                    padding: EdgeInsets.all(1.5),
+                    color: Colors.white,
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: LinearProgressIndicator(
+                        value: widget.algProvider.getProgression(),
+                        minHeight: 10,
+                        color: theme.colorScheme.tertiary,
+                      ),
+                    ),
                   ),
-                  Text(
-                    timerText,
-                    style: theme.textTheme.displaySmall,
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          alg != null ? alg!.name : "--",
+                          style: theme.textTheme.displayLarge,
+                        ),
+                        Text(
+                          timerText,
+                          style: theme.textTheme.displaySmall,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
+            )
+          : Center(
+              child: Countdown(
+                seconds: 3,
+                build: (BuildContext context, double time) => Text(
+                  time.ceil() > 0 ? time.ceil().toString() : "",
+                  style: theme.textTheme.displayLarge,
+                ),
+                interval: Duration(milliseconds: 100),
+                onFinished: () {
+                  setState(() {
+                    isReady = true;
+                    _fetchNextAlg();
+                    stopwatch.start();
+                  });
+                },
+              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -43,6 +43,7 @@ dependencies:
   shared_preferences: ^2.3.1
   path: ^1.9.0
   google_fonts: ^6.2.1
+  timer_count_down: ^2.2.2
 
   provider: any
 dev_dependencies:

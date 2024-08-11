@@ -85,7 +85,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         child: Text(
           timeToString(algTime.timeMs, fractionDigits: 2),
           style: theme.textTheme.displaySmall?.copyWith(
-              color: algTime.timeMs / 1000 < widget.targetTime
+              color: isUnderTargetTime(algTime.timeMs, widget.targetTime)
                   ? Colors.green
                   : Colors.red),
         ),
@@ -133,8 +133,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   void _onRepeatTargetTimePressed() {
     bool allCasesBelowTarget = true;
     for (AlgTime algTime in widget.algTimes) {
-      double execTime = algTime.timeMs / 1000;
-      if (execTime >= widget.targetTime) {
+      if (!isUnderTargetTime(algTime.timeMs, widget.targetTime)) {
         allCasesBelowTarget = false;
         break;
       }

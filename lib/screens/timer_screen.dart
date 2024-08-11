@@ -85,8 +85,7 @@ class _TimerScreenState extends State<TimerScreen> {
         widget.algProvider.reset();
       } else if (result == "repeat_target_time") {
         for (AlgTime algTime in timesCopy) {
-          double execTime = algTime.timeMs / 1000;
-          if (execTime < widget.targetTime) {
+          if (isUnderTargetTime(algTime.timeMs, widget.targetTime)) {
             skippedAlgs.add(algTime.alg.name);
           }
         }

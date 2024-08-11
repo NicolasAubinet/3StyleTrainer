@@ -10,6 +10,8 @@ import '../alg_structs.dart';
 import '../utils.dart';
 import 'session_summary_screen.dart';
 
+const double MINIMUM_ALLOWED_TIME = 0.30; // to prevent misclick via double tap
+
 class TimerScreen extends StatefulWidget {
   final double targetTime;
   final AlgProvider algProvider;
@@ -30,7 +32,9 @@ class _TimerScreenState extends State<TimerScreen> {
   bool isReady = false;
 
   void _onTapDown() {
-    if (!isReady || alg == null) {
+    if (!isReady ||
+        alg == null ||
+        stopwatch.elapsedMilliseconds / 1000 < MINIMUM_ALLOWED_TIME) {
       return;
     }
 
@@ -47,7 +51,7 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   void _onTapUp() async {
-    if (!isReady || alg == null) {
+    if (!isReady || alg == null || !isPressed) {
       return;
     }
 

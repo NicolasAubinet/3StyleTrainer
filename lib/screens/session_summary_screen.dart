@@ -1,12 +1,9 @@
+import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../alg_structs.dart';
 import '../utils.dart';
-
-const double COLUMN_WIDTH_1 = 45;
-const double COLUMN_WIDTH_2 = 110;
-const double COLUMN_WIDTH_3 = 100;
 
 class SessionSummaryScreen extends StatefulWidget {
   final List<AlgTime> algTimes;
@@ -29,34 +26,23 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     return <DataColumn>[
       DataColumn(
         onSort: onSort,
-        label: SizedBox(
-          width: COLUMN_WIDTH_1,
-          child: Text(
-            "ID",
-            style: theme.textTheme.titleMedium,
-          ),
+        label: Text(
+          "ID",
+          style: theme.textTheme.titleMedium,
         ),
       ),
       DataColumn(
         onSort: onSort,
-        label: SizedBox(
-          width: COLUMN_WIDTH_2,
-          child: Center(
-            child: Text(
-              "Alg",
-              style: theme.textTheme.titleMedium,
-            ),
-          ),
+        label: Text(
+          "Alg",
+          style: theme.textTheme.titleMedium,
         ),
       ),
       DataColumn(
         onSort: onSort,
-        label: SizedBox(
-          width: COLUMN_WIDTH_3,
-          child: Text(
-            "Time",
-            style: theme.textTheme.titleMedium,
-          ),
+        label: Text(
+          "Time",
+          style: theme.textTheme.titleMedium,
         ),
       ),
     ];
@@ -64,31 +50,20 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 
   DataRow toDataRow(AlgTime algTime, ThemeData theme) {
     return DataRow(cells: [
-      DataCell(SizedBox(
-        width: COLUMN_WIDTH_1,
-        child: Text(
-          (algTime.index).toString(),
-          style: theme.textTheme.displaySmall,
-        ),
+      DataCell(Text(
+        (algTime.index).toString(),
+        style: theme.textTheme.displaySmall,
       )),
-      DataCell(SizedBox(
-        width: COLUMN_WIDTH_2,
-        child: Center(
-          child: Text(
-            algTime.alg.name,
-            style: theme.textTheme.displaySmall,
-          ),
-        ),
+      DataCell(Text(
+        algTime.alg.name,
+        style: theme.textTheme.displaySmall,
       )),
-      DataCell(SizedBox(
-        width: COLUMN_WIDTH_3,
-        child: Text(
-          timeToString(algTime.timeMs, fractionDigits: 2),
-          style: theme.textTheme.displaySmall?.copyWith(
-              color: isUnderTargetTime(algTime.timeMs, widget.targetTime)
-                  ? Colors.green
-                  : Colors.red),
-        ),
+      DataCell(Text(
+        timeToString(algTime.timeMs, fractionDigits: 2),
+        style: theme.textTheme.displaySmall?.copyWith(
+            color: isUnderTargetTime(algTime.timeMs, widget.targetTime)
+                ? Colors.green
+                : Colors.red),
       )),
     ]);
   }
@@ -187,18 +162,16 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
               Expanded(
                 child: Card(
                   color: Colors.black12,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.vertical,
-                    child: DataTable(
-                        horizontalMargin: 10,
-                        columnSpacing: 5,
-                        sortColumnIndex: _sortColumnIndex,
-                        sortAscending: _sortAscending,
-                        columns: getColumns(context),
-                        rows: widget.algTimes
-                            .map((algTime) => toDataRow(algTime, theme))
-                            .toList()),
-                  ),
+                  child: DataTable2(
+                      fixedTopRows: 1,
+                      horizontalMargin: 10,
+                      columnSpacing: 5,
+                      sortColumnIndex: _sortColumnIndex,
+                      sortAscending: _sortAscending,
+                      columns: getColumns(context),
+                      rows: widget.algTimes
+                          .map((algTime) => toDataRow(algTime, theme))
+                          .toList()),
                 ),
               ),
             ],

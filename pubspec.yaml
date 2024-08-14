@@ -44,6 +44,7 @@ dependencies:
   path: ^1.9.0
   google_fonts: ^6.2.1
   timer_count_down: ^2.2.2
+  data_table_2: ^2.5.15
 
   provider: any
 dev_dependencies:

@@ -178,18 +178,20 @@ class LetterPairProvider implements AlgProvider {
       assert(scheme.length == secondLetterScheme.length);
     }
 
+    List<int> bufferIndices = getBufferIndices(algType, buffer);
     List<int> actualSetIndices = List.from(setIndices);
     if (actualSetIndices.isEmpty) {
       // empty set means all sets
       for (int i = 0; i < scheme.length; ++i) {
-        actualSetIndices.add(i);
+        if (!bufferIndices.contains(i)) {
+          actualSetIndices.add(i);
+        }
       }
     }
 
     for (int setIndex in actualSetIndices) {
       assert(setIndex >= 0 && setIndex < scheme.length);
       List<int> collidingIndices = _getCollidingIndices(algType, setIndex);
-      List<int> bufferIndices = getBufferIndices(algType, buffer);
       var l1 = scheme[setIndex];
       for (int l2Index = 0; l2Index < scheme.length; ++l2Index) {
         var l2 = secondLetterScheme == null

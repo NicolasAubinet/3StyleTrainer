@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:three_style_trainer/alg_structs.dart';
+import 'package:three_style_trainer/practice_type.dart';
 
 import '../alg_provider.dart';
 import 'timer_screen.dart';
@@ -36,8 +37,8 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
       algSetIndices.add(index);
     }
     return widget.algType == AlgType.Corner
-        ? CornersAlgProvider(algSetIndices)
-        : EdgesAlgProvider(algSetIndices);
+        ? CornersAlgProvider(setIndices: algSetIndices)
+        : EdgesAlgProvider(setIndices: algSetIndices);
   }
 
   void onAlgSetTap(int index) {
@@ -132,6 +133,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => TimerScreen(
+                        PracticeType.sets,
                         widget.targetTime,
                         getAlgProvider(),
                       ),

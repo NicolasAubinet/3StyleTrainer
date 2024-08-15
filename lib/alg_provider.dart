@@ -178,7 +178,15 @@ class LetterPairProvider implements AlgProvider {
       assert(scheme.length == secondLetterScheme.length);
     }
 
-    for (int setIndex in setIndices) {
+    List<int> actualSetIndices = List.from(setIndices);
+    if (actualSetIndices.isEmpty) {
+      // empty set means all sets
+      for (int i = 0; i < scheme.length; ++i) {
+        actualSetIndices.add(i);
+      }
+    }
+
+    for (int setIndex in actualSetIndices) {
       assert(setIndex >= 0 && setIndex < scheme.length);
       List<int> collidingIndices = _getCollidingIndices(algType, setIndex);
       List<int> bufferIndices = getBufferIndices(algType, buffer);
@@ -258,23 +266,21 @@ class CustomProvider implements AlgProvider {
 }
 
 class CornersAlgProvider extends LetterPairProvider {
-  CornersAlgProvider(List<int> setIndices)
+  CornersAlgProvider({super.setIndices = const []})
       : super(
           algType: AlgType.Corner,
           buffer: "UFR",
           scheme: LetterPairScheme.Speffz,
-          setIndices: setIndices,
         );
 }
 
 class EdgesAlgProvider extends LetterPairProvider {
-  EdgesAlgProvider(List<int> setIndices)
+  EdgesAlgProvider({super.setIndices = const []})
       : super(
           algType: AlgType.Edge,
           buffer: "UF",
           scheme: LetterPairScheme.AudioEdgeConsonants,
           secondLetterScheme: LetterPairScheme.AudioEdgeVowels,
-          setIndices: setIndices,
         );
 }
 

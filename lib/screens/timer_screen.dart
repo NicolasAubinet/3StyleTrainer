@@ -7,16 +7,19 @@ import 'package:timer_count_down/timer_count_down.dart';
 
 import '../alg_provider.dart';
 import '../alg_structs.dart';
+import '../practice_type.dart';
 import '../utils.dart';
 import 'session_summary_screen.dart';
 
 const double MINIMUM_ALLOWED_TIME = 0.30; // to prevent misclick via double tap
+const int TIME_RACE_DURATION_SECONDS = 60;
 
 class TimerScreen extends StatefulWidget {
+  final PracticeType practiceType;
   final double targetTime;
   final AlgProvider algProvider;
 
-  TimerScreen(this.targetTime, this.algProvider);
+  TimerScreen(this.practiceType, this.targetTime, this.algProvider);
 
   @override
   State<TimerScreen> createState() => _TimerScreenState();
@@ -29,6 +32,8 @@ class _TimerScreenState extends State<TimerScreen> {
   var skippedAlgs = <String>[];
   Alg? alg;
   late async.Timer refreshTimer;
+  async.Timer? timeRaceTimer;
+  DateTime? timerStartTime;
   bool isReady = false;
 
   void _onTapDown() {
@@ -75,6 +80,7 @@ class _TimerScreenState extends State<TimerScreen> {
               builder: (context) => SessionSummaryScreen(
                     algTimes: timesCopy,
                     targetTime: widget.targetTime,
+                    practiceType: widget.practiceType,
                   )));
 
       setState(() {
@@ -103,12 +109,36 @@ class _TimerScreenState extends State<TimerScreen> {
     return alg;
   }
 
+  void _onTimeRaceEnded() async {
+    List<AlgTime> timesCopy = List.from(times);
+    setState(() {
+      stopwatch.reset();
+      times.clear();
+    });
+
+    await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => SessionSummaryScreen(
+                  algTimes: timesCopy,
+                  targetTime: widget.targetTime,
+                  practiceType: widget.practiceType,
+                )));
+    Navigator.pop(context);
+  }
+
   @override
   void initState() {
     super.initState();
+
     refreshTimer = async.Timer.periodic(
         Duration(milliseconds: 50), (async.Timer t) => setState(() {}));
     ServicesBinding.instance.keyboard.addHandler(_onKey);
+
+    if (widget.practiceType == PracticeType.timeRace) {
+      timeRaceTimer = async.Timer(Duration(seconds: TIME_RACE_DURATION_SECONDS),
+          () => _onTimeRaceEnded());
+    }
   }
 
   @override
@@ -116,6 +146,8 @@ class _TimerScreenState extends State<TimerScreen> {
     super.dispose();
     refreshTimer.cancel();
     ServicesBinding.instance.keyboard.removeHandler(_onKey);
+
+    timeRaceTimer?.cancel();
   }
 
   bool _onKey(KeyEvent event) {
@@ -152,6 +184,16 @@ class _TimerScreenState extends State<TimerScreen> {
     }
   }
 
+  double getTimeRaceProgression() {
+    if (timerStartTime == null) {
+      return 0;
+    }
+    Duration duration = DateTime.now().difference(timerStartTime!);
+    int ms = duration.inMilliseconds;
+    double progression = ms / TIME_RACE_DURATION_SECONDS / 1000;
+    return progression;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -178,7 +220,9 @@ class _TimerScreenState extends State<TimerScreen> {
                     child: Align(
                       alignment: Alignment.center,
                       child: LinearProgressIndicator(
-                        value: widget.algProvider.getProgression(),
+                        value: widget.practiceType == PracticeType.sets
+                            ? widget.algProvider.getProgression()
+                            : getTimeRaceProgression(),
                         minHeight: 10,
                         color: theme.colorScheme.tertiary,
                       ),
@@ -217,6 +261,7 @@ class _TimerScreenState extends State<TimerScreen> {
                 onFinished: () {
                   setState(() {
                     isReady = true;
+                    timerStartTime = DateTime.now();
                     _fetchNextAlg();
                     stopwatch.start();
                   });

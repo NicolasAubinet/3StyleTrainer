@@ -1,6 +1,7 @@
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:three_style_trainer/practice_type.dart';
 
 import '../alg_structs.dart';
 import '../utils.dart';
@@ -8,9 +9,13 @@ import '../utils.dart';
 class SessionSummaryScreen extends StatefulWidget {
   final List<AlgTime> algTimes;
   final double targetTime;
+  final PracticeType practiceType;
 
   const SessionSummaryScreen(
-      {super.key, required this.algTimes, required this.targetTime});
+      {super.key,
+      required this.algTimes,
+      required this.targetTime,
+      required this.practiceType});
 
   @override
   State<SessionSummaryScreen> createState() => _SessionSummaryScreenState();
@@ -138,24 +143,10 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
           padding: const EdgeInsets.all(5.0),
           child: Column(
             children: [
-              ElevatedButton(
-                  onPressed: () => {Navigator.pop(context, 'repeat_all')},
-                  child: Text(AppLocalizations.of(context)!.repeatAll)),
-              SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                      onPressed: () => _onRepeatTargetTimePressed(),
-                      child: Text(AppLocalizations.of(context)!
-                          .repeatTargetTime(widget.targetTime))),
-                ],
-              ),
-              SizedBox(height: 8),
-              ElevatedButton(
-                  onPressed: () => {Navigator.pop(context, 'back')},
-                  child: Text(AppLocalizations.of(context)!.back)),
-              SizedBox(height: 3),
+              widget.practiceType == PracticeType.sets
+                  ? SetsPracticeButtons(
+                      widget.targetTime, () => _onRepeatTargetTimePressed())
+                  : TimeRaceStatsWidget(widget.algTimes.length),
               Text(AppLocalizations.of(context)!.average(getFormatedAverage()),
                   style: theme.textTheme.displaySmall),
               SizedBox(height: 5),
@@ -179,5 +170,60 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         ),
       ),
     );
+  }
+}
+
+class SetsPracticeButtons extends StatelessWidget {
+  final double _targetTime;
+  final Function _onPressed;
+
+  SetsPracticeButtons(this._targetTime, this._onPressed);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        ElevatedButton(
+            onPressed: () => {Navigator.pop(context, 'repeat_all')},
+            child: Text(AppLocalizations.of(context)!.repeatAll)),
+        SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+                onPressed: () => _onPressed(),
+                child: Text(AppLocalizations.of(context)!
+                    .repeatTargetTime(_targetTime))),
+          ],
+        ),
+        SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+class TimeRaceStatsWidget extends StatelessWidget {
+  final int _completedAlgs;
+
+  TimeRaceStatsWidget(this._completedAlgs);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.completedAlgs,
+            style: Theme.of(context).textTheme.displaySmall,
+          ),
+          Text(
+            _completedAlgs.toString(),
+            style: Theme.of(context).textTheme.displaySmall,
+          )
+        ],
+      ),
+      SizedBox(height: 5),
+    ]);
   }
 }

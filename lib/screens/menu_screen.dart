@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:three_style_trainer/alg_provider.dart';
 import 'package:three_style_trainer/alg_structs.dart';
+import 'package:three_style_trainer/practice_type.dart';
 import 'package:three_style_trainer/screens/alg_set_selector_screen.dart';
+import 'package:three_style_trainer/screens/timer_screen.dart';
 
 import '../widgets/number_input_field.dart';
 
@@ -15,6 +18,7 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   double _targetTime = DEFAULT_TARGET_TIME;
+  PracticeType _practiceType = PracticeType.sets;
 
   @override
   void initState() {
@@ -29,79 +33,157 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
+  void _onButtonPressed(BuildContext context, AlgType algType) {
+    if (_practiceType == PracticeType.sets) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AlgSetSelectorScreen(
+            _targetTime,
+            algType,
+          ),
+        ),
+      );
+    } else if (_practiceType == PracticeType.timeRace) {
+      AlgProvider algProvider =
+          algType == AlgType.Corner ? CornersAlgProvider() : EdgesAlgProvider();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TimerScreen(
+            _practiceType,
+            _targetTime,
+            algProvider,
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    var theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: theme.colorScheme.primary,
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           ElevatedButton(
             child: Text(AppLocalizations.of(context)!.corners),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AlgSetSelectorScreen(
-                    _targetTime,
-                    AlgType.Corner,
-                  ),
-                ),
-              );
-            },
+            onPressed: () => _onButtonPressed(context, AlgType.Corner),
           ),
           SizedBox(height: 20),
           ElevatedButton(
             child: Text(AppLocalizations.of(context)!.edges),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AlgSetSelectorScreen(
-                    _targetTime,
-                    AlgType.Edge,
-                  ),
-                ),
-              );
-            },
+            onPressed: () => _onButtonPressed(context, AlgType.Edge),
           ),
           SizedBox(height: 50),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                AppLocalizations.of(context)!.targetTime,
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-              Container(
-                color: Colors.black26,
-                padding: EdgeInsets.symmetric(horizontal: 5.0),
-                width: 50,
-                // height: 30,
-                child: NumberInputField(
-                  decimal: true,
-                  onTapOutside: (value) async {
-                    SharedPreferences prefs =
-                        await SharedPreferences.getInstance();
-                    var doubleValue = double.tryParse(value);
-                    if (doubleValue != null) {
-                      prefs.setDouble("target_time", doubleValue);
-                    } else {
-                      prefs.remove("target_time");
-                      doubleValue = DEFAULT_TARGET_TIME;
-                    }
-                    setState(() {
-                      _targetTime = doubleValue!;
-                    });
-                    FocusManager.instance.primaryFocus?.unfocus();
-                  },
-                  defaultValue: _targetTime.toString(),
-                ),
-              ),
+              PracticeTypeSelectionWidget((PracticeType? type) {
+                setState(() {
+                  _practiceType = type ?? PracticeType.sets;
+                });
+              }),
             ],
-          )
+          ),
+          SizedBox(height: 10),
+          TargetTimeSelectionWidget(_targetTime, (targetTime) async {
+            SharedPreferences prefs = await SharedPreferences.getInstance();
+            prefs.setDouble("target_time", targetTime);
+            setState(() {
+              _targetTime = targetTime;
+            });
+          }),
         ],
       ),
+    );
+  }
+}
+
+class PracticeTypeSelectionWidget extends StatefulWidget {
+  final Function(PracticeType?) _onSelected;
+
+  PracticeTypeSelectionWidget(this._onSelected);
+
+  @override
+  State<PracticeTypeSelectionWidget> createState() =>
+      _PracticeTypeSelectionWidgetState();
+}
+
+class _PracticeTypeSelectionWidgetState
+    extends State<PracticeTypeSelectionWidget> {
+  @override
+  Widget build(BuildContext context) {
+    var theme = Theme.of(context);
+
+    return DropdownMenu<PracticeType>(
+      initialSelection: PracticeType.sets,
+      label: Text(
+        AppLocalizations.of(context)!.practiceType,
+        style: theme.textTheme.labelSmall,
+      ),
+      onSelected: (PracticeType? type) {
+        widget._onSelected(type);
+      },
+      textStyle: theme.textTheme.labelSmall,
+      dropdownMenuEntries: PracticeType.values
+          .map<DropdownMenuEntry<PracticeType>>((PracticeType type) {
+        return DropdownMenuEntry<PracticeType>(
+          value: type,
+          label: type.getLocalizedName(context),
+          style: MenuItemButton.styleFrom(
+            textStyle: theme.textTheme.labelSmall,
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class TargetTimeSelectionWidget extends StatefulWidget {
+  final double _targetTime;
+  final Function(double) _onTapOutside;
+
+  TargetTimeSelectionWidget(this._targetTime, this._onTapOutside);
+
+  @override
+  State<TargetTimeSelectionWidget> createState() =>
+      _TargetTimeSelectionWidgetState();
+}
+
+class _TargetTimeSelectionWidgetState extends State<TargetTimeSelectionWidget> {
+  @override
+  Widget build(BuildContext context) {
+    var theme = Theme.of(context);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.targetTime,
+          style: theme.textTheme.labelSmall,
+        ),
+        Container(
+          color: Colors.black26,
+          padding: EdgeInsets.symmetric(horizontal: 5.0),
+          width: 50,
+          // height: 30,
+          child: NumberInputField(
+            decimal: true,
+            onTapOutside: (value) async {
+              var doubleValue = double.tryParse(value);
+              doubleValue ??= DEFAULT_TARGET_TIME;
+              widget._onTapOutside(doubleValue);
+
+              FocusManager.instance.primaryFocus?.unfocus();
+            },
+            defaultValue: widget._targetTime.toString(),
+          ),
+        ),
+      ],
     );
   }
 }

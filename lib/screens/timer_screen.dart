@@ -112,6 +112,7 @@ class _TimerScreenState extends State<TimerScreen> {
   void _onTimeRaceEnded() async {
     List<AlgTime> timesCopy = List.from(times);
     setState(() {
+      stopwatch.stop();
       stopwatch.reset();
       times.clear();
       timerStartTime = null;

@@ -150,6 +150,12 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
               Text(AppLocalizations.of(context)!.average(getFormatedAverage()),
                   style: theme.textTheme.displaySmall),
               SizedBox(height: 5),
+              widget.practiceType == PracticeType.timeRace
+                  ? ElevatedButton(
+                      onPressed: () => {Navigator.pop(context, 'again')},
+                      child: Text(AppLocalizations.of(context)!.again))
+                  : Container(),
+              SizedBox(height: 8),
               Expanded(
                 child: Card(
                   color: Colors.black12,

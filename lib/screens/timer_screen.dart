@@ -32,7 +32,6 @@ class _TimerScreenState extends State<TimerScreen> {
   var skippedAlgs = <String>[];
   Alg? alg;
   late async.Timer refreshTimer;
-  async.Timer? timeRaceTimer;
   DateTime? timerStartTime;
   bool isReady = false;
 
@@ -68,6 +67,7 @@ class _TimerScreenState extends State<TimerScreen> {
       stopwatch.reset();
       if (alg == null) {
         times.clear();
+        timerStartTime = null;
       } else {
         stopwatch.start();
       }
@@ -114,9 +114,10 @@ class _TimerScreenState extends State<TimerScreen> {
     setState(() {
       stopwatch.reset();
       times.clear();
+      timerStartTime = null;
     });
 
-    await Navigator.push(
+    final result = await Navigator.push(
         context,
         MaterialPageRoute(
             builder: (context) => SessionSummaryScreen(
@@ -124,7 +125,16 @@ class _TimerScreenState extends State<TimerScreen> {
                   targetTime: widget.targetTime,
                   practiceType: widget.practiceType,
                 )));
-    Navigator.pop(context);
+
+    setState(() {
+      isReady = false;
+    });
+
+    if (result == "again") {
+      widget.algProvider.reset();
+    } else {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -132,13 +142,15 @@ class _TimerScreenState extends State<TimerScreen> {
     super.initState();
 
     refreshTimer = async.Timer.periodic(
-        Duration(milliseconds: 50), (async.Timer t) => setState(() {}));
+        Duration(milliseconds: 50),
+        (async.Timer t) => setState(() {
+              if (widget.practiceType == PracticeType.timeRace) {
+                if (getTimeRaceProgression() >= 1 && timerStartTime != null) {
+                  _onTimeRaceEnded();
+                }
+              }
+            }));
     ServicesBinding.instance.keyboard.addHandler(_onKey);
-
-    if (widget.practiceType == PracticeType.timeRace) {
-      timeRaceTimer = async.Timer(Duration(seconds: TIME_RACE_DURATION_SECONDS),
-          () => _onTimeRaceEnded());
-    }
   }
 
   @override
@@ -146,8 +158,6 @@ class _TimerScreenState extends State<TimerScreen> {
     super.dispose();
     refreshTimer.cancel();
     ServicesBinding.instance.keyboard.removeHandler(_onKey);
-
-    timeRaceTimer?.cancel();
   }
 
   bool _onKey(KeyEvent event) {

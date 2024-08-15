@@ -6,6 +6,7 @@
   "practiceTypeSets": "Sets",
   "practiceTypeTimeRace": "Time race",
   "completedAlgs": "Completed algs: ",
+  "again": "Again",
   "targetTime": "Target time: ",
   "back": "Back",
   "allCasesWereSubTarget": "All cases were sub {targetTime}",

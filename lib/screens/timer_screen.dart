@@ -130,6 +130,28 @@ class _TimerScreenState extends State<TimerScreen> {
     return false;
   }
 
+  TextSpan getAlgTextSpan(ThemeData theme, String algChar) {
+    Set<String> greenCharacters = {'é', 'É'};
+    Set<String> redCharacters = {'è', 'È'};
+
+    if (greenCharacters.contains(algChar)) {
+      return TextSpan(
+        text: algChar,
+        style: theme.textTheme.displayLarge!.copyWith(color: Colors.green),
+      );
+    } else if (redCharacters.contains(algChar)) {
+      return TextSpan(
+        text: algChar,
+        style: theme.textTheme.displayLarge!.copyWith(color: Colors.orange),
+      );
+    } else {
+      return TextSpan(
+        text: algChar,
+        style: theme.textTheme.displayLarge,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -166,9 +188,13 @@ class _TimerScreenState extends State<TimerScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          alg != null ? alg!.name : "--",
-                          style: theme.textTheme.displayLarge,
+                        RichText(
+                          text: TextSpan(
+                            children: (alg != null ? alg!.name : "--")
+                                .characters
+                                .map((e) => getAlgTextSpan(theme, e))
+                                .toList(),
+                          ),
                         ),
                         Text(
                           timerText,

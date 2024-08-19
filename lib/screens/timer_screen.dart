@@ -3,6 +3,7 @@ import 'dart:async' as async;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:three_style_trainer/database_manager.dart';
 import 'package:timer_count_down/timer_count_down.dart';
 
 import '../alg_provider.dart';
@@ -18,8 +19,12 @@ class TimerScreen extends StatefulWidget {
   final PracticeType practiceType;
   final double targetTime;
   final AlgProvider algProvider;
+  final AlgType algType;
+  final List<String> skippedAlgs;
 
-  TimerScreen(this.practiceType, this.targetTime, this.algProvider);
+  TimerScreen(
+      this.practiceType, this.targetTime, this.algProvider, this.algType,
+      {this.skippedAlgs = const []});
 
   @override
   State<TimerScreen> createState() => _TimerScreenState();
@@ -45,12 +50,15 @@ class _TimerScreenState extends State<TimerScreen> {
     setState(() {
       isPressed = true;
 
-      var elapsedMilliseconds = stopwatch.elapsedMilliseconds;
-      if (alg != null) {
-        times.add(AlgTime(times.length + 1, elapsedMilliseconds, alg!));
-      }
+      int elapsedMilliseconds = stopwatch.elapsedMilliseconds;
+      times.add(AlgTime(times.length + 1, elapsedMilliseconds, alg!));
 
       stopwatch.stop();
+
+      if (widget.practiceType == PracticeType.timeRace) {
+        skippedAlgs.add(alg!.name);
+        DatabaseManager().insertExecutedTimeRaceAlg(widget.algType, alg!.name);
+      }
     });
   }
 
@@ -68,6 +76,12 @@ class _TimerScreenState extends State<TimerScreen> {
       if (alg == null) {
         times.clear();
         timerStartTime = null;
+
+        if (widget.practiceType == PracticeType.timeRace) {
+          DatabaseManager().resetExecutedTimeRaceAlgs();
+          widget.algProvider.reset(); // reset to all algs
+          _fetchNextAlg();
+        }
       } else {
         stopwatch.start();
       }
@@ -97,7 +111,9 @@ class _TimerScreenState extends State<TimerScreen> {
         }
         widget.algProvider.reset(skippedAlgs: skippedAlgs);
       } else {
-        Navigator.pop(context);
+        if (mounted && context.mounted) {
+          Navigator.pop(context);
+        }
       }
     }
   }
@@ -132,8 +148,8 @@ class _TimerScreenState extends State<TimerScreen> {
     });
 
     if (result == "again") {
-      widget.algProvider.reset();
-    } else {
+      widget.algProvider.reset(skippedAlgs: skippedAlgs);
+    } else if (mounted && context.mounted) {
       Navigator.pop(context);
     }
   }
@@ -141,6 +157,8 @@ class _TimerScreenState extends State<TimerScreen> {
   @override
   void initState() {
     super.initState();
+
+    skippedAlgs = List.of(widget.skippedAlgs);
 
     refreshTimer = async.Timer.periodic(
         Duration(milliseconds: 50),

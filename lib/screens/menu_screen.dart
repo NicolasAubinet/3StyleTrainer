@@ -3,6 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_style_trainer/alg_provider.dart';
 import 'package:three_style_trainer/alg_structs.dart';
+import 'package:three_style_trainer/database_manager.dart';
 import 'package:three_style_trainer/practice_type.dart';
 import 'package:three_style_trainer/screens/alg_set_selector_screen.dart';
 import 'package:three_style_trainer/screens/timer_screen.dart';
@@ -33,7 +34,7 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
-  void _onButtonPressed(BuildContext context, AlgType algType) {
+  void _onButtonPressed(BuildContext context, AlgType algType) async {
     if (_practiceType == PracticeType.sets) {
       Navigator.push(
         context,
@@ -45,18 +46,25 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
       );
     } else if (_practiceType == PracticeType.timeRace) {
-      AlgProvider algProvider =
-          algType == AlgType.Corner ? CornersAlgProvider() : EdgesAlgProvider();
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TimerScreen(
-            _practiceType,
-            _targetTime,
-            algProvider,
+      List<String> skippedAlgs =
+          await DatabaseManager().getExecutedTimeRaceAlgs(algType);
+      AlgProvider algProvider = algType == AlgType.Corner
+          ? CornersAlgProvider(skippedAlgs: skippedAlgs)
+          : EdgesAlgProvider(skippedAlgs: skippedAlgs);
+      if (mounted && context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TimerScreen(
+              _practiceType,
+              _targetTime,
+              algProvider,
+              algType,
+              skippedAlgs: skippedAlgs,
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 

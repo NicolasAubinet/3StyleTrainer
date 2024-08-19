@@ -166,14 +166,17 @@ List<int> getBufferIndices(AlgType algType, String buffer) {
 class LetterPairProvider implements AlgProvider {
   var originalLetterPairs = <Alg>[];
   var letterPairsToExecute = <Alg>[];
+  int originalPairsToExecute = 0;
 
-  LetterPairProvider(
-      {required AlgType algType,
-      required String buffer,
-      required List<String> scheme,
-      List<String>?
-          secondLetterScheme, // for custom schemes where the second letter is from a different set than the first
-      required List<int> setIndices}) {
+  LetterPairProvider({
+    required AlgType algType,
+    required String buffer,
+    required List<String> scheme,
+    List<String>?
+        secondLetterScheme, // for custom schemes where the second letter is from a different set than the first
+    required List<int> setIndices,
+    List<String> skippedAlgs = const [],
+  }) {
     if (secondLetterScheme != null) {
       assert(scheme.length == secondLetterScheme.length);
     }
@@ -203,7 +206,7 @@ class LetterPairProvider implements AlgProvider {
         }
       }
     }
-    reset();
+    reset(skippedAlgs: skippedAlgs);
   }
 
   @override
@@ -218,20 +221,21 @@ class LetterPairProvider implements AlgProvider {
 
   @override
   void reset({List<String> skippedAlgs = const []}) {
-    originalLetterPairs.removeWhere((alg) => skippedAlgs.contains(alg.name));
     letterPairsToExecute = List.from(originalLetterPairs);
+    letterPairsToExecute.removeWhere((alg) => skippedAlgs.contains(alg.name));
+    originalPairsToExecute = letterPairsToExecute.length;
   }
 
   @override
   double getProgression() {
-    return _getProgression(
-        originalLetterPairs.length, letterPairsToExecute.length);
+    return _getProgression(originalPairsToExecute, letterPairsToExecute.length);
   }
 }
 
 class CustomProvider implements AlgProvider {
   final List<String> letterPairs;
   List<String> letterPairsToExecute = [];
+  int originalPairsToExecute = 0;
 
   CustomProvider(this.letterPairs) {
     reset();
@@ -257,18 +261,20 @@ class CustomProvider implements AlgProvider {
 
   @override
   void reset({List<String> skippedAlgs = const []}) {
-    letterPairs.removeWhere((alg) => skippedAlgs.contains(alg));
     letterPairsToExecute = List.from(letterPairs);
+    letterPairsToExecute.removeWhere((alg) => skippedAlgs.contains(alg));
+    originalPairsToExecute = letterPairsToExecute.length;
   }
 
   @override
   double getProgression() {
-    return _getProgression(letterPairs.length, letterPairsToExecute.length);
+    return _getProgression(originalPairsToExecute, letterPairsToExecute.length);
   }
 }
 
 class CornersAlgProvider extends LetterPairProvider {
-  CornersAlgProvider({super.setIndices = const []})
+  CornersAlgProvider(
+      {super.setIndices = const [], super.skippedAlgs = const []})
       : super(
           algType: AlgType.Corner,
           buffer: "UFR",
@@ -277,7 +283,7 @@ class CornersAlgProvider extends LetterPairProvider {
 }
 
 class EdgesAlgProvider extends LetterPairProvider {
-  EdgesAlgProvider({super.setIndices = const []})
+  EdgesAlgProvider({super.setIndices = const [], super.skippedAlgs = const []})
       : super(
           algType: AlgType.Edge,
           buffer: "UF",

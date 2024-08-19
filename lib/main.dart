@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:three_style_trainer/database_manager.dart';
 
 import 'screens/menu_screen.dart';
 import 'themes.dart';
 
 void main() {
-  runApp(MainApp());
+  DatabaseManager().initDatabase(onReady: () => runApp(MainApp()));
 }
 
 class MainApp extends StatelessWidget {

@@ -136,6 +136,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                         PracticeType.sets,
                         widget.targetTime,
                         getAlgProvider(),
+                        widget.algType,
                       ),
                     ),
                   );

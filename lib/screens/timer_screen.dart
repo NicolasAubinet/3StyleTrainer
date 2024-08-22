@@ -74,13 +74,16 @@ class _TimerScreenState extends State<TimerScreen> {
       isPressed = false;
       stopwatch.reset();
       if (alg == null) {
-        times.clear();
-        timerStartTime = null;
-
         if (widget.practiceType == PracticeType.timeRace) {
+          // Reset to all algs and keep going
           DatabaseManager().resetExecutedTimeRaceAlgs();
-          widget.algProvider.reset(); // reset to all algs
+          skippedAlgs.clear();
+          widget.algProvider.reset();
           _fetchNextAlg();
+        } else if (widget.practiceType == PracticeType.sets) {
+          // Sets completed, stop
+          times.clear();
+          timerStartTime = null;
         }
       } else {
         stopwatch.start();

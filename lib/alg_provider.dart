@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'alg_structs.dart';
 
+const bool USE_EDGE_AUDIO_SYLLABLES = false;
+
 abstract class AlgProvider {
   Alg? getNextAlg();
 
@@ -15,9 +17,12 @@ double _getProgression(int originalLength, int currentLength) {
 }
 
 List<String> getAlgSets(AlgType algType) {
-  return algType == AlgType.Corner
-      ? LetterPairScheme.Speffz
-      : LetterPairScheme.AudioEdgeConsonants;
+  if (algType == AlgType.Edge) {
+    return USE_EDGE_AUDIO_SYLLABLES
+        ? LetterPairScheme.AudioEdgeConsonants
+        : LetterPairScheme.Speffz;
+  }
+  return LetterPairScheme.Speffz;
 }
 
 class LetterPairScheme {
@@ -103,40 +108,62 @@ class LetterPairScheme {
   ];
 }
 
-List<List<int>> _cornerCollidingIndices = [
-  // indices to different stickers of same corner pieces
-  [0, 4, 17],
-  [1, 13, 16],
-  [2, 9, 12],
-  [3, 5, 8],
-  [20, 6, 11],
-  [21, 10, 15],
-  [22, 14, 19],
-  [23, 7, 18],
-];
+class CollidingIndices {
+  // indices to different stickers of same pieces
 
-List<List<int>> _edgeCollidingIndices = [
-  // indices to different stickers of same edge pieces
-  [0, 4],
-  [1, 5],
-  [2, 6],
-  [3, 7],
-  [8, 9],
-  [10, 11],
-  [12, 13],
-  [14, 15],
-  [16, 20],
-  [17, 21],
-  [18, 22],
-  [19, 23],
-];
+  static const List<List<int>> cornerSpeffz = [
+    [0, 4, 17],
+    [1, 13, 16],
+    [2, 9, 12],
+    [3, 5, 8],
+    [20, 6, 11],
+    [21, 10, 15],
+    [22, 14, 19],
+    [23, 7, 18],
+  ];
+
+  static const List<List<int>> edgeSpeffz = [
+    [0, 16],
+    [1, 12],
+    [2, 8],
+    [3, 4],
+    [5, 11],
+    [6, 23],
+    [7, 17],
+    [9, 15],
+    [13, 19],
+    [10, 20],
+    [18, 22],
+    [14, 21],
+  ];
+
+  // use a different list to allow to control the order in the list
+  static const List<List<int>> edgeAudioSyllables = [
+    [0, 4],
+    [1, 5],
+    [2, 6],
+    [3, 7],
+    [8, 9],
+    [10, 11],
+    [12, 13],
+    [14, 15],
+    [16, 20],
+    [17, 21],
+    [18, 22],
+    [19, 23],
+  ];
+}
 
 List<int> _getCollidingIndices(AlgType algType, int index) {
   List<List<int>> collidingIndicesList;
   if (algType == AlgType.Corner) {
-    collidingIndicesList = _cornerCollidingIndices;
+    collidingIndicesList = CollidingIndices.cornerSpeffz;
   } else {
-    collidingIndicesList = _edgeCollidingIndices;
+    if (USE_EDGE_AUDIO_SYLLABLES) {
+      collidingIndicesList = CollidingIndices.edgeAudioSyllables;
+    } else {
+      collidingIndicesList = CollidingIndices.edgeSpeffz;
+    }
   }
 
   for (List<int> collidingIndices in collidingIndicesList) {
@@ -156,7 +183,7 @@ List<int> getBufferIndices(AlgType algType, String buffer) {
     }
   } else if (algType == AlgType.Edge) {
     if (buffer == "UF") {
-      return [3, 7];
+      return USE_EDGE_AUDIO_SYLLABLES ? [3, 7] : [2, 8];
     }
   }
 
@@ -171,13 +198,14 @@ class LetterPairProvider implements AlgProvider {
   LetterPairProvider({
     required AlgType algType,
     required String buffer,
-    required List<String> scheme,
-    List<String>?
-        secondLetterScheme, // for custom schemes where the second letter is from a different set than the first
     required List<int> setIndices,
     List<String> skippedAlgs = const [],
   }) {
-    if (secondLetterScheme != null) {
+    List<String> scheme = getAlgSets(algType);
+    List<String>?
+        secondLetterScheme; // for custom schemes where the second letter is from a different set than the first
+    if (algType == AlgType.Edge && USE_EDGE_AUDIO_SYLLABLES) {
+      secondLetterScheme = LetterPairScheme.AudioEdgeVowels;
       assert(scheme.length == secondLetterScheme.length);
     }
 
@@ -278,7 +306,6 @@ class CornersAlgProvider extends LetterPairProvider {
       : super(
           algType: AlgType.Corner,
           buffer: "UFR",
-          scheme: LetterPairScheme.Speffz,
         );
 }
 
@@ -287,8 +314,6 @@ class EdgesAlgProvider extends LetterPairProvider {
       : super(
           algType: AlgType.Edge,
           buffer: "UF",
-          scheme: LetterPairScheme.AudioEdgeConsonants,
-          secondLetterScheme: LetterPairScheme.AudioEdgeVowels,
         );
 }
 

@@ -47,11 +47,13 @@ class _TimerScreenState extends State<TimerScreen> {
       return;
     }
 
+    Alg localAlg =
+        alg!; // try to fix alg that sometimes shows up twice in summary (probably a race condition)
     setState(() {
       isPressed = true;
 
       int elapsedMilliseconds = stopwatch.elapsedMilliseconds;
-      times.add(AlgTime(times.length + 1, elapsedMilliseconds, alg!));
+      times.add(AlgTime(times.length + 1, elapsedMilliseconds, localAlg));
 
       stopwatch.stop();
 

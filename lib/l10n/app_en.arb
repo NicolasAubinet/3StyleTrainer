@@ -17,5 +17,6 @@
   "algSet": "Alg set",
   "selectSetsToPractice": "Select sets to practice ({count} selected)",
   "selectAtLeastOneSet": "Select at least one set",
-  "average": "Average: {average}"
+  "average": "Average: {average}",
+  "inversedAlgs": "Inversed algs"
 }

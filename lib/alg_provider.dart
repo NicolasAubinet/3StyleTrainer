@@ -199,6 +199,7 @@ class LetterPairProvider implements AlgProvider {
     required AlgType algType,
     required String buffer,
     required List<int> setIndices,
+    bool inversedAlgs = false,
     List<String> skippedAlgs = const [],
   }) {
     List<String> scheme = getAlgSets(algType);
@@ -223,18 +224,29 @@ class LetterPairProvider implements AlgProvider {
     for (int setIndex in actualSetIndices) {
       assert(setIndex >= 0 && setIndex < scheme.length);
       List<int> collidingIndices = _getCollidingIndices(algType, setIndex);
-      var l1 = scheme[setIndex];
       for (int l2Index = 0; l2Index < scheme.length; ++l2Index) {
-        var l2 = secondLetterScheme == null
-            ? scheme[l2Index]
-            : secondLetterScheme[l2Index];
         if (!collidingIndices.contains(l2Index) &&
+            !bufferIndices.contains(setIndex) &&
             !bufferIndices.contains(l2Index)) {
-          originalLetterPairs.add(Alg(l1 + l2));
+          addToOriginalLetterPairs(
+              setIndex, l2Index, scheme, secondLetterScheme);
+          if (inversedAlgs) {
+            addToOriginalLetterPairs(
+                l2Index, setIndex, scheme, secondLetterScheme);
+          }
         }
       }
     }
     reset(skippedAlgs: skippedAlgs);
+  }
+
+  void addToOriginalLetterPairs(int l1Index, int l2Index, List<String> scheme,
+      List<String>? secondLetterScheme) {
+    String l1 = scheme[l1Index];
+    String l2 = secondLetterScheme == null
+        ? scheme[l2Index]
+        : secondLetterScheme[l2Index];
+    originalLetterPairs.add(Alg(l1 + l2));
   }
 
   @override
@@ -302,7 +314,9 @@ class CustomProvider implements AlgProvider {
 
 class CornersAlgProvider extends LetterPairProvider {
   CornersAlgProvider(
-      {super.setIndices = const [], super.skippedAlgs = const []})
+      {super.setIndices = const [],
+      super.skippedAlgs = const [],
+      super.inversedAlgs = false})
       : super(
           algType: AlgType.Corner,
           buffer: "UFR",
@@ -310,7 +324,10 @@ class CornersAlgProvider extends LetterPairProvider {
 }
 
 class EdgesAlgProvider extends LetterPairProvider {
-  EdgesAlgProvider({super.setIndices = const [], super.skippedAlgs = const []})
+  EdgesAlgProvider(
+      {super.setIndices = const [],
+      super.skippedAlgs = const [],
+      super.inversedAlgs = false})
       : super(
           algType: AlgType.Edge,
           buffer: "UF",

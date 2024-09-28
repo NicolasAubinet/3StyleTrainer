@@ -19,6 +19,7 @@ class AlgSetSelectorScreen extends StatefulWidget {
 class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
   List<String> selectableAlgSets = [];
   Set<int> selectedIndices = {};
+  bool inversedAlgs = false;
 
   @override
   void initState() {
@@ -37,8 +38,14 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
       algSetIndices.add(index);
     }
     return widget.algType == AlgType.Corner
-        ? CornersAlgProvider(setIndices: algSetIndices)
-        : EdgesAlgProvider(setIndices: algSetIndices);
+        ? CornersAlgProvider(
+            setIndices: algSetIndices,
+            inversedAlgs: inversedAlgs,
+          )
+        : EdgesAlgProvider(
+            setIndices: algSetIndices,
+            inversedAlgs: inversedAlgs,
+          );
   }
 
   void onAlgSetTap(int index) {
@@ -113,6 +120,22 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                   },
                 ),
               ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.inversedAlgs,
+                  style: theme.textTheme.labelSmall,
+                ),
+                Checkbox(
+                    value: inversedAlgs,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        inversedAlgs = newValue!;
+                      });
+                    }),
+              ],
             ),
             SizedBox(height: 10),
             ElevatedButton(

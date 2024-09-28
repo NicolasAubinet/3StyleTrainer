@@ -56,8 +56,13 @@ class _TimerScreenState extends State<TimerScreen> {
       stopwatch.stop();
 
       if (widget.practiceType == PracticeType.timeRace) {
-        skippedAlgs.add(alg!.name);
-        DatabaseManager().insertExecutedTimeRaceAlg(widget.algType, alg!.name);
+        String algName = alg!.name;
+        skippedAlgs.add(algName);
+
+        AlgType algType = widget.algType;
+        var databaseManager = DatabaseManager();
+        databaseManager.insertExecutedTimeRaceAlg(algType, algName);
+        databaseManager.insertResult(algType, algName, elapsedMilliseconds);
       }
     });
   }

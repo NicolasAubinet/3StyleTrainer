@@ -25,6 +25,10 @@
   "emptyCustomSetName": "Custom set name cannot be empty",
   "customSetNameAlreadyExists": "Custom set name already exists",
   "customSetNoAlgs": "Add some algs before saving",
+  "deleteCustomSetConfirmTitle": "Confirm",
+  "deleteCustomSetConfirmMessage": "Are you sure you want to delete set '{name}'?",
+  "delete": "Delete",
+  "cancel": "Cancel",
   "close": "Close",
   "save": "Save",
   "custom": "Custom"

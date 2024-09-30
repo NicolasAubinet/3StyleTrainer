@@ -135,6 +135,53 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
     return true;
   }
 
+  void _onDeleteCustomSet(BuildContext context, int index) async {
+    String setName = selectableAlgSets[index];
+    bool confirmed = false;
+
+    await showDialog<void>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title:
+                Text(AppLocalizations.of(context)!.deleteCustomSetConfirmTitle),
+            content: Text(AppLocalizations.of(context)!
+                .deleteCustomSetConfirmMessage(setName)),
+            actions: <Widget>[
+              TextButton(
+                style: TextButton.styleFrom(
+                  textStyle: Theme.of(context).textTheme.labelLarge,
+                ),
+                child: Text(AppLocalizations.of(context)!.cancel),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  textStyle: Theme.of(context).textTheme.labelLarge,
+                ),
+                child: Text(AppLocalizations.of(context)!.delete),
+                onPressed: () {
+                  confirmed = true;
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        });
+
+    if (confirmed) {
+      setState(() {
+        DatabaseManager().deleteCustomSet(setName);
+        widget.customSets.removeWhere((set) {
+          return set.name == setName;
+        });
+        selectableAlgSets = widget.customSets.map((e) => e.name).toList();
+      });
+    }
+  }
+
   Future<void> _newCustomSetDialog(BuildContext context) {
     return showDialog<void>(
         context: context,
@@ -171,12 +218,27 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                   itemBuilder: (context, index) {
                     return ListTile(
                       title: Center(
-                        child: Text(
-                          selectableAlgSets[index],
-                          style: selectedIndices.contains(index)
-                              ? theme.textTheme.displayMedium
-                                  ?.copyWith(color: Colors.black)
-                              : theme.textTheme.displayMedium,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              selectableAlgSets[index],
+                              style: selectedIndices.contains(index)
+                                  ? theme.textTheme.displayMedium
+                                      ?.copyWith(color: Colors.black)
+                                  : theme.textTheme.displayMedium,
+                            ),
+                            widget.algType == AlgType.Custom
+                                ? IconButton(
+                                    onPressed: () =>
+                                        {_onDeleteCustomSet(context, index)},
+                                    icon: Icon(Icons.delete),
+                                    color: selectedIndices.contains(index)
+                                        ? Colors.black
+                                        : Colors.white,
+                                  )
+                                : Container(),
+                          ],
                         ),
                       ),
                       onTap: () => onAlgSetTap(index),

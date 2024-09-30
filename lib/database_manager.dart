@@ -122,6 +122,15 @@ class DatabaseManager {
     );
   }
 
+  void deleteCustomSet(String customSetName) async {
+    List<Object> whereArgs = [customSetName];
+    await _database.delete(
+      CUSTOM_SETS,
+      where: "name = ?",
+      whereArgs: whereArgs,
+    );
+  }
+
   Future<List<CustomSet>> getCustomSets() async {
     final List<Map<String, Object?>> sets = await _database.query(CUSTOM_SETS);
 

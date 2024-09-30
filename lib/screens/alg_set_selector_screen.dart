@@ -190,6 +190,42 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
         });
   }
 
+  Widget getAlgSetsItemBuilder(BuildContext context, int index) {
+    var theme = Theme.of(context);
+    return ListTile(
+      title: Center(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Center(
+                child: Text(
+                  selectableAlgSets[index],
+                  style: selectedIndices.contains(index)
+                      ? theme.textTheme.displayMedium
+                          ?.copyWith(color: Colors.black)
+                      : theme.textTheme.displayMedium,
+                ),
+              ),
+            ),
+            widget.algType == AlgType.Custom
+                ? IconButton(
+                    onPressed: () => {_onDeleteCustomSet(context, index)},
+                    icon: Icon(Icons.delete),
+                    color: selectedIndices.contains(index)
+                        ? Colors.black
+                        : Colors.white,
+                  )
+                : Container(),
+          ],
+        ),
+      ),
+      onTap: () => onAlgSetTap(index),
+      selected: selectedIndices.contains(index),
+      selectedTileColor: theme.colorScheme.onPrimary,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
@@ -215,41 +251,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                 color: Colors.black12,
                 child: ListView.builder(
                   itemCount: selectableAlgSets.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  selectableAlgSets[index],
-                                  style: selectedIndices.contains(index)
-                                      ? theme.textTheme.displayMedium
-                                          ?.copyWith(color: Colors.black)
-                                      : theme.textTheme.displayMedium,
-                                ),
-                              ),
-                            ),
-                            widget.algType == AlgType.Custom
-                                ? IconButton(
-                                    onPressed: () =>
-                                        {_onDeleteCustomSet(context, index)},
-                                    icon: Icon(Icons.delete),
-                                    color: selectedIndices.contains(index)
-                                        ? Colors.black
-                                        : Colors.white,
-                                  )
-                                : Container(),
-                          ],
-                        ),
-                      ),
-                      onTap: () => onAlgSetTap(index),
-                      selected: selectedIndices.contains(index),
-                      selectedTileColor: theme.colorScheme.onPrimary,
-                    );
-                  },
+                  itemBuilder: getAlgSetsItemBuilder,
                 ),
               ),
             ),

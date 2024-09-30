@@ -19,19 +19,28 @@ class CustomSetDialog extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            AppLocalizations.of(context)!.customSetName,
-            textAlign: TextAlign.left,
-          ),
           TextField(
+            decoration: InputDecoration(
+              border: UnderlineInputBorder(),
+              labelText: AppLocalizations.of(context)!.customSetName,
+              labelStyle: Theme.of(context)
+                  .textTheme
+                  .bodySmall!
+                  .copyWith(color: Colors.black),
+            ),
             keyboardType: TextInputType.name,
             controller: _nameController,
           ),
-          Text(
-            AppLocalizations.of(context)!.customSetAlgs,
-            textAlign: TextAlign.left,
-          ),
+          SizedBox(height: 5),
           TextField(
+            decoration: InputDecoration(
+              border: UnderlineInputBorder(),
+              labelText: AppLocalizations.of(context)!.customSetAlgs,
+              labelStyle: Theme.of(context)
+                  .textTheme
+                  .bodySmall!
+                  .copyWith(color: Colors.black),
+            ),
             keyboardType: TextInputType.multiline,
             minLines: 1,
             maxLines: 6,

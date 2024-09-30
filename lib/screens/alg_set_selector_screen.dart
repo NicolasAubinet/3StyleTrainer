@@ -221,12 +221,16 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              selectableAlgSets[index],
-                              style: selectedIndices.contains(index)
-                                  ? theme.textTheme.displayMedium
-                                      ?.copyWith(color: Colors.black)
-                                  : theme.textTheme.displayMedium,
+                            Expanded(
+                              child: Center(
+                                child: Text(
+                                  selectableAlgSets[index],
+                                  style: selectedIndices.contains(index)
+                                      ? theme.textTheme.displayMedium
+                                          ?.copyWith(color: Colors.black)
+                                      : theme.textTheme.displayMedium,
+                                ),
+                              ),
                             ),
                             widget.algType == AlgType.Custom
                                 ? IconButton(

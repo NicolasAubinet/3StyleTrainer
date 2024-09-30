@@ -36,12 +36,18 @@ class _MenuScreenState extends State<MenuScreen> {
 
   void _onButtonPressed(BuildContext context, AlgType algType) async {
     if (_practiceType == PracticeType.sets) {
+      List<CustomSet> customSets = [];
+      if (algType == AlgType.Custom) {
+        customSets = await DatabaseManager().getCustomSets();
+      }
+
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => AlgSetSelectorScreen(
             _targetTime,
             algType,
+            customSets: customSets,
           ),
         ),
       );
@@ -85,6 +91,13 @@ class _MenuScreenState extends State<MenuScreen> {
           ElevatedButton(
             child: Text(AppLocalizations.of(context)!.edges),
             onPressed: () => _onButtonPressed(context, AlgType.Edge),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _practiceType == PracticeType.timeRace
+                ? null
+                : () => _onButtonPressed(context, AlgType.Custom),
+            child: Text(AppLocalizations.of(context)!.custom),
           ),
           SizedBox(height: 50),
           Row(

@@ -62,9 +62,11 @@ class _TimerScreenState extends State<TimerScreen> {
         skippedAlgs.add(algName);
 
         AlgType algType = widget.algType;
-        var databaseManager = DatabaseManager();
-        databaseManager.insertExecutedTimeRaceAlg(algType, algName);
-        databaseManager.insertResult(algType, algName, elapsedMilliseconds);
+        if (widget.algType != AlgType.Custom) {
+          var databaseManager = DatabaseManager();
+          databaseManager.insertExecutedTimeRaceAlg(algType, algName);
+          databaseManager.insertResult(algType, algName, elapsedMilliseconds);
+        }
       }
     });
   }

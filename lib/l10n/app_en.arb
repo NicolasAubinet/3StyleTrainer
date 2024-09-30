@@ -18,5 +18,14 @@
   "selectSetsToPractice": "Select sets to practice ({count} selected)",
   "selectAtLeastOneSet": "Select at least one set",
   "average": "Average: {average}",
-  "inversedAlgs": "Inversed algs"
+  "inversedAlgs": "Inversed algs",
+  "newCustomSet": "New custom set",
+  "customSetName": "Name",
+  "customSetAlgs": "Algs (coma or newline separated)",
+  "emptyCustomSetName": "Custom set name cannot be empty",
+  "customSetNameAlreadyExists": "Custom set name already exists",
+  "customSetNoAlgs": "Add some algs before saving",
+  "close": "Close",
+  "save": "Save",
+  "custom": "Custom"
 }

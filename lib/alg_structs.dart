@@ -1,6 +1,7 @@
 enum AlgType {
   Corner,
   Edge,
+  Custom,
 }
 
 class Alg {
@@ -15,4 +16,23 @@ class AlgTime {
   final Alg alg;
 
   const AlgTime(this.index, this.timeMs, this.alg);
+}
+
+class CustomSet {
+  String name;
+  List<String> algs;
+
+  CustomSet(this.name, this.algs);
+
+  Map<String, Object?> toMap() {
+    var map = <String, Object?>{
+      "name": name,
+      "algs": algs.join(","),
+    };
+    return map;
+  }
+
+  CustomSet.fromMap(Map<String, Object?> map)
+      : name = map["name"] as String,
+        algs = (map["algs"] as String).split(",");
 }

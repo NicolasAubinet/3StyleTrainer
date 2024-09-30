@@ -7,8 +7,11 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'alg_structs.dart';
 
+const int DB_VERSION = 3;
+
 const String RESULTS = "results";
 const String EXECUTED_TIME_RACE_ALGS = "executed_time_race_algs";
+const String CUSTOM_SETS = "custom_sets";
 
 class DatabaseManager {
   late Database _database;
@@ -21,7 +24,15 @@ class DatabaseManager {
 
   DatabaseManager._internal();
 
-  void _createDb(Database db) {
+  void createCustomSetsTable(Database db) {
+    db.execute('''
+        CREATE TABLE $CUSTOM_SETS(
+          name TEXT PRIMARY KEY,
+          algs TEXT
+        )''');
+  }
+
+  void _createDb(Database db, int version) {
     db.execute('''
           CREATE TABLE $RESULTS(
             algType TEXT,
@@ -35,6 +46,13 @@ class DatabaseManager {
             alg TEXT,
             PRIMARY KEY(algType, alg)
           )''');
+    createCustomSetsTable(db);
+  }
+
+  void _upgradeDb(Database db, int oldVersion, int newVersion) {
+    if (oldVersion < 3) {
+      createCustomSetsTable(db);
+    }
   }
 
   void initDatabase({Function? onReady}) async {
@@ -49,8 +67,10 @@ class DatabaseManager {
     await documentsDirectory.create(recursive: true);
     _database = await openDatabase(
       join(documentsDirectory.path, 'trainer.db'),
-      onCreate: (db, version) => _createDb(db),
-      version: 1,
+      onCreate: (db, version) => _createDb(db, version),
+      onUpgrade: (db, oldVersion, newVersion) =>
+          _upgradeDb(db, oldVersion, newVersion),
+      version: DB_VERSION,
     );
 
     onReady?.call();
@@ -90,6 +110,23 @@ class DatabaseManager {
 
     return [
       for (final entry in algs) entry['alg'] as String,
+    ];
+  }
+
+  // Custom sets
+  void insertCustomSet(CustomSet customSet) async {
+    await _database.insert(
+      CUSTOM_SETS,
+      customSet.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<CustomSet>> getCustomSets() async {
+    final List<Map<String, Object?>> sets = await _database.query(CUSTOM_SETS);
+
+    return [
+      for (final entry in sets) CustomSet.fromMap(entry),
     ];
   }
 

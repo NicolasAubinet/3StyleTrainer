@@ -64,11 +64,15 @@ class CustomSetDialog extends StatelessWidget {
           ),
           child: Text(AppLocalizations.of(context)!.save),
           onPressed: () {
-            List<String> allAlgs = _algsController.text.split(RegExp(r'\n|,'));
-            allAlgs.removeWhere((s) {
-              return s.trim().isEmpty;
-            });
-            var customSet = CustomSet(_nameController.text, allAlgs);
+            List<String> split = _algsController.text.split(RegExp(r'\n|,'));
+            List<String> algs = [];
+            for (String origAlg in split) {
+              String alg = origAlg.trim();
+              if (alg.isNotEmpty) {
+                algs.add(alg);
+              }
+            }
+            var customSet = CustomSet(_nameController.text, algs);
             if (_onSaved(customSet)) {
               Navigator.of(context).pop('save');
             }

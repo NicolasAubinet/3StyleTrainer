@@ -18,7 +18,7 @@
   "selectSetsToPractice": "Select sets to practice ({count} selected)",
   "selectAtLeastOneSet": "Select at least one set",
   "average": "Average: {average}",
-  "inversedAlgs": "Inversed algs",
+  "invertedAlgs": "Inverted algs",
   "createCustomSet": "Create custom set",
   "editCustomSet": "Edit custom set",
   "customSetName": "Name",

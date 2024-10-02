@@ -199,7 +199,7 @@ class LetterPairProvider implements AlgProvider {
     required AlgType algType,
     required String buffer,
     required List<int> setIndices,
-    bool inversedAlgs = false,
+    bool invertedAlgs = false,
     List<String> skippedAlgs = const [],
   }) {
     List<String> scheme = getAlgSets(algType);
@@ -230,7 +230,7 @@ class LetterPairProvider implements AlgProvider {
             !bufferIndices.contains(l2Index)) {
           addToOriginalLetterPairs(
               setIndex, l2Index, scheme, secondLetterScheme);
-          if (inversedAlgs) {
+          if (invertedAlgs) {
             addToOriginalLetterPairs(
                 l2Index, setIndex, scheme, secondLetterScheme);
           }
@@ -316,7 +316,7 @@ class CornersAlgProvider extends LetterPairProvider {
   CornersAlgProvider(
       {super.setIndices = const [],
       super.skippedAlgs = const [],
-      super.inversedAlgs = false})
+      super.invertedAlgs = false})
       : super(
           algType: AlgType.Corner,
           buffer: "UFR",
@@ -327,7 +327,7 @@ class EdgesAlgProvider extends LetterPairProvider {
   EdgesAlgProvider(
       {super.setIndices = const [],
       super.skippedAlgs = const [],
-      super.inversedAlgs = false})
+      super.invertedAlgs = false})
       : super(
           algType: AlgType.Edge,
           buffer: "UF",

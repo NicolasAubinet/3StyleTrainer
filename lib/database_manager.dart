@@ -122,6 +122,20 @@ class DatabaseManager {
     );
   }
 
+  void updateCustomSet(String oldName, CustomSet customSet) async {
+    Map<String, Object> values = {
+      'name': customSet.name,
+      'algs': customSet.algsToString()
+    };
+    List<Object> whereArgs = [oldName];
+    await _database.update(
+      CUSTOM_SETS,
+      values,
+      where: "name = ?",
+      whereArgs: whereArgs,
+    );
+  }
+
   void deleteCustomSet(String customSetName) async {
     List<Object> whereArgs = [customSetName];
     await _database.delete(

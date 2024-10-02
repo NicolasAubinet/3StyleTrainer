@@ -25,14 +25,15 @@ class CustomSet {
   CustomSet(this.name, this.algs);
 
   Map<String, Object?> toMap() {
-    var map = <String, Object?>{
-      "name": name,
-      "algs": algs.join(","),
-    };
+    var map = <String, Object?>{"name": name, "algs": algsToString()};
     return map;
   }
 
   CustomSet.fromMap(Map<String, Object?> map)
       : name = map["name"] as String,
         algs = (map["algs"] as String).split(",");
+
+  String algsToString() {
+    return algs.join(",");
+  }
 }

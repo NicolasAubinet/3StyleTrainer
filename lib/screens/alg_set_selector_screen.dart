@@ -105,7 +105,12 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
     return algSets;
   }
 
-  bool _onCustomSetSaved(CustomSet customSet) {
+  void _refreshSelectableAlgSets() {
+    selectableAlgSets = widget.customSets.map((e) => e.name).toList();
+    selectedIndices.clear();
+  }
+
+  bool _onCustomSetCreated(CustomSet customSet) {
     String errorMessage = "";
     if (customSet.name.isEmpty) {
       errorMessage = AppLocalizations.of(context)!.emptyCustomSetName;
@@ -129,7 +134,39 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
     setState(() {
       DatabaseManager().insertCustomSet(customSet);
       widget.customSets.add(customSet);
-      selectableAlgSets = widget.customSets.map((e) => e.name).toList();
+      _refreshSelectableAlgSets();
+    });
+
+    return true;
+  }
+
+  bool _onCustomSetEdited(String oldName, CustomSet customSet) {
+    String errorMessage = "";
+    if (customSet.name.isEmpty) {
+      errorMessage = AppLocalizations.of(context)!.emptyCustomSetName;
+    }
+    if (customSet.algs.isEmpty) {
+      errorMessage = AppLocalizations.of(context)!.customSetNoAlgs;
+    }
+
+    if (errorMessage.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+        ),
+      );
+      return false;
+    }
+
+    setState(() {
+      DatabaseManager().updateCustomSet(oldName, customSet);
+      for (CustomSet set in widget.customSets) {
+        if (set.name == oldName) {
+          set.name = customSet.name;
+          set.algs = customSet.algs;
+        }
+      }
+      _refreshSelectableAlgSets();
     });
 
     return true;
@@ -177,16 +214,28 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
         widget.customSets.removeWhere((set) {
           return set.name == setName;
         });
-        selectableAlgSets = widget.customSets.map((e) => e.name).toList();
+        _refreshSelectableAlgSets();
       });
     }
   }
 
-  Future<void> _newCustomSetDialog(BuildContext context) {
+  void _editCustomSet(BuildContext context, int index) async {
+    CustomSet set = widget.customSets[index];
+    String oldName = set.name;
     return showDialog<void>(
         context: context,
         builder: (BuildContext context) {
-          return CustomSetDialog(_onCustomSetSaved);
+          return CustomSetDialog.edit((set) {
+            return _onCustomSetEdited(oldName, set);
+          }, set);
+        });
+  }
+
+  Future<void> _createCustomSet(BuildContext context) {
+    return showDialog<void>(
+        context: context,
+        builder: (BuildContext context) {
+          return CustomSetDialog.create(_onCustomSetCreated);
         });
   }
 
@@ -208,6 +257,15 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                 ),
               ),
             ),
+            widget.algType == AlgType.Custom
+                ? IconButton(
+                    onPressed: () => {_editCustomSet(context, index)},
+                    icon: Icon(Icons.edit),
+                    color: selectedIndices.contains(index)
+                        ? Colors.black
+                        : Colors.white,
+                  )
+                : Container(),
             widget.algType == AlgType.Custom
                 ? IconButton(
                     onPressed: () => {_onDeleteCustomSet(context, index)},
@@ -314,7 +372,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                 ),
                 widget.algType == AlgType.Custom
                     ? IconButton(
-                        onPressed: () => _newCustomSetDialog(context),
+                        onPressed: () => _createCustomSet(context),
                         icon: const Icon(Icons.add_box_outlined),
                         color: Colors.white,
                       )

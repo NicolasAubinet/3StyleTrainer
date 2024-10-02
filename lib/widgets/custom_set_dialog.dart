@@ -6,14 +6,22 @@ class CustomSetDialog extends StatelessWidget {
   final bool Function(CustomSet) _onSaved;
   final _nameController = TextEditingController();
   final _algsController = TextEditingController();
+  bool _isEditing;
 
-  CustomSetDialog(this._onSaved);
+  CustomSetDialog.create(this._onSaved) : _isEditing = false;
+
+  CustomSetDialog.edit(this._onSaved, CustomSet set) : _isEditing = true {
+    _nameController.text = set.name;
+    _algsController.text = set.algs.join('\n');
+  }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(
-        AppLocalizations.of(context)!.newCustomSet,
+        _isEditing
+            ? AppLocalizations.of(context)!.editCustomSet
+            : AppLocalizations.of(context)!.createCustomSet,
       ),
       content: Column(
         mainAxisAlignment: MainAxisAlignment.center,

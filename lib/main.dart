@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:three_style_trainer/database_manager.dart';
+import 'package:three_style_trainer/settings.dart';
 
 import 'screens/menu_screen.dart';
 import 'themes.dart';
 
 void main() {
+  Settings().initPrefs();
   DatabaseManager().initDatabase(onReady: () => runApp(MainApp()));
 }
 

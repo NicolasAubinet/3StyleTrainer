@@ -32,5 +32,13 @@
   "cancel": "Cancel",
   "close": "Close",
   "save": "Save",
-  "custom": "Custom"
+  "custom": "Custom",
+  "settings": "Settings",
+  "cornersScheme": "Corners scheme",
+  "edgesScheme": "Edges scheme",
+  "cornersPiecesOrder": "UBL UBR UFR UFL LUB LUF LDF LDB FUL FUR FDR FDL RUF RUB RDB RDF BUR BUL BDL BDR DFL DFR DBR DBL",
+  "edgesPiecesOrder": "UB UR UF UL LU LF LD LB FU FR FD FL RU RB RD RF BU BL BD BR DF DR DB DL",
+  "enterScheme": "Enter scheme text (one letter per sticker)",
+  "invalidSchemeSize": "Invalid scheme size (expected {size} characters)",
+  "schemeCannotHaveDuplicates": "Scheme cannot have duplicates"
 }

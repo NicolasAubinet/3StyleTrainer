@@ -6,6 +6,7 @@ import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/database_manager.dart';
 import 'package:three_style_trainer/practice_type.dart';
 import 'package:three_style_trainer/screens/alg_set_selector_screen.dart';
+import 'package:three_style_trainer/screens/settings_screen.dart';
 import 'package:three_style_trainer/screens/timer_screen.dart';
 
 import '../widgets/number_input_field.dart';
@@ -119,6 +120,21 @@ class _MenuScreenState extends State<MenuScreen> {
             });
           }),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: theme.colorScheme.secondary,
+        tooltip: AppLocalizations.of(context)!.settings,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => SettingsScreen()),
+          );
+        },
+        child: Icon(
+          Icons.settings,
+          color: theme.colorScheme.onSecondary,
+          size: 28,
+        ),
       ),
     );
   }

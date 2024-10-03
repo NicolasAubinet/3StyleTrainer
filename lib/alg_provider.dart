@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:three_style_trainer/settings.dart';
+
 import 'alg_structs.dart';
 
 const bool USE_EDGE_AUDIO_SYLLABLES = false;
@@ -18,41 +20,19 @@ double _getProgression(int originalLength, int currentLength) {
 
 List<String> getAlgSets(AlgType algType) {
   if (algType == AlgType.Edge) {
-    return USE_EDGE_AUDIO_SYLLABLES
-        ? LetterPairScheme.AudioEdgeConsonants
-        : LetterPairScheme.Speffz;
+    if (USE_EDGE_AUDIO_SYLLABLES) {
+      return LetterPairScheme.AudioEdgeConsonants;
+    } else {
+      return Settings().getEdgesScheme();
+    }
+  } else if (algType == AlgType.Corner) {
+    return Settings().getCornersScheme();
+  } else {
+    throw UnimplementedError();
   }
-  return LetterPairScheme.Speffz;
 }
 
 class LetterPairScheme {
-  static const Speffz = [
-    'A',
-    'B',
-    'C',
-    'D',
-    'E',
-    'F',
-    'G',
-    'H',
-    'I',
-    'J',
-    'K',
-    'L',
-    'M',
-    'N',
-    'O',
-    'P',
-    'Q',
-    'R',
-    'S',
-    'T',
-    'U',
-    'V',
-    'W',
-    'X',
-  ];
-
   static const AudioEdgeConsonants = [
     'b',
     'c',

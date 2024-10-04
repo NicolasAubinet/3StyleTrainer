@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 const Color textColor = Colors.white;
 const Color titleColor = Colors.white70;
+
+const String FONT = "firaCode";
 
 ThemeData mainTheme = ThemeData(
   brightness: Brightness.light,
@@ -13,55 +14,65 @@ ThemeData mainTheme = ThemeData(
   appBarTheme: AppBarTheme(
     backgroundColor: Colors.black54,
     foregroundColor: Colors.white,
-    titleTextStyle: GoogleFonts.firaCode(
+    titleTextStyle: TextStyle(
+      fontFamily: FONT,
       fontSize: 32,
       color: Colors.white,
     ),
   ),
   textTheme: TextTheme(
-    displayLarge: GoogleFonts.firaCode(
+    displayLarge: TextStyle(
+      fontFamily: FONT,
       fontSize: 72,
       fontWeight: FontWeight.bold,
       color: textColor,
     ),
-    displayMedium: GoogleFonts.firaCode(
+    displayMedium: TextStyle(
+      fontFamily: FONT,
       fontSize: 44,
       fontWeight: FontWeight.normal,
       color: textColor,
     ),
-    displaySmall: GoogleFonts.firaCode(
+    displaySmall: TextStyle(
+      fontFamily: FONT,
       fontSize: 32,
       fontWeight: FontWeight.normal,
       color: textColor,
     ),
-    labelLarge: GoogleFonts.firaCode(
+    labelLarge: TextStyle(
+      fontFamily: FONT,
       fontSize: 24,
       fontWeight: FontWeight.normal,
       color: textColor,
     ),
-    labelMedium: GoogleFonts.firaCode(
+    labelMedium: TextStyle(
+      fontFamily: FONT,
       fontSize: 18,
       fontWeight: FontWeight.normal,
       color: textColor,
     ),
-    labelSmall: GoogleFonts.firaCode(
+    labelSmall: TextStyle(
+      fontFamily: FONT,
       fontSize: 14,
       fontWeight: FontWeight.normal,
       color: textColor,
     ),
-    titleLarge: GoogleFonts.firaCode(
+    titleLarge: TextStyle(
+      fontFamily: FONT,
       fontSize: 48,
       // fontStyle: FontStyle.italic,
       fontWeight: FontWeight.normal,
       color: titleColor,
     ),
-    titleMedium: GoogleFonts.firaCode(
+    titleMedium: TextStyle(
+      fontFamily: FONT,
       fontSize: 32,
       // fontStyle: FontStyle.italic,
       fontWeight: FontWeight.normal,
       color: titleColor,
     ),
-    titleSmall: GoogleFonts.firaCode(
+    titleSmall: TextStyle(
+      fontFamily: FONT,
       fontSize: 24,
       // fontStyle: FontStyle.italic,
       fontWeight: FontWeight.normal,

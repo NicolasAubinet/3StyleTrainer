@@ -76,6 +76,7 @@ flutter:
 
   assets:
     - assets/
+    - google_fonts/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -93,7 +94,16 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
+  fonts:
+    - family: firaCode
+      fonts:
+        - asset: google_fonts/FiraCode-Medium.ttf
+        - asset: google_fonts/FiraCode-Light.ttf
+        - asset: google_fonts/FiraCode-Bold.ttf
+        - asset: google_fonts/FiraCode-Regular.ttf
+        - asset: google_fonts/FiraCode-Retina.ttf
+        - asset: google_fonts/FiraCode-SemiBold.ttf
+
   #   - family: Schyler
   #     fonts:
   #       - asset: fonts/Schyler-Regular.ttf

@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_style_trainer/alg_structs.dart';
 
@@ -18,6 +19,8 @@ class Settings {
   Settings._internal();
 
   void initPrefs() async {
+    WidgetsFlutterBinding.ensureInitialized();
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? cornersScheme = prefs.getString("corners_scheme");
     if (cornersScheme != null) {

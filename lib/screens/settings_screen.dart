@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/settings.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -140,6 +141,72 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  Widget getCornerBufferWidget(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      color: _cardColor,
+      child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: DropdownMenu<CornerBuffer>(
+            initialSelection: Settings().getCornerBuffer(),
+            textStyle: theme.textTheme.labelSmall,
+            label: Text(
+              AppLocalizations.of(context)!.cornerBuffer,
+              style: theme.textTheme.labelSmall,
+            ),
+            onSelected: (CornerBuffer? buffer) {
+              if (buffer != null) {
+                Settings().setCornerBuffer(buffer);
+              }
+            },
+            dropdownMenuEntries: CornerBuffer.values
+                .map<DropdownMenuEntry<CornerBuffer>>((CornerBuffer type) {
+              return DropdownMenuEntry<CornerBuffer>(
+                value: type,
+                label: type.name,
+                style: MenuItemButton.styleFrom(
+                  textStyle: theme.textTheme.labelSmall,
+                ),
+              );
+            }).toList(),
+          )),
+    );
+  }
+
+  Widget getEdgeBufferWidget(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      color: _cardColor,
+      child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: DropdownMenu<EdgeBuffer>(
+            initialSelection: Settings().getEdgeBuffer(),
+            textStyle: theme.textTheme.labelSmall,
+            label: Text(
+              AppLocalizations.of(context)!.edgeBuffer,
+              style: theme.textTheme.labelSmall,
+            ),
+            onSelected: (EdgeBuffer? buffer) {
+              if (buffer != null) {
+                Settings().setEdgeBuffer(buffer);
+              }
+            },
+            dropdownMenuEntries: EdgeBuffer.values
+                .map<DropdownMenuEntry<EdgeBuffer>>((EdgeBuffer type) {
+              return DropdownMenuEntry<EdgeBuffer>(
+                value: type,
+                label: type.name,
+                style: MenuItemButton.styleFrom(
+                  textStyle: theme.textTheme.labelSmall,
+                ),
+              );
+            }).toList(),
+          )),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -155,6 +222,12 @@ class SettingsScreen extends StatelessWidget {
           children: [
             getCornersSchemeWidget(context),
             getEdgesSchemeWidget(context),
+            Row(
+              children: [
+                getCornerBufferWidget(context),
+                getEdgeBufferWidget(context),
+              ],
+            )
           ],
         ),
       ),

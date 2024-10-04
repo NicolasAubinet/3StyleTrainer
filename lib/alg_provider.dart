@@ -156,18 +156,60 @@ List<int> _getCollidingIndices(AlgType algType, int index) {
   return [];
 }
 
-List<int> getBufferIndices(AlgType algType, String buffer) {
-  if (algType == AlgType.Corner) {
-    if (buffer == "UFR") {
+List<int> getCornerBufferIndices(CornerBuffer buffer) {
+  switch (buffer) {
+    case CornerBuffer.UFR:
       return [2, 9, 12];
-    }
-  } else if (algType == AlgType.Edge) {
-    if (buffer == "UF") {
-      return USE_EDGE_AUDIO_SYLLABLES ? [3, 7] : [2, 8];
-    }
+    case CornerBuffer.UFL:
+      return [3, 5, 8];
+    case CornerBuffer.UBR:
+      return [1, 13, 16];
+    case CornerBuffer.UBL:
+      return [0, 4, 17];
+    case CornerBuffer.DFR:
+      return [10, 15, 21];
+    case CornerBuffer.DFL:
+      return [6, 11, 20];
+  }
+}
+
+List<int> getEdgeBufferIndices(EdgeBuffer buffer) {
+  if (USE_EDGE_AUDIO_SYLLABLES) {
+    return [3, 7];
   }
 
-  throw UnimplementedError();
+  switch (buffer) {
+    case EdgeBuffer.UF:
+      return [2, 8];
+    case EdgeBuffer.UB:
+      return [0, 16];
+    case EdgeBuffer.UR:
+      return [1, 12];
+    case EdgeBuffer.UL:
+      return [3, 4];
+    case EdgeBuffer.FR:
+      return [9, 15];
+    case EdgeBuffer.FL:
+      return [11, 5];
+    case EdgeBuffer.DF:
+      return [20, 10];
+    case EdgeBuffer.DB:
+      return [22, 18];
+    case EdgeBuffer.DR:
+      return [21, 14];
+    case EdgeBuffer.DL:
+      return [23, 6];
+  }
+}
+
+List<int> getBufferIndices(AlgType algType) {
+  List<int> bufferIndices = [];
+  if (algType == AlgType.Corner) {
+    bufferIndices = getCornerBufferIndices(Settings().getCornerBuffer());
+  } else if (algType == AlgType.Edge) {
+    bufferIndices = getEdgeBufferIndices(Settings().getEdgeBuffer());
+  }
+  return bufferIndices;
 }
 
 class LetterPairProvider implements AlgProvider {
@@ -177,7 +219,6 @@ class LetterPairProvider implements AlgProvider {
 
   LetterPairProvider({
     required AlgType algType,
-    required String buffer,
     required List<int> setIndices,
     bool invertedAlgs = false,
     List<String> skippedAlgs = const [],
@@ -190,7 +231,7 @@ class LetterPairProvider implements AlgProvider {
       assert(scheme.length == secondLetterScheme.length);
     }
 
-    List<int> bufferIndices = getBufferIndices(algType, buffer);
+    List<int> bufferIndices = getBufferIndices(algType);
     List<int> actualSetIndices = List.from(setIndices);
     if (actualSetIndices.isEmpty) {
       // empty set means all sets
@@ -299,7 +340,6 @@ class CornersAlgProvider extends LetterPairProvider {
       super.invertedAlgs = false})
       : super(
           algType: AlgType.Corner,
-          buffer: "UFR",
         );
 }
 
@@ -310,7 +350,6 @@ class EdgesAlgProvider extends LetterPairProvider {
       super.invertedAlgs = false})
       : super(
           algType: AlgType.Edge,
-          buffer: "UF",
         );
 }
 

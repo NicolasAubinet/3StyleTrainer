@@ -40,5 +40,7 @@
   "edgesPiecesOrder": "UB UR UF UL LU LF LD LB FU FR FD FL RU RB RD RF BU BL BD BR DF DR DB DL",
   "enterScheme": "Enter scheme text (one letter per sticker)",
   "invalidSchemeSize": "Invalid scheme size (expected {size} characters)",
-  "schemeCannotHaveDuplicates": "Scheme cannot have duplicates"
+  "schemeCannotHaveDuplicates": "Scheme cannot have duplicates",
+  "cornerBuffer": "Corner buffer",
+  "edgeBuffer": "Edge buffer"
 }

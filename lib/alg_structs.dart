@@ -18,6 +18,28 @@ class AlgTime {
   const AlgTime(this.index, this.timeMs, this.alg);
 }
 
+enum CornerBuffer {
+  UFR,
+  UFL,
+  UBR,
+  UBL,
+  DFR,
+  DFL,
+}
+
+enum EdgeBuffer {
+  UF,
+  UB,
+  UR,
+  UL,
+  FR,
+  FL,
+  DF,
+  DB,
+  DR,
+  DL,
+}
+
 class CustomSet {
   String name;
   List<String> algs;

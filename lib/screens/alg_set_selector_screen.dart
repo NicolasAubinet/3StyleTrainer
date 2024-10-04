@@ -86,14 +86,10 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
     });
   }
 
-  String getBuffer() {
-    return widget.algType == AlgType.Corner ? "UFR" : "UF";
-  }
-
   List<String> getAlgSetWithoutBuffers() {
     List<String> algSets = List.from(getAlgSets(widget.algType));
 
-    List<int> bufferIndices = getBufferIndices(widget.algType, getBuffer());
+    List<int> bufferIndices = getBufferIndices(widget.algType);
     bufferIndices.sort((e1, e2) => e1.compareTo(e2));
 
     int deletedCount = 0;

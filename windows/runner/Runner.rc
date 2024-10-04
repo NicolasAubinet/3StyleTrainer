@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
+            VALUE "CompanyName", "com.nanocube" "\0"
             VALUE "FileDescription", "three_style_trainer" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "three_style_trainer" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2024 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2024 com.nanocube. All rights reserved." "\0"
             VALUE "OriginalFilename", "three_style_trainer.exe" "\0"
             VALUE "ProductName", "three_style_trainer" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

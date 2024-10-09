@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -55,7 +56,16 @@ class DatabaseManager {
     }
   }
 
+  bool isUsingDatabase() {
+    return !kIsWeb; // SQLite not supported in web. Could try to use https://pub.dev/packages/drift instead
+  }
+
   void initDatabase({Function? onReady}) async {
+    if (!isUsingDatabase()) {
+      onReady?.call();
+      return;
+    }
+
     WidgetsFlutterBinding.ensureInitialized();
     if (Platform.isWindows || Platform.isLinux) {
       sqfliteFfiInit();
@@ -77,6 +87,10 @@ class DatabaseManager {
   }
 
   void insertResult(AlgType algType, String alg, int resultMs) async {
+    if (!isUsingDatabase()) {
+      return;
+    }
+
     Map<String, Object?> map = {
       'algType': algType.name,
       'alg': alg,
@@ -90,6 +104,10 @@ class DatabaseManager {
   }
 
   void insertExecutedTimeRaceAlg(AlgType algType, String alg) async {
+    if (!isUsingDatabase()) {
+      return;
+    }
+
     Map<String, Object?> map = {
       'algType': algType.name,
       'alg': alg,
@@ -102,6 +120,10 @@ class DatabaseManager {
   }
 
   Future<List<String>> getExecutedTimeRaceAlgs(AlgType algType) async {
+    if (!isUsingDatabase()) {
+      return List.empty();
+    }
+
     List<Object> whereArgs = [algType.name];
     final List<Map<String, Object?>> algs = await _database.query(
         EXECUTED_TIME_RACE_ALGS,
@@ -115,6 +137,10 @@ class DatabaseManager {
 
   // Custom sets
   void insertCustomSet(CustomSet customSet) async {
+    if (!isUsingDatabase()) {
+      return;
+    }
+
     await _database.insert(
       CUSTOM_SETS,
       customSet.toMap(),
@@ -123,6 +149,10 @@ class DatabaseManager {
   }
 
   void updateCustomSet(String oldName, CustomSet customSet) async {
+    if (!isUsingDatabase()) {
+      return;
+    }
+
     Map<String, Object> values = {
       'name': customSet.name,
       'algs': customSet.algsToString()
@@ -137,6 +167,10 @@ class DatabaseManager {
   }
 
   void deleteCustomSet(String customSetName) async {
+    if (!isUsingDatabase()) {
+      return;
+    }
+
     List<Object> whereArgs = [customSetName];
     await _database.delete(
       CUSTOM_SETS,
@@ -146,6 +180,10 @@ class DatabaseManager {
   }
 
   Future<List<CustomSet>> getCustomSets() async {
+    if (!isUsingDatabase()) {
+      return List.empty();
+    }
+
     final List<Map<String, Object?>> sets = await _database.query(CUSTOM_SETS);
 
     return [
@@ -154,6 +192,10 @@ class DatabaseManager {
   }
 
   void resetExecutedTimeRaceAlgs() {
+    if (!isUsingDatabase()) {
+      return;
+    }
+
     _database.delete(EXECUTED_TIME_RACE_ALGS);
   }
 }

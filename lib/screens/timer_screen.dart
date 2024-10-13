@@ -114,7 +114,7 @@ class _TimerScreenState extends State<TimerScreen> {
       });
 
       if (result == "repeat_all") {
-        widget.algProvider.reset();
+        widget.algProvider.reset(skippedAlgs: skippedAlgs);
       } else if (result == "repeat_target_time") {
         for (AlgTime algTime in timesCopy) {
           if (isUnderTargetTime(algTime.timeMs, widget.targetTime)) {

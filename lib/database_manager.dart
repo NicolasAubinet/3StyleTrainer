@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 import 'alg_structs.dart';
 
@@ -57,7 +58,8 @@ class DatabaseManager {
   }
 
   bool isUsingDatabase() {
-    return !kIsWeb; // SQLite not supported in web. Could try to use https://pub.dev/packages/drift instead
+    return true;
+    //return !kIsWeb; // Default SQLite not supported in web. Now works with https://pub.dev/packages/sqflite_common_ffi_web
   }
 
   void initDatabase({Function? onReady}) async {
@@ -67,16 +69,23 @@ class DatabaseManager {
     }
 
     WidgetsFlutterBinding.ensureInitialized();
-    if (Platform.isWindows || Platform.isLinux) {
+    if (kIsWeb || Platform.isWindows || Platform.isLinux) {
       sqfliteFfiInit();
     }
-    databaseFactory = databaseFactoryFfi;
 
-    final Directory documentsDirectory =
-        await getApplicationDocumentsDirectory();
-    await documentsDirectory.create(recursive: true);
+    String path = "";
+    if (kIsWeb) {
+      databaseFactory = databaseFactoryFfiWeb;
+    } else {
+      databaseFactory = databaseFactoryFfi;
+      final Directory documentsDirectory =
+          await getApplicationDocumentsDirectory();
+      await documentsDirectory.create(recursive: true);
+      path = documentsDirectory.path;
+    }
+
     _database = await openDatabase(
-      join(documentsDirectory.path, 'trainer.db'),
+      join(path, 'trainer.db'),
       onCreate: (db, version) => _createDb(db, version),
       onUpgrade: (db, oldVersion, newVersion) =>
           _upgradeDb(db, oldVersion, newVersion),

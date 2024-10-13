@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -95,14 +94,12 @@ class _MenuScreenState extends State<MenuScreen> {
             onPressed: () => _onButtonPressed(context, AlgType.Edge),
           ),
           SizedBox(height: 20),
-          kIsWeb
-              ? Container()
-              : ElevatedButton(
-                  onPressed: _practiceType == PracticeType.timeRace
-                      ? null
-                      : () => _onButtonPressed(context, AlgType.Custom),
-                  child: Text(AppLocalizations.of(context)!.custom),
-                ),
+          ElevatedButton(
+            onPressed: _practiceType == PracticeType.timeRace
+                ? null
+                : () => _onButtonPressed(context, AlgType.Custom),
+            child: Text(AppLocalizations.of(context)!.custom),
+          ),
           SizedBox(height: 50),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,

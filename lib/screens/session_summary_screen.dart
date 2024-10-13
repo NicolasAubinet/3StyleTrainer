@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -5,6 +7,8 @@ import 'package:three_style_trainer/practice_type.dart';
 
 import '../alg_structs.dart';
 import '../utils.dart';
+
+const int BUTTON_PRESS_DELAY_MS = 250;
 
 class SessionSummaryScreen extends StatefulWidget {
   final List<AlgTime> algTimes;
@@ -24,6 +28,25 @@ class SessionSummaryScreen extends StatefulWidget {
 class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   bool _sortAscending = true;
   int _sortColumnIndex = 0;
+  bool _canPressButtons = false;
+  late Timer _buttonsActivationTimer;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _buttonsActivationTimer = Timer(
+        Duration(milliseconds: BUTTON_PRESS_DELAY_MS),
+        () => setState(() {
+              _canPressButtons = true;
+            }));
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _buttonsActivationTimer.cancel();
+  }
 
   List<DataColumn> getColumns(BuildContext context) {
     final theme = Theme.of(context);
@@ -144,15 +167,17 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
           child: Column(
             children: [
               widget.practiceType == PracticeType.sets
-                  ? SetsPracticeButtons(
-                      widget.targetTime, () => _onRepeatTargetTimePressed())
+                  ? SetsPracticeButtons(widget.targetTime,
+                      () => _onRepeatTargetTimePressed(), _canPressButtons)
                   : TimeRaceStatsWidget(widget.algTimes.length),
               Text(AppLocalizations.of(context)!.average(getFormatedAverage()),
                   style: theme.textTheme.displaySmall),
               SizedBox(height: 5),
               widget.practiceType == PracticeType.timeRace
                   ? ElevatedButton(
-                      onPressed: () => {Navigator.pop(context, 'again')},
+                      onPressed: () => _canPressButtons
+                          ? {Navigator.pop(context, 'again')}
+                          : null,
                       child: Text(AppLocalizations.of(context)!.again))
                   : Container(),
               SizedBox(height: 8),
@@ -182,22 +207,24 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 class SetsPracticeButtons extends StatelessWidget {
   final double _targetTime;
   final Function _onPressed;
+  final bool _canPress;
 
-  SetsPracticeButtons(this._targetTime, this._onPressed);
+  SetsPracticeButtons(this._targetTime, this._onPressed, this._canPress);
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         ElevatedButton(
-            onPressed: () => {Navigator.pop(context, 'repeat_all')},
+            onPressed: () =>
+                _canPress ? {Navigator.pop(context, 'repeat_all')} : null,
             child: Text(AppLocalizations.of(context)!.repeatAll)),
         SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton(
-                onPressed: () => _onPressed(),
+                onPressed: () => _canPress ? _onPressed() : null,
                 child: Text(AppLocalizations.of(context)!
                     .repeatTargetTime(_targetTime))),
           ],

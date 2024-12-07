@@ -55,15 +55,26 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
       assert(index >= 0);
       algSetIndices.add(index);
     }
-    return widget.algType == AlgType.Corner
-        ? CornersAlgProvider(
-            setIndices: algSetIndices,
-            invertedAlgs: invertedAlgs,
-          )
-        : EdgesAlgProvider(
-            setIndices: algSetIndices,
-            invertedAlgs: invertedAlgs,
-          );
+
+    AlgProvider? algProvider;
+    if (widget.algType == AlgType.Corner) {
+      algProvider = CornersAlgProvider(
+        setIndices: algSetIndices,
+        invertedAlgs: invertedAlgs,
+      );
+    } else if (widget.algType == AlgType.Edge) {
+      algProvider = EdgesAlgProvider(
+        setIndices: algSetIndices,
+        invertedAlgs: invertedAlgs,
+      );
+    } else if (widget.algType == AlgType.TwoFlip) {
+      algProvider = TwoFlipsAlgProvider(
+        setIndices: algSetIndices,
+        invertedAlgs: invertedAlgs,
+      );
+    }
+    assert(algProvider != null, "Alg type not supported");
+    return algProvider!;
   }
 
   List<String> getCustomAlgSet(String customSetName) {
@@ -309,7 +320,8 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                 ),
               ),
             ),
-            widget.algType == AlgType.Custom
+            widget.algType == AlgType.Custom ||
+                    widget.algType == AlgType.TwoFlip
                 ? Container()
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,

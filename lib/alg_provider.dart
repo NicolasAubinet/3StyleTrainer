@@ -27,6 +27,8 @@ List<String> getAlgSets(AlgType algType) {
     }
   } else if (algType == AlgType.Corner) {
     return Settings().getCornersScheme();
+  } else if (algType == AlgType.TwoFlip) {
+    return LetterPairScheme.Flips;
   } else {
     throw UnimplementedError();
   }
@@ -86,6 +88,21 @@ class LetterPairScheme {
     'on',
     'ou',
   ];
+
+  static const Flips = [
+    'UF',
+    'UL',
+    'UB',
+    'UR',
+    'FL',
+    'FR',
+    'BL',
+    'BR',
+    'DF',
+    'DL',
+    'DB',
+    'DR',
+  ];
 }
 
 class CollidingIndices {
@@ -135,10 +152,10 @@ class CollidingIndices {
 }
 
 List<int> _getCollidingIndices(AlgType algType, int index) {
-  List<List<int>> collidingIndicesList;
+  List<List<int>> collidingIndicesList = [];
   if (algType == AlgType.Corner) {
     collidingIndicesList = CollidingIndices.cornerSpeffz;
-  } else {
+  } else if (algType == AlgType.Edge) {
     if (USE_EDGE_AUDIO_SYLLABLES) {
       collidingIndicesList = CollidingIndices.edgeAudioSyllables;
     } else {
@@ -242,18 +259,20 @@ class LetterPairProvider implements AlgProvider {
       }
     }
 
+    String separator = algType == AlgType.TwoFlip ? "-" : "";
     for (int setIndex in actualSetIndices) {
       assert(setIndex >= 0 && setIndex < scheme.length);
       List<int> collidingIndices = _getCollidingIndices(algType, setIndex);
       for (int l2Index = 0; l2Index < scheme.length; ++l2Index) {
         if (!collidingIndices.contains(l2Index) &&
             !bufferIndices.contains(setIndex) &&
-            !bufferIndices.contains(l2Index)) {
+            !bufferIndices.contains(l2Index) &&
+            setIndex != l2Index) {
           addToOriginalLetterPairs(
-              setIndex, l2Index, scheme, secondLetterScheme);
+              setIndex, l2Index, scheme, secondLetterScheme, separator);
           if (invertedAlgs) {
             addToOriginalLetterPairs(
-                l2Index, setIndex, scheme, secondLetterScheme);
+                l2Index, setIndex, scheme, secondLetterScheme, separator);
           }
         }
       }
@@ -262,12 +281,12 @@ class LetterPairProvider implements AlgProvider {
   }
 
   void addToOriginalLetterPairs(int l1Index, int l2Index, List<String> scheme,
-      List<String>? secondLetterScheme) {
+      List<String>? secondLetterScheme, String separator) {
     String l1 = scheme[l1Index];
     String l2 = secondLetterScheme == null
         ? scheme[l2Index]
         : secondLetterScheme[l2Index];
-    originalLetterPairs.add(Alg(l1 + l2));
+    originalLetterPairs.add(Alg(l1 + separator + l2));
   }
 
   @override
@@ -350,6 +369,16 @@ class EdgesAlgProvider extends LetterPairProvider {
       super.invertedAlgs = false})
       : super(
           algType: AlgType.Edge,
+        );
+}
+
+class TwoFlipsAlgProvider extends LetterPairProvider {
+  TwoFlipsAlgProvider(
+      {super.setIndices = const [],
+      super.skippedAlgs = const [],
+      super.invertedAlgs = false})
+      : super(
+          algType: AlgType.TwoFlip,
         );
 }
 

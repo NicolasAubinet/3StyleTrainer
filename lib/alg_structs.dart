@@ -1,6 +1,7 @@
 enum AlgType {
   Corner,
   Edge,
+  TwoFlip,
   Custom,
 }
 

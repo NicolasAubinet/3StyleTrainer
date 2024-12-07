@@ -55,9 +55,17 @@ class _MenuScreenState extends State<MenuScreen> {
     } else if (_practiceType == PracticeType.timeRace) {
       List<String> skippedAlgs =
           await DatabaseManager().getExecutedTimeRaceAlgs(algType);
-      AlgProvider algProvider = algType == AlgType.Corner
-          ? CornersAlgProvider(skippedAlgs: skippedAlgs)
-          : EdgesAlgProvider(skippedAlgs: skippedAlgs);
+
+      AlgProvider? algProvider;
+      if (algType == AlgType.Corner) {
+        algProvider = CornersAlgProvider(skippedAlgs: skippedAlgs);
+      } else if (algType == AlgType.Edge) {
+        algProvider = EdgesAlgProvider(skippedAlgs: skippedAlgs);
+      } else if (algType == AlgType.TwoFlip) {
+        algProvider = TwoFlipsAlgProvider(skippedAlgs: skippedAlgs);
+      }
+      assert(algProvider != null, "Alg type not supported");
+
       if (mounted && context.mounted) {
         Navigator.push(
           context,
@@ -65,7 +73,7 @@ class _MenuScreenState extends State<MenuScreen> {
             builder: (context) => TimerScreen(
               _practiceType,
               _targetTime,
-              algProvider,
+              algProvider!,
               algType,
               skippedAlgs: skippedAlgs,
             ),
@@ -92,6 +100,11 @@ class _MenuScreenState extends State<MenuScreen> {
           ElevatedButton(
             child: Text(AppLocalizations.of(context)!.edges),
             onPressed: () => _onButtonPressed(context, AlgType.Edge),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            child: Text(AppLocalizations.of(context)!.flips),
+            onPressed: () => _onButtonPressed(context, AlgType.TwoFlip),
           ),
           SizedBox(height: 20),
           ElevatedButton(

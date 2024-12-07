@@ -13,6 +13,7 @@
   "repeatTargetTime": "Repeat cases above {targetTime}s",
   "corners": "Corners",
   "edges": "Edges",
+  "flips": "2Flips",
   "start": "Start",
   "algSet": "Alg set",
   "selectSetsToPractice": "Select sets to practice ({count} selected)",

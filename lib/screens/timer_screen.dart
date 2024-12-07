@@ -13,17 +13,17 @@ import '../utils.dart';
 import 'session_summary_screen.dart';
 
 const double MINIMUM_ALLOWED_TIME = 0.30; // to prevent misclick via double tap
-const int TIME_RACE_DURATION_SECONDS = 60;
 
 class TimerScreen extends StatefulWidget {
   final PracticeType practiceType;
   final double targetTime;
+  final double raceTime;
   final AlgProvider algProvider;
   final AlgType algType;
   final List<String> skippedAlgs;
 
-  TimerScreen(
-      this.practiceType, this.targetTime, this.algProvider, this.algType,
+  TimerScreen(this.practiceType, this.targetTime, this.raceTime,
+      this.algProvider, this.algType,
       {this.skippedAlgs = const []});
 
   @override
@@ -231,7 +231,10 @@ class _TimerScreenState extends State<TimerScreen> {
     }
     Duration duration = DateTime.now().difference(timerStartTime!);
     int ms = duration.inMilliseconds;
-    double progression = ms / TIME_RACE_DURATION_SECONDS / 1000;
+    double progression = 1;
+    if (widget.raceTime > 0) {
+      progression = ms / (widget.raceTime * 60 * 1000);
+    }
     return progression;
   }
 

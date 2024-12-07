@@ -12,6 +12,7 @@ import 'package:three_style_trainer/screens/timer_screen.dart';
 import '../widgets/number_input_field.dart';
 
 const double DEFAULT_TARGET_TIME = 2.0;
+const double DEFAULT_RACE_TIME = 1.0;
 
 class MenuScreen extends StatefulWidget {
   @override
@@ -20,6 +21,7 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   double _targetTime = DEFAULT_TARGET_TIME;
+  double _raceTime = DEFAULT_RACE_TIME;
   PracticeType _practiceType = PracticeType.sets;
 
   @override
@@ -32,6 +34,7 @@ class _MenuScreenState extends State<MenuScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       _targetTime = prefs.getDouble("target_time") ?? DEFAULT_TARGET_TIME;
+      _raceTime = prefs.getDouble("race_time") ?? DEFAULT_RACE_TIME;
     });
   }
 
@@ -47,6 +50,7 @@ class _MenuScreenState extends State<MenuScreen> {
         MaterialPageRoute(
           builder: (context) => AlgSetSelectorScreen(
             _targetTime,
+            _raceTime,
             algType,
             customSets: customSets,
           ),
@@ -73,6 +77,7 @@ class _MenuScreenState extends State<MenuScreen> {
             builder: (context) => TimerScreen(
               _practiceType,
               _targetTime,
+              _raceTime,
               algProvider!,
               algType,
               skippedAlgs: skippedAlgs,
@@ -125,13 +130,27 @@ class _MenuScreenState extends State<MenuScreen> {
             ],
           ),
           SizedBox(height: 10),
-          TargetTimeSelectionWidget(_targetTime, (targetTime) async {
-            SharedPreferences prefs = await SharedPreferences.getInstance();
-            prefs.setDouble("target_time", targetTime);
-            setState(() {
-              _targetTime = targetTime;
-            });
-          }),
+          _practiceType == PracticeType.sets
+              ? TimeSelectionWidget(
+                  AppLocalizations.of(context)!.targetTime, _targetTime,
+                  (targetTime) async {
+                  SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  prefs.setDouble("target_time", targetTime);
+                  setState(() {
+                    _targetTime = targetTime;
+                  });
+                })
+              : TimeSelectionWidget(
+                  AppLocalizations.of(context)!.raceTime, _raceTime,
+                  (raceTime) async {
+                  SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  prefs.setDouble("race_time", raceTime);
+                  setState(() {
+                    _raceTime = raceTime;
+                  });
+                }),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -193,18 +212,18 @@ class _PracticeTypeSelectionWidgetState
   }
 }
 
-class TargetTimeSelectionWidget extends StatefulWidget {
+class TimeSelectionWidget extends StatefulWidget {
+  final String _label;
   final double _targetTime;
   final Function(double) _onTapOutside;
 
-  TargetTimeSelectionWidget(this._targetTime, this._onTapOutside);
+  TimeSelectionWidget(this._label, this._targetTime, this._onTapOutside);
 
   @override
-  State<TargetTimeSelectionWidget> createState() =>
-      _TargetTimeSelectionWidgetState();
+  State<TimeSelectionWidget> createState() => _TimeSelectionWidgetState();
 }
 
-class _TargetTimeSelectionWidgetState extends State<TargetTimeSelectionWidget> {
+class _TimeSelectionWidgetState extends State<TimeSelectionWidget> {
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
@@ -213,7 +232,7 @@ class _TargetTimeSelectionWidgetState extends State<TargetTimeSelectionWidget> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          AppLocalizations.of(context)!.targetTime,
+          widget._label,
           style: theme.textTheme.labelSmall,
         ),
         Container(

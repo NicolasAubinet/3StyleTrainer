@@ -10,10 +10,11 @@ import 'timer_screen.dart';
 
 class AlgSetSelectorScreen extends StatefulWidget {
   final double targetTime;
+  final double raceTime;
   final AlgType algType;
   final List<CustomSet> customSets;
 
-  AlgSetSelectorScreen(this.targetTime, this.algType,
+  AlgSetSelectorScreen(this.targetTime, this.raceTime, this.algType,
       {this.customSets = const []});
 
   @override
@@ -363,6 +364,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                           builder: (context) => TimerScreen(
                             PracticeType.sets,
                             widget.targetTime,
+                            widget.raceTime,
                             getAlgProvider(),
                             widget.algType,
                           ),

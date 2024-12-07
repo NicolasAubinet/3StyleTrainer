@@ -89,7 +89,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
       DataCell(Text(
         timeToString(algTime.timeMs, fractionDigits: 2),
         style: theme.textTheme.displaySmall?.copyWith(
-            color: isUnderTargetTime(algTime.timeMs, widget.targetTime)
+            color: widget.practiceType == PracticeType.sets &&
+                    isUnderTargetTime(algTime.timeMs, widget.targetTime)
                 ? Colors.green
                 : Colors.red),
       )),

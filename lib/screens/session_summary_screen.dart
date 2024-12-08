@@ -76,6 +76,16 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     ];
   }
 
+  Color getAlgTimeColor(int timeMs, ThemeData theme) {
+    if (widget.practiceType == PracticeType.sets) {
+      return isUnderTargetTime(timeMs, widget.targetTime)
+          ? Colors.green
+          : Colors.red;
+    } else {
+      return theme.colorScheme.onPrimary;
+    }
+  }
+
   DataRow toDataRow(AlgTime algTime, ThemeData theme) {
     return DataRow(cells: [
       DataCell(Text(
@@ -88,11 +98,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
       )),
       DataCell(Text(
         timeToString(algTime.timeMs, fractionDigits: 2),
-        style: theme.textTheme.displaySmall?.copyWith(
-            color: widget.practiceType == PracticeType.sets &&
-                    isUnderTargetTime(algTime.timeMs, widget.targetTime)
-                ? Colors.green
-                : Colors.red),
+        style: theme.textTheme.displaySmall
+            ?.copyWith(color: getAlgTimeColor(algTime.timeMs, theme)),
       )),
     ]);
   }

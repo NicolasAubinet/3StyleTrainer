@@ -3,14 +3,21 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/settings.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
   final _cornersSchemeTextController = TextEditingController();
   final _edgesSchemeTextController = TextEditingController();
   final _cornersFormKey = GlobalKey<FormState>();
   final _edgesFormKey = GlobalKey<FormState>();
   final _cardColor = Color(0x44000000);
 
-  SettingsScreen() {
+  @override
+  void initState() {
+    super.initState();
     _cornersSchemeTextController.text = Settings().getCornersScheme().join();
     _edgesSchemeTextController.text = Settings().getEdgesScheme().join();
   }
@@ -25,6 +32,16 @@ class SettingsScreen extends StatelessWidget {
     if (_edgesFormKey.currentState!.validate()) {
       Settings().setEdgesScheme(_edgesSchemeTextController.text);
     }
+  }
+
+  Future<bool> _onWillPop(bool didPop, Object? result) async {
+    if (_cornersFormKey.currentState!.validate()) {
+      Settings().setCornersScheme(_cornersSchemeTextController.text);
+    }
+    if (_edgesFormKey.currentState!.validate()) {
+      Settings().setEdgesScheme(_edgesSchemeTextController.text);
+    }
+    return true;
   }
 
   void _onChangedCornersScheme(String scheme) {
@@ -211,24 +228,27 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.primary,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.settings),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(5.0),
-        child: Column(
-          children: [
-            getCornersSchemeWidget(context),
-            getEdgesSchemeWidget(context),
-            Row(
-              children: [
-                getCornerBufferWidget(context),
-                getEdgeBufferWidget(context),
-              ],
-            )
-          ],
+    return PopScope(
+      onPopInvokedWithResult: _onWillPop,
+      child: Scaffold(
+        backgroundColor: theme.colorScheme.primary,
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.settings),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: Column(
+            children: [
+              getCornersSchemeWidget(context),
+              getEdgesSchemeWidget(context),
+              Row(
+                children: [
+                  getCornerBufferWidget(context),
+                  getEdgeBufferWidget(context),
+                ],
+              )
+            ],
+          ),
         ),
       ),
     );

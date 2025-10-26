@@ -6,6 +6,7 @@ import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/database_manager.dart';
 import 'package:three_style_trainer/practice_type.dart';
 import 'package:three_style_trainer/screens/alg_set_selector_screen.dart';
+import 'package:three_style_trainer/screens/letter_pairs_list_screen.dart';
 import 'package:three_style_trainer/screens/settings_screen.dart';
 import 'package:three_style_trainer/screens/timer_screen.dart';
 
@@ -38,6 +39,20 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
+  AlgProvider _constructAlgProvider(AlgType algType,
+      {List<String> skippedAlgs = const []}) {
+    AlgProvider? algProvider;
+    if (algType == AlgType.Corner) {
+      algProvider = CornersAlgProvider(skippedAlgs: skippedAlgs);
+    } else if (algType == AlgType.Edge) {
+      algProvider = EdgesAlgProvider(skippedAlgs: skippedAlgs);
+    } else if (algType == AlgType.TwoFlip) {
+      algProvider = TwoFlipsAlgProvider(skippedAlgs: skippedAlgs);
+    }
+    assert(algProvider != null, "Alg type not supported");
+    return algProvider!;
+  }
+
   void _onButtonPressed(BuildContext context, AlgType algType) async {
     if (_practiceType == PracticeType.sets) {
       List<CustomSet> customSets = [];
@@ -57,20 +72,11 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
       );
     } else if (_practiceType == PracticeType.timeRace) {
-      List<String> skippedAlgs =
-          await DatabaseManager().getExecutedTimeRaceAlgs(algType);
-
-      AlgProvider? algProvider;
-      if (algType == AlgType.Corner) {
-        algProvider = CornersAlgProvider(skippedAlgs: skippedAlgs);
-      } else if (algType == AlgType.Edge) {
-        algProvider = EdgesAlgProvider(skippedAlgs: skippedAlgs);
-      } else if (algType == AlgType.TwoFlip) {
-        algProvider = TwoFlipsAlgProvider(skippedAlgs: skippedAlgs);
-      }
-      assert(algProvider != null, "Alg type not supported");
-
       if (mounted && context.mounted) {
+        List<String> skippedAlgs =
+            await DatabaseManager().getExecutedTimeRaceAlgs(algType);
+        AlgProvider algProvider =
+            _constructAlgProvider(algType, skippedAlgs: skippedAlgs);
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -78,19 +84,51 @@ class _MenuScreenState extends State<MenuScreen> {
               _practiceType,
               _targetTime,
               _raceTime,
-              algProvider!,
+              algProvider,
               algType,
               skippedAlgs: skippedAlgs,
             ),
           ),
         );
       }
+    } else if (_practiceType == PracticeType.letterPairsList) {
+      AlgProvider algProvider = _constructAlgProvider(algType);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => LetterPairsListScreen(algProvider)),
+      );
     }
+  }
+
+  TimeSelectionWidget? _getTimeSelectionWidget() {
+    if (_practiceType == PracticeType.sets) {
+      return TimeSelectionWidget(
+          AppLocalizations.of(context)!.targetTime, _targetTime,
+          (targetTime) async {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setDouble("target_time", targetTime);
+        setState(() {
+          _targetTime = targetTime;
+        });
+      });
+    } else if (_practiceType == PracticeType.timeRace) {
+      return TimeSelectionWidget(
+          AppLocalizations.of(context)!.raceTime, _raceTime, (raceTime) async {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setDouble("race_time", raceTime);
+        setState(() {
+          _raceTime = raceTime;
+        });
+      });
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
+    final timeSelectionWidget = _getTimeSelectionWidget();
 
     return Scaffold(
       backgroundColor: theme.colorScheme.primary,
@@ -109,13 +147,15 @@ class _MenuScreenState extends State<MenuScreen> {
           SizedBox(height: 20),
           ElevatedButton(
             child: Text(AppLocalizations.of(context)!.flips),
-            onPressed: () => _onButtonPressed(context, AlgType.TwoFlip),
+            onPressed: _practiceType == PracticeType.letterPairsList
+                ? null
+                : () => _onButtonPressed(context, AlgType.TwoFlip),
           ),
           SizedBox(height: 20),
           ElevatedButton(
-            onPressed: _practiceType == PracticeType.timeRace
-                ? null
-                : () => _onButtonPressed(context, AlgType.Custom),
+            onPressed: _practiceType == PracticeType.sets
+                ? () => _onButtonPressed(context, AlgType.Custom)
+                : null,
             child: Text(AppLocalizations.of(context)!.custom),
           ),
           SizedBox(height: 50),
@@ -130,27 +170,7 @@ class _MenuScreenState extends State<MenuScreen> {
             ],
           ),
           SizedBox(height: 10),
-          _practiceType == PracticeType.sets
-              ? TimeSelectionWidget(
-                  AppLocalizations.of(context)!.targetTime, _targetTime,
-                  (targetTime) async {
-                  SharedPreferences prefs =
-                      await SharedPreferences.getInstance();
-                  prefs.setDouble("target_time", targetTime);
-                  setState(() {
-                    _targetTime = targetTime;
-                  });
-                })
-              : TimeSelectionWidget(
-                  AppLocalizations.of(context)!.raceTime, _raceTime,
-                  (raceTime) async {
-                  SharedPreferences prefs =
-                      await SharedPreferences.getInstance();
-                  prefs.setDouble("race_time", raceTime);
-                  setState(() {
-                    _raceTime = raceTime;
-                  });
-                }),
+          if (timeSelectionWidget != null) timeSelectionWidget,
         ],
       ),
       floatingActionButton: FloatingActionButton(

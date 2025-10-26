@@ -5,6 +5,7 @@
   "practiceType": "Practice type",
   "practiceTypeSets": "Sets",
   "practiceTypeTimeRace": "Time race",
+  "practiceTypeLetterPairsList": "Letter pairs list",
   "completedAlgs": "Completed algs: ",
   "again": "Again",
   "targetTime": "Target time (seconds): ",

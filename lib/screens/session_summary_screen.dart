@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:three_style_trainer/practice_type.dart';
 
 import '../alg_structs.dart';
+import '../l10n/app_localizations.dart';
 import '../utils.dart';
 
 const int BUTTON_PRESS_DELAY_MS = 250;

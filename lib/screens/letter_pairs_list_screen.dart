@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:three_style_trainer/alg_provider.dart';
 import 'package:three_style_trainer/alg_structs.dart';
+
+import '../l10n/app_localizations.dart';
 
 class LetterPairsListScreen extends StatefulWidget {
   final AlgProvider algProvider;

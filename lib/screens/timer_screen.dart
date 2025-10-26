@@ -2,12 +2,12 @@ import 'dart:async' as async;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:three_style_trainer/database_manager.dart';
 import 'package:timer_count_down/timer_count_down.dart';
 
 import '../alg_provider.dart';
 import '../alg_structs.dart';
+import '../l10n/app_localizations.dart';
 import '../practice_type.dart';
 import '../utils.dart';
 import 'session_summary_screen.dart';

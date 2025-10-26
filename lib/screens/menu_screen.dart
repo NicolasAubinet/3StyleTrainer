@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_style_trainer/alg_provider.dart';
 import 'package:three_style_trainer/alg_structs.dart';
@@ -10,6 +9,7 @@ import 'package:three_style_trainer/screens/letter_pairs_list_screen.dart';
 import 'package:three_style_trainer/screens/settings_screen.dart';
 import 'package:three_style_trainer/screens/timer_screen.dart';
 
+import '../l10n/app_localizations.dart';
 import '../widgets/number_input_field.dart';
 
 const double DEFAULT_TARGET_TIME = 2.0;

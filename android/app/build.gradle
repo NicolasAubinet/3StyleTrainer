@@ -39,6 +39,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
     defaultConfig {
         applicationId = "com.nanocube.three_style_trainer"
         // You can update the following values to match your application needs.

@@ -15,6 +15,7 @@ class LetterPairsListScreen extends StatefulWidget {
 
 class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
   final List<Alg> _algs = [];
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -24,6 +25,12 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
       _algs.add(alg!);
     }
     widget.algProvider.reset();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -50,39 +57,44 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
               final itemHeight =
                   (constraints.maxWidth / crossAxisCount) / childAspectRatio;
 
-              return ListView.builder(
-                itemCount: rowCount,
-                itemBuilder: (context, rowIndex) {
-                  final List<Widget> rowChildren = [];
-                  final startIndex = rowIndex * crossAxisCount;
+              return Scrollbar(
+                controller: _scrollController,
+                thumbVisibility: false,
+                child: ListView.builder(
+                  controller: _scrollController,
+                  itemCount: rowCount,
+                  itemBuilder: (context, rowIndex) {
+                    final List<Widget> rowChildren = [];
+                    final startIndex = rowIndex * crossAxisCount;
 
-                  for (int i = 0; i < crossAxisCount; i++) {
-                    final itemIndex = startIndex + i;
-                    if (itemIndex < _algs.length) {
-                      rowChildren.add(
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              _algs[itemIndex].name,
-                              style: theme.textTheme.displaySmall,
+                    for (int i = 0; i < crossAxisCount; i++) {
+                      final itemIndex = startIndex + i;
+                      if (itemIndex < _algs.length) {
+                        rowChildren.add(
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                _algs[itemIndex].name,
+                                style: theme.textTheme.displaySmall,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    } else {
-                      rowChildren.add(Expanded(child: Container()));
+                        );
+                      } else {
+                        rowChildren.add(Expanded(child: Container()));
+                      }
                     }
-                  }
 
-                  return Container(
-                    color:
-                        rowIndex.isEven ? Colors.transparent : Colors.black26,
-                    height: itemHeight,
-                    child: Row(
-                      children: rowChildren,
-                    ),
-                  );
-                },
+                    return Container(
+                      color:
+                          rowIndex.isEven ? Colors.transparent : Colors.black26,
+                      height: itemHeight,
+                      child: Row(
+                        children: rowChildren,
+                      ),
+                    );
+                  },
+                ),
               );
             },
           ),

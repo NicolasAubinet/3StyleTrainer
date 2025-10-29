@@ -21,9 +21,10 @@ class TimerScreen extends StatefulWidget {
   final AlgProvider algProvider;
   final AlgType algType;
   final List<String> skippedAlgs;
+  final int algsShownInAdvance;
 
   TimerScreen(this.practiceType, this.targetTime, this.raceTime,
-      this.algProvider, this.algType,
+      this.algProvider, this.algType, this.algsShownInAdvance,
       {this.skippedAlgs = const []});
 
   @override
@@ -36,6 +37,7 @@ class _TimerScreenState extends State<TimerScreen> {
   var times = <AlgTime>[];
   var skippedAlgs = <String>[];
   Alg? alg;
+  var nextAlgs = <Alg>[];
   late async.Timer refreshTimer;
   DateTime? timerStartTime;
   bool isReady = false;
@@ -57,7 +59,8 @@ class _TimerScreenState extends State<TimerScreen> {
 
       stopwatch.stop();
 
-      if (widget.practiceType == PracticeType.timeRace) {
+      if (widget.practiceType == PracticeType.timeRace &&
+          widget.algsShownInAdvance == 0) {
         String algName = alg!.name;
         skippedAlgs.add(algName);
 
@@ -79,17 +82,16 @@ class _TimerScreenState extends State<TimerScreen> {
     List<AlgTime> timesCopy = List.from(times);
 
     setState(() {
-      _fetchNextAlg();
       isPressed = false;
       stopwatch.reset();
+
+      Alg? nextAlg = _fetchNextAlg();
+      if (nextAlg != null) {
+        nextAlgs.insert(0, nextAlg);
+      }
+      alg = nextAlgs.isEmpty ? null : nextAlgs.removeLast();
       if (alg == null) {
-        if (widget.practiceType == PracticeType.timeRace) {
-          // Reset to all algs and keep going
-          DatabaseManager().resetExecutedTimeRaceAlgs();
-          skippedAlgs.clear();
-          widget.algProvider.reset();
-          _fetchNextAlg();
-        } else if (widget.practiceType == PracticeType.sets) {
+        if (widget.practiceType == PracticeType.sets) {
           // Sets completed, stop
           times.clear();
           timerStartTime = null;
@@ -131,10 +133,19 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   Alg? _fetchNextAlg() {
+    Alg? nextAlg;
     do {
-      alg = widget.algProvider.getNextAlg();
-    } while (alg != null && skippedAlgs.contains(alg!.name));
-    return alg;
+      nextAlg = widget.algProvider.getNextAlg();
+
+      if (nextAlg == null && widget.practiceType == PracticeType.timeRace) {
+        // Reset to all algs and keep going
+        DatabaseManager().resetExecutedTimeRaceAlgs();
+        skippedAlgs.clear();
+        widget.algProvider.reset();
+        nextAlg = widget.algProvider.getNextAlg();
+      }
+    } while (nextAlg != null && skippedAlgs.contains(nextAlg.name));
+    return nextAlg;
   }
 
   void _onTimeRaceEnded() async {
@@ -276,6 +287,11 @@ class _TimerScreenState extends State<TimerScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        for (var nextAlg in nextAlgs)
+                          Text(
+                            nextAlg.name,
+                            style: theme.textTheme.displaySmall,
+                          ),
                         RichText(
                           text: TextSpan(
                             children: (alg != null ? alg!.name : "--")
@@ -306,7 +322,14 @@ class _TimerScreenState extends State<TimerScreen> {
                   setState(() {
                     isReady = true;
                     timerStartTime = DateTime.now();
-                    _fetchNextAlg();
+                    for (int i = 0; i < widget.algsShownInAdvance; ++i) {
+                      Alg? nextAlg = _fetchNextAlg();
+                      if (nextAlg != null) {
+                        nextAlgs.add(nextAlg);
+                      }
+                    }
+                    alg = _fetchNextAlg();
+                    assert(alg != null);
                     stopwatch.start();
                   });
                 },

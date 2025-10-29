@@ -13,8 +13,10 @@ class AlgSetSelectorScreen extends StatefulWidget {
   final double raceTime;
   final AlgType algType;
   final List<CustomSet> customSets;
+  final int algsShownInAdvance;
 
-  AlgSetSelectorScreen(this.targetTime, this.raceTime, this.algType,
+  AlgSetSelectorScreen(
+      this.targetTime, this.raceTime, this.algType, this.algsShownInAdvance,
       {this.customSets = const []});
 
   @override
@@ -367,6 +369,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                             widget.raceTime,
                             getAlgProvider(),
                             widget.algType,
+                            widget.algsShownInAdvance,
                           ),
                         ),
                       );

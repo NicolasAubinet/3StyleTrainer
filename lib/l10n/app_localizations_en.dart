@@ -42,6 +42,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get raceTime => 'Race time (minutes): ';
 
   @override
+  String get showNextAlg => 'Show next alg';
+
+  @override
   String get back => 'Back';
 
   @override

@@ -160,6 +160,12 @@ abstract class AppLocalizations {
   /// **'Race time (minutes): '**
   String get raceTime;
 
+  /// No description provided for @showNextAlg.
+  ///
+  /// In en, this message translates to:
+  /// **'Show next alg'**
+  String get showNextAlg;
+
   /// No description provided for @back.
   ///
   /// In en, this message translates to:

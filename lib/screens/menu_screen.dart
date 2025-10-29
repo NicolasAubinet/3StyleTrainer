@@ -23,6 +23,7 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   double _targetTime = DEFAULT_TARGET_TIME;
   double _raceTime = DEFAULT_RACE_TIME;
+  bool _showNextAlg = false;
   PracticeType _practiceType = PracticeType.sets;
 
   @override
@@ -54,6 +55,8 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   void _onButtonPressed(BuildContext context, AlgType algType) async {
+    int algsShownInAdvance =
+        _showNextAlg ? 1 : 0; // TODO take value from settings
     if (_practiceType == PracticeType.sets) {
       List<CustomSet> customSets = [];
       if (algType == AlgType.Custom) {
@@ -67,6 +70,7 @@ class _MenuScreenState extends State<MenuScreen> {
             _targetTime,
             _raceTime,
             algType,
+            algsShownInAdvance,
             customSets: customSets,
           ),
         ),
@@ -86,6 +90,7 @@ class _MenuScreenState extends State<MenuScreen> {
               _raceTime,
               algProvider,
               algType,
+              algsShownInAdvance,
               skippedAlgs: skippedAlgs,
             ),
           ),
@@ -125,10 +130,34 @@ class _MenuScreenState extends State<MenuScreen> {
     return null;
   }
 
+  Row? _getShowNextAlgWidget(ThemeData theme) {
+    if (_practiceType == PracticeType.sets ||
+        _practiceType == PracticeType.timeRace) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.showNextAlg,
+            style: theme.textTheme.labelSmall,
+          ),
+          Checkbox(
+              value: _showNextAlg,
+              onChanged: (bool? newValue) {
+                setState(() {
+                  _showNextAlg = newValue!;
+                });
+              }),
+        ],
+      );
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
     final timeSelectionWidget = _getTimeSelectionWidget();
+    final showNextAlgWidget = _getShowNextAlgWidget(theme);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.primary,
@@ -171,6 +200,7 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
           SizedBox(height: 10),
           if (timeSelectionWidget != null) timeSelectionWidget,
+          if (showNextAlgWidget != null) showNextAlgWidget,
         ],
       ),
       floatingActionButton: FloatingActionButton(

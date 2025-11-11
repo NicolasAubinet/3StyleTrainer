@@ -154,6 +154,7 @@ class _TimerScreenState extends State<TimerScreen> {
       stopwatch.stop();
       stopwatch.reset();
       times.clear();
+      nextAlgs.clear();
       timerStartTime = null;
     });
 
@@ -322,6 +323,7 @@ class _TimerScreenState extends State<TimerScreen> {
                   setState(() {
                     isReady = true;
                     timerStartTime = DateTime.now();
+                    nextAlgs.clear();
                     for (int i = 0; i < widget.algsShownInAdvance; ++i) {
                       Alg? nextAlg = _fetchNextAlg();
                       if (nextAlg != null) {

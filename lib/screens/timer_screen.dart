@@ -331,7 +331,11 @@ class _TimerScreenState extends State<TimerScreen> {
                       }
                     }
                     alg = _fetchNextAlg();
-                    assert(alg != null);
+                    if (alg == null) {
+                      assert(nextAlgs.isNotEmpty);
+                      alg = nextAlgs.removeLast();
+                    }
+
                     stopwatch.start();
                   });
                 },

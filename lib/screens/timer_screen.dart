@@ -277,7 +277,8 @@ class _TimerScreenState extends State<TimerScreen> {
                       alignment: Alignment.center,
                       child: LinearProgressIndicator(
                         value: widget.practiceType == PracticeType.sets
-                            ? widget.algProvider.getProgression()
+                            ? widget.algProvider.getProgression(
+                                preFetchedAlgsCount: nextAlgs.length)
                             : getTimeRaceProgression(),
                         minHeight: 10,
                         color: theme.colorScheme.tertiary,

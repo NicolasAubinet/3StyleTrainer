@@ -11,7 +11,7 @@ abstract class AlgProvider {
 
   void reset({List<String> skippedAlgs = const []});
 
-  double getProgression();
+  double getProgression({int preFetchedAlgsCount = 0});
 }
 
 double _getProgression(int originalLength, int currentLength) {
@@ -307,8 +307,9 @@ class LetterPairProvider implements AlgProvider {
   }
 
   @override
-  double getProgression() {
-    return _getProgression(originalPairsToExecute, letterPairsToExecute.length);
+  double getProgression({int preFetchedAlgsCount = 0}) {
+    return _getProgression(originalPairsToExecute,
+        letterPairsToExecute.length + preFetchedAlgsCount);
   }
 }
 
@@ -347,8 +348,9 @@ class CustomProvider implements AlgProvider {
   }
 
   @override
-  double getProgression() {
-    return _getProgression(originalPairsToExecute, letterPairsToExecute.length);
+  double getProgression({int preFetchedAlgsCount = 0}) {
+    return _getProgression(originalPairsToExecute,
+        letterPairsToExecute.length + preFetchedAlgsCount);
   }
 }
 

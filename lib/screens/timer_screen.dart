@@ -215,24 +215,24 @@ class _TimerScreenState extends State<TimerScreen> {
     return false;
   }
 
-  TextSpan getAlgTextSpan(ThemeData theme, String algChar) {
+  TextSpan getAlgTextSpan(ThemeData theme, String algChar, TextStyle style) {
     Set<String> greenCharacters = {'é', 'É'};
     Set<String> redCharacters = {'è', 'È'};
 
     if (greenCharacters.contains(algChar)) {
       return TextSpan(
         text: algChar,
-        style: theme.textTheme.displayLarge!.copyWith(color: Colors.green),
+        style: style.copyWith(color: Colors.green),
       );
     } else if (redCharacters.contains(algChar)) {
       return TextSpan(
         text: algChar,
-        style: theme.textTheme.displayLarge!.copyWith(color: Colors.orange),
+        style: style.copyWith(color: Colors.orange),
       );
     } else {
       return TextSpan(
         text: algChar,
-        style: theme.textTheme.displayLarge,
+        style: style,
       );
     }
   }
@@ -290,15 +290,18 @@ class _TimerScreenState extends State<TimerScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         for (var nextAlg in nextAlgs)
-                          Text(
-                            nextAlg.name,
-                            style: theme.textTheme.displaySmall,
-                          ),
+                          RichText(
+                              text: TextSpan(
+                                  children: nextAlg.name.characters
+                                      .map((e) => getAlgTextSpan(theme, e,
+                                          theme.textTheme.displaySmall!))
+                                      .toList())),
                         RichText(
                           text: TextSpan(
                             children: (alg != null ? alg!.name : "--")
                                 .characters
-                                .map((e) => getAlgTextSpan(theme, e))
+                                .map((e) => getAlgTextSpan(
+                                    theme, e, theme.textTheme.displayLarge!))
                                 .toList(),
                           ),
                         ),

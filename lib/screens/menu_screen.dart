@@ -37,6 +37,11 @@ class _MenuScreenState extends State<MenuScreen> {
     setState(() {
       _targetTime = prefs.getDouble("target_time") ?? DEFAULT_TARGET_TIME;
       _raceTime = prefs.getDouble("race_time") ?? DEFAULT_RACE_TIME;
+      _showNextAlg = prefs.getBool("show_next_alg") ?? false;
+      final practiceTypeName = prefs.getString("practice_type");
+      if (practiceTypeName != null) {
+        _practiceType = PracticeType.values.byName(practiceTypeName);
+      }
     });
   }
 
@@ -55,8 +60,7 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   void _onButtonPressed(BuildContext context, AlgType algType) async {
-    int algsShownInAdvance =
-        _showNextAlg ? 1 : 0; // TODO take value from settings
+    int algsShownInAdvance = _showNextAlg ? 1 : 0;
     if (_practiceType == PracticeType.sets) {
       List<CustomSet> customSets = [];
       if (algType == AlgType.Custom) {
@@ -142,9 +146,11 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
           Checkbox(
               value: _showNextAlg,
-              onChanged: (bool? newValue) {
+              onChanged: (bool? newValue) async {
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                prefs.setBool("show_next_alg", newValue!);
                 setState(() {
-                  _showNextAlg = newValue!;
+                  _showNextAlg = newValue;
                 });
               }),
         ],
@@ -175,10 +181,10 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
           SizedBox(height: 20),
           ElevatedButton(
-            child: Text(AppLocalizations.of(context)!.flips),
             onPressed: _practiceType == PracticeType.letterPairsList
                 ? null
                 : () => _onButtonPressed(context, AlgType.TwoFlip),
+            child: Text(AppLocalizations.of(context)!.flips),
           ),
           SizedBox(height: 20),
           ElevatedButton(
@@ -191,7 +197,9 @@ class _MenuScreenState extends State<MenuScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              PracticeTypeSelectionWidget((PracticeType? type) {
+              PracticeTypeSelectionWidget(_practiceType, (PracticeType? type) async {
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                prefs.setString("practice_type", (type ?? PracticeType.sets).name);
                 setState(() {
                   _practiceType = type ?? PracticeType.sets;
                 });
@@ -223,9 +231,10 @@ class _MenuScreenState extends State<MenuScreen> {
 }
 
 class PracticeTypeSelectionWidget extends StatefulWidget {
+  final PracticeType _initialSelection;
   final Function(PracticeType?) _onSelected;
 
-  PracticeTypeSelectionWidget(this._onSelected);
+  PracticeTypeSelectionWidget(this._initialSelection, this._onSelected);
 
   @override
   State<PracticeTypeSelectionWidget> createState() =>
@@ -239,7 +248,7 @@ class _PracticeTypeSelectionWidgetState
     var theme = Theme.of(context);
 
     return DropdownMenu<PracticeType>(
-      initialSelection: PracticeType.sets,
+      initialSelection: widget._initialSelection,
       label: Text(
         AppLocalizations.of(context)!.practiceType,
         style: theme.textTheme.labelSmall,

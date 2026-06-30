@@ -207,6 +207,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteTimeConfirmMessage => 'Delete this recorded time?';
 
   @override
+  String get clearAllTimes => 'Clear all times';
+
+  @override
+  String get clearAllTimesConfirmMessage =>
+      'Are you sure you want to delete ALL your times?';
+
+  @override
+  String get allTimesCleared => 'All times deleted';
+
+  @override
   String get columnAlg => 'Alg';
 
   @override

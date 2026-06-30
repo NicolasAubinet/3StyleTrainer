@@ -460,6 +460,24 @@ abstract class AppLocalizations {
   /// **'Delete this recorded time?'**
   String get deleteTimeConfirmMessage;
 
+  /// No description provided for @clearAllTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all times'**
+  String get clearAllTimes;
+
+  /// No description provided for @clearAllTimesConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete ALL your times?'**
+  String get clearAllTimesConfirmMessage;
+
+  /// No description provided for @allTimesCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'All times deleted'**
+  String get allTimesCleared;
+
   /// No description provided for @columnAlg.
   ///
   /// In en, this message translates to:

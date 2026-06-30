@@ -185,6 +185,14 @@ class DatabaseManager {
     await _database.delete(RESULTS, where: "id = ?", whereArgs: [id]);
   }
 
+  void clearAllResults() async {
+    if (!isUsingDatabase()) {
+      return;
+    }
+
+    await _database.delete(RESULTS);
+  }
+
   void insertExecutedTimeRaceAlg(AlgType algType, String alg) async {
     if (!isUsingDatabase()) {
       return;

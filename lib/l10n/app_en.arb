@@ -59,7 +59,10 @@
   "recordTimes": "Record times",
   "recordTimesDisabledReason": "Turn off 'Show next alg' to record times",
   "deleteTimeConfirmTitle": "Delete time",
-  "deleteTimeConfirmMessage": "Delete this recorded time?"
+  "deleteTimeConfirmMessage": "Delete this recorded time?",
+  "clearAllTimes": "Clear all times",
+  "clearAllTimesConfirmMessage": "Are you sure you want to delete ALL your times?",
+  "allTimesCleared": "All times deleted",
   "columnAlg": "Alg",
   "columnCount": "Count",
   "columnMin": "Min",

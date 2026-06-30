@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:three_style_trainer/alg_structs.dart';
+import 'package:three_style_trainer/database_manager.dart';
 import 'package:three_style_trainer/settings.dart';
 
 import '../l10n/app_localizations.dart';
@@ -225,6 +226,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget getClearTimesWidget(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10.0),
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700),
+        icon: Icon(Icons.delete_forever, color: Colors.white),
+        label: Text(
+          AppLocalizations.of(context)!.clearAllTimes,
+          style: const TextStyle(color: Colors.white),
+        ),
+        onPressed: () => _confirmClearAllTimes(context),
+      ),
+    );
+  }
+
+  void _confirmClearAllTimes(BuildContext context) async {
+    bool confirmed = false;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.clearAllTimes),
+        content: Text(AppLocalizations.of(context)!.clearAllTimesConfirmMessage),
+        actions: [
+          TextButton(
+            child: Text(AppLocalizations.of(context)!.cancel),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          TextButton(
+            child: Text(AppLocalizations.of(context)!.delete),
+            onPressed: () {
+              confirmed = true;
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed) {
+      DatabaseManager().clearAllResults();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppLocalizations.of(context)!.allTimesCleared),
+        ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -247,7 +296,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   getCornerBufferWidget(context),
                   getEdgeBufferWidget(context),
                 ],
-              )
+              ),
+              getClearTimesWidget(context),
             ],
           ),
         ),

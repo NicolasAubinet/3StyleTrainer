@@ -151,6 +151,41 @@ class DatabaseManager {
     ];
   }
 
+  // Individual recorded attempts for one alg, most recent first.
+  Future<List<AlgResult>> getAlgResults(AlgType algType, String alg,
+      {int? sinceMs}) async {
+    if (!isUsingDatabase()) {
+      return List.empty();
+    }
+
+    String where = "algType = ? AND alg = ?";
+    List<Object> whereArgs = [algType.name, alg];
+    if (sinceMs != null) {
+      where += " AND timestamp >= ?";
+      whereArgs.add(sinceMs);
+    }
+
+    final List<Map<String, Object?>> rows = await _database.query(
+      RESULTS,
+      columns: ['id', 'resultMs', 'timestamp'],
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: "timestamp DESC, id DESC",
+    );
+
+    return [
+      for (final row in rows) AlgResult.fromMap(row),
+    ];
+  }
+
+  void deleteResult(int id) async {
+    if (!isUsingDatabase()) {
+      return;
+    }
+
+    await _database.delete(RESULTS, where: "id = ?", whereArgs: [id]);
+  }
+
   void insertExecutedTimeRaceAlg(AlgType algType, String alg) async {
     if (!isUsingDatabase()) {
       return;

@@ -447,6 +447,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turn off \'Show next alg\' to record times'**
   String get recordTimesDisabledReason;
+
+  /// No description provided for @deleteTimeConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete time'**
+  String get deleteTimeConfirmTitle;
+
+  /// No description provided for @deleteTimeConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this recorded time?'**
+  String get deleteTimeConfirmMessage;
 }
 
 class _AppLocalizationsDelegate

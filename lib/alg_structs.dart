@@ -37,6 +37,20 @@ class AlgStats {
         avgMs = (map["avgMs"] as num).toDouble();
 }
 
+// A single recorded attempt (one row of the results history).
+class AlgResult {
+  final int id;
+  final int resultMs;
+  final int timestamp;
+
+  const AlgResult(this.id, this.resultMs, this.timestamp);
+
+  AlgResult.fromMap(Map<String, Object?> map)
+      : id = (map["id"] as num).toInt(),
+        resultMs = (map["resultMs"] as num).toInt(),
+        timestamp = (map["timestamp"] as num).toInt();
+}
+
 enum CornerBuffer {
   UFR,
   UFL,

@@ -57,5 +57,7 @@
   "dateRangeToday": "Today",
   "noRecordedTimes": "No recorded times",
   "recordTimes": "Record times",
-  "recordTimesDisabledReason": "Turn off 'Show next alg' to record times"
+  "recordTimesDisabledReason": "Turn off 'Show next alg' to record times",
+  "deleteTimeConfirmTitle": "Delete time",
+  "deleteTimeConfirmMessage": "Delete this recorded time?"
 }

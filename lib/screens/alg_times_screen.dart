@@ -7,6 +7,7 @@ import '../database_manager.dart';
 import '../l10n/app_localizations.dart';
 import '../stats_date_range.dart';
 import '../utils.dart';
+import 'alg_result_details_screen.dart';
 
 // Column indices for sorting / persisted sort state.
 const int _colAlg = 0;
@@ -167,12 +168,29 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     );
   }
 
-  DataColumn _column(ThemeData theme, String label, {bool numeric = false}) {
+  DataColumn _column(ThemeData theme, String label,
+      {bool numeric = false, ColumnSize size = ColumnSize.M}) {
     return DataColumn2(
       numeric: numeric,
+      size: size,
       onSort: _onSort,
       label: Text(label, style: theme.textTheme.labelLarge),
     );
+  }
+
+  void _openDetails(String alg) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AlgResultDetailsScreen(
+          algType: _category,
+          alg: alg,
+          sinceMs: _range.cutoffMs(),
+        ),
+      ),
+    );
+    // Times may have been deleted; refresh the aggregates.
+    if (mounted) _loadStats();
   }
 
   DataRow _row(ThemeData theme, AlgStats stats) {
@@ -184,7 +202,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
       DataCell(Text(timeToString(stats.maxMs, fractionDigits: 2), style: cellStyle)),
       DataCell(Text(timeToString(stats.avgMs.round(), fractionDigits: 2),
           style: cellStyle)),
-    ]);
+    ], onSelectChanged: (_) => _openDetails(stats.alg));
   }
 
   Widget _buildTable(ThemeData theme) {
@@ -192,10 +210,11 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
       fixedTopRows: 1,
       horizontalMargin: 10,
       columnSpacing: 5,
+      showCheckboxColumn: false,
       sortColumnIndex: _sortColumnIndex,
       sortAscending: _sortAscending,
       columns: [
-        _column(theme, "Alg"),
+        _column(theme, "Alg", size: ColumnSize.S),
         _column(theme, "Count", numeric: true),
         _column(theme, "Min", numeric: true),
         _column(theme, "Max", numeric: true),

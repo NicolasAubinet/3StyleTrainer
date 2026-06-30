@@ -199,4 +199,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get recordTimesDisabledReason =>
       'Turn off \'Show next alg\' to record times';
+
+  @override
+  String get deleteTimeConfirmTitle => 'Delete time';
+
+  @override
+  String get deleteTimeConfirmMessage => 'Delete this recorded time?';
 }

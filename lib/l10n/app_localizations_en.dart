@@ -205,4 +205,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteTimeConfirmMessage => 'Delete this recorded time?';
+
+  @override
+  String get columnAlg => 'Alg';
+
+  @override
+  String get columnCount => 'Count';
+
+  @override
+  String get columnMin => 'Min';
+
+  @override
+  String get columnMax => 'Max';
+
+  @override
+  String get columnAvg => 'Avg';
+
+  @override
+  String get columnDateTime => 'Date - time';
+
+  @override
+  String get columnResult => 'Result';
 }

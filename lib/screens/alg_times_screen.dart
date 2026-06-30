@@ -206,6 +206,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
   }
 
   Widget _buildTable(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     return DataTable2(
       fixedTopRows: 1,
       horizontalMargin: 10,
@@ -214,11 +215,11 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
       sortColumnIndex: _sortColumnIndex,
       sortAscending: _sortAscending,
       columns: [
-        _column(theme, "Alg", size: ColumnSize.S),
-        _column(theme, "Count", numeric: true),
-        _column(theme, "Min", numeric: true),
-        _column(theme, "Max", numeric: true),
-        _column(theme, "Avg", numeric: true),
+        _column(theme, l10n.columnAlg, size: ColumnSize.S),
+        _column(theme, l10n.columnCount, numeric: true),
+        _column(theme, l10n.columnMin, numeric: true),
+        _column(theme, l10n.columnMax, numeric: true),
+        _column(theme, l10n.columnAvg, numeric: true),
       ],
       rows: _stats.map((stats) => _row(theme, stats)).toList(),
     );

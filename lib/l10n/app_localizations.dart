@@ -459,6 +459,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete this recorded time?'**
   String get deleteTimeConfirmMessage;
+
+  /// No description provided for @columnAlg.
+  ///
+  /// In en, this message translates to:
+  /// **'Alg'**
+  String get columnAlg;
+
+  /// No description provided for @columnCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Count'**
+  String get columnCount;
+
+  /// No description provided for @columnMin.
+  ///
+  /// In en, this message translates to:
+  /// **'Min'**
+  String get columnMin;
+
+  /// No description provided for @columnMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Max'**
+  String get columnMax;
+
+  /// No description provided for @columnAvg.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg'**
+  String get columnAvg;
+
+  /// No description provided for @columnDateTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Date - time'**
+  String get columnDateTime;
+
+  /// No description provided for @columnResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Result'**
+  String get columnResult;
 }
 
 class _AppLocalizationsDelegate

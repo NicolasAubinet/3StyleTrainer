@@ -9,7 +9,7 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 import 'alg_structs.dart';
 
-const int DB_VERSION = 4;
+const int DB_VERSION = 5;
 
 const String RESULTS = "results";
 const String EXECUTED_TIME_RACE_ALGS = "executed_time_race_algs";
@@ -64,14 +64,13 @@ class DatabaseManager {
       createCustomSetsTable(db);
     }
     if (oldVersion < 4) {
-      // Convert the latest-time-only results table into a per-attempt history.
-      // Existing rows are kept with timestamp 0 (counted only under "All").
-      await db.execute('ALTER TABLE $RESULTS RENAME TO results_old');
+      // Old results were a single latest-time-per-case row with no timestamp.
+      // Drop them and start the per-attempt history fresh.
+      await db.execute('DROP TABLE IF EXISTS $RESULTS');
       await _createResultsTable(db);
-      await db
-          .execute('INSERT INTO $RESULTS(algType, alg, resultMs, timestamp) '
-              'SELECT algType, alg, resultMs, 0 FROM results_old');
-      await db.execute('DROP TABLE results_old');
+    }
+    if (oldVersion < 5) {
+      await db.execute('DELETE FROM $RESULTS');
     }
   }
 

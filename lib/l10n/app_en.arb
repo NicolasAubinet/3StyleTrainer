@@ -46,5 +46,14 @@
   "invalidSchemeSize": "Invalid scheme size (expected {size} characters)",
   "schemeCannotHaveDuplicates": "Scheme cannot have duplicates",
   "cornerBuffer": "Corner buffer",
-  "edgeBuffer": "Edge buffer"
+  "edgeBuffer": "Edge buffer",
+  "algTimesTitle": "Alg times",
+  "statsType": "Type",
+  "statsPeriod": "Period",
+  "dateRangeAll": "All",
+  "dateRangeLastYear": "Last year",
+  "dateRangeLastMonth": "Last month",
+  "dateRangeLastWeek": "Last week",
+  "dateRangeToday": "Today",
+  "noRecordedTimes": "No recorded times"
 }

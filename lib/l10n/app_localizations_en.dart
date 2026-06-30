@@ -165,4 +165,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get edgeBuffer => 'Edge buffer';
+
+  @override
+  String get algTimesTitle => 'Alg times';
+
+  @override
+  String get statsType => 'Type';
+
+  @override
+  String get statsPeriod => 'Period';
+
+  @override
+  String get dateRangeAll => 'All';
+
+  @override
+  String get dateRangeLastYear => 'Last year';
+
+  @override
+  String get dateRangeLastMonth => 'Last month';
+
+  @override
+  String get dateRangeLastWeek => 'Last week';
+
+  @override
+  String get dateRangeToday => 'Today';
+
+  @override
+  String get noRecordedTimes => 'No recorded times';
 }

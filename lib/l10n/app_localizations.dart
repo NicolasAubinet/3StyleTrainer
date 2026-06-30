@@ -381,6 +381,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edge buffer'**
   String get edgeBuffer;
+
+  /// No description provided for @algTimesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Alg times'**
+  String get algTimesTitle;
+
+  /// No description provided for @statsType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get statsType;
+
+  /// No description provided for @statsPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Period'**
+  String get statsPeriod;
+
+  /// No description provided for @dateRangeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get dateRangeAll;
+
+  /// No description provided for @dateRangeLastYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Last year'**
+  String get dateRangeLastYear;
+
+  /// No description provided for @dateRangeLastMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Last month'**
+  String get dateRangeLastMonth;
+
+  /// No description provided for @dateRangeLastWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Last week'**
+  String get dateRangeLastWeek;
+
+  /// No description provided for @dateRangeToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get dateRangeToday;
+
+  /// No description provided for @noRecordedTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'No recorded times'**
+  String get noRecordedTimes;
 }
 
 class _AppLocalizationsDelegate

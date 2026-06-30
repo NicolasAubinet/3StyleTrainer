@@ -24,7 +24,7 @@ class AlgResultDetailsScreen extends StatefulWidget {
 }
 
 class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
-  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd  HH:mm:ss');
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd - HH:mm:ss');
 
   List<AlgResult> _results = [];
   bool _loading = true;
@@ -76,19 +76,50 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
     }
   }
 
+  // Keep these widths in sync between the header and the rows so columns align.
+  static const double _timeColumnWidth = 90;
+  static const double _deleteColumnWidth = 48;
+
+  Widget _buildHeader(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    final headerStyle = theme.textTheme.titleSmall;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        children: [
+          Expanded(child: Text(l10n.columnDateTime, style: headerStyle)),
+          SizedBox(
+            width: _timeColumnWidth,
+            child: Text(l10n.columnResult,
+                style: headerStyle, textAlign: TextAlign.right),
+          ),
+          SizedBox(width: _deleteColumnWidth),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRow(ThemeData theme, AlgResult result) {
     final date = DateTime.fromMillisecondsSinceEpoch(result.timestamp);
-    return ListTile(
-      title: Text(_dateFormat.format(date), style: theme.textTheme.labelLarge),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+    final cellStyle = theme.textTheme.labelLarge;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      child: Row(
         children: [
-          Text(timeToString(result.resultMs, fractionDigits: 2),
-              style: theme.textTheme.labelLarge),
-          IconButton(
-            icon: Icon(Icons.delete),
-            color: Colors.white,
-            onPressed: () => _confirmDelete(result),
+          Expanded(child: Text(_dateFormat.format(date), style: cellStyle)),
+          SizedBox(
+            width: _timeColumnWidth,
+            child: Text(timeToString(result.resultMs, fractionDigits: 2),
+                style: cellStyle, textAlign: TextAlign.right),
+          ),
+          SizedBox(
+            width: _deleteColumnWidth,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: Icon(Icons.delete),
+              color: Colors.white,
+              onPressed: () => _confirmDelete(result),
+            ),
           ),
         ],
       ),
@@ -108,12 +139,20 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
             style: theme.textTheme.labelLarge),
       );
     } else {
-      content = Card(
-        color: Colors.black12,
-        child: ListView.builder(
-          itemCount: _results.length,
-          itemBuilder: (context, index) => _buildRow(theme, _results[index]),
-        ),
+      content = Column(
+        children: [
+          _buildHeader(theme),
+          Expanded(
+            child: Card(
+              color: Colors.black12,
+              child: ListView.builder(
+                itemCount: _results.length,
+                itemBuilder: (context, index) =>
+                    _buildRow(theme, _results[index]),
+              ),
+            ),
+          ),
+        ],
       );
     }
 

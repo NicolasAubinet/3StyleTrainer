@@ -60,4 +60,6 @@
   "recordTimesDisabledReason": "Turn off 'Show next alg' to record times",
   "deleteTimeConfirmTitle": "Delete time",
   "deleteTimeConfirmMessage": "Delete this recorded time?"
+  "columnDateTime": "Date - time",
+  "columnResult": "Result"
 }

@@ -5,6 +5,7 @@ import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/database_manager.dart';
 import 'package:three_style_trainer/practice_type.dart';
 import 'package:three_style_trainer/screens/alg_set_selector_screen.dart';
+import 'package:three_style_trainer/screens/alg_times_screen.dart';
 import 'package:three_style_trainer/screens/letter_pairs_list_screen.dart';
 import 'package:three_style_trainer/screens/settings_screen.dart';
 import 'package:three_style_trainer/screens/timer_screen.dart';
@@ -211,20 +212,44 @@ class _MenuScreenState extends State<MenuScreen> {
           if (showNextAlgWidget != null) showNextAlgWidget,
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: theme.colorScheme.secondary,
-        tooltip: AppLocalizations.of(context)!.settings,
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => SettingsScreen()),
-          );
-        },
-        child: Icon(
-          Icons.settings,
-          color: theme.colorScheme.onSecondary,
-          size: 28,
-        ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: 'stats',
+            backgroundColor: theme.colorScheme.secondary,
+            tooltip: AppLocalizations.of(context)!.algTimesTitle,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AlgTimesScreen()),
+              );
+            },
+            child: Icon(
+              Icons.bar_chart,
+              color: theme.colorScheme.onSecondary,
+              size: 28,
+            ),
+          ),
+          SizedBox(height: 16),
+          FloatingActionButton(
+            heroTag: 'settings',
+            backgroundColor: theme.colorScheme.secondary,
+            tooltip: AppLocalizations.of(context)!.settings,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
+              );
+            },
+            child: Icon(
+              Icons.settings,
+              color: theme.colorScheme.onSecondary,
+              size: 28,
+            ),
+          ),
+        ],
       ),
     );
   }

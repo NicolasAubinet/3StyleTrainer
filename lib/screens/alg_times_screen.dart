@@ -169,12 +169,15 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
   }
 
   DataColumn _column(ThemeData theme, String label,
-      {bool numeric = false, ColumnSize size = ColumnSize.M}) {
+      {bool numeric = false, double? fixedWidth, ColumnSize size = ColumnSize.M}) {
     return DataColumn2(
       numeric: numeric,
       size: size,
+      fixedWidth: fixedWidth,
       onSort: _onSort,
-      label: Text(label, style: theme.textTheme.labelLarge),
+      label: Text(label,
+          style: theme.textTheme.labelMedium
+              ?.copyWith(fontWeight: FontWeight.bold)),
     );
   }
 
@@ -215,7 +218,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
       sortColumnIndex: _sortColumnIndex,
       sortAscending: _sortAscending,
       columns: [
-        _column(theme, l10n.columnAlg, size: ColumnSize.S),
+        _column(theme, l10n.columnAlg, fixedWidth: 64),
         _column(theme, l10n.columnCount, numeric: true),
         _column(theme, l10n.columnMin, numeric: true),
         _column(theme, l10n.columnMax, numeric: true),

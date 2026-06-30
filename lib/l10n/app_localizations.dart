@@ -487,7 +487,7 @@ abstract class AppLocalizations {
   /// No description provided for @columnCount.
   ///
   /// In en, this message translates to:
-  /// **'Count'**
+  /// **'Num'**
   String get columnCount;
 
   /// No description provided for @columnMin.

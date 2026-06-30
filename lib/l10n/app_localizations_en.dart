@@ -220,7 +220,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get columnAlg => 'Alg';
 
   @override
-  String get columnCount => 'Count';
+  String get columnCount => 'Num';
 
   @override
   String get columnMin => 'Min';

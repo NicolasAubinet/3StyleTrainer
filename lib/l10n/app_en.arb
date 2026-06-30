@@ -64,7 +64,7 @@
   "clearAllTimesConfirmMessage": "Are you sure you want to delete ALL your times?",
   "allTimesCleared": "All times deleted",
   "columnAlg": "Alg",
-  "columnCount": "Count",
+  "columnCount": "Num",
   "columnMin": "Min",
   "columnMax": "Max",
   "columnAvg": "Avg",

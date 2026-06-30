@@ -55,5 +55,7 @@
   "dateRangeLastMonth": "Last month",
   "dateRangeLastWeek": "Last week",
   "dateRangeToday": "Today",
-  "noRecordedTimes": "No recorded times"
+  "noRecordedTimes": "No recorded times",
+  "recordTimes": "Record times",
+  "recordTimesDisabledReason": "Turn off 'Show next alg' to record times"
 }

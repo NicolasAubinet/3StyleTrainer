@@ -435,6 +435,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No recorded times'**
   String get noRecordedTimes;
+
+  /// No description provided for @recordTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Record times'**
+  String get recordTimes;
+
+  /// No description provided for @recordTimesDisabledReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off \'Show next alg\' to record times'**
+  String get recordTimesDisabledReason;
 }
 
 class _AppLocalizationsDelegate

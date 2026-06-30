@@ -192,4 +192,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noRecordedTimes => 'No recorded times';
+
+  @override
+  String get recordTimes => 'Record times';
+
+  @override
+  String get recordTimesDisabledReason =>
+      'Turn off \'Show next alg\' to record times';
 }

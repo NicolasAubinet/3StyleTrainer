@@ -25,6 +25,7 @@ class _MenuScreenState extends State<MenuScreen> {
   double _targetTime = DEFAULT_TARGET_TIME;
   double _raceTime = DEFAULT_RACE_TIME;
   bool _showNextAlg = false;
+  bool _recordTimes = true;
   PracticeType _practiceType = PracticeType.sets;
 
   @override
@@ -39,6 +40,7 @@ class _MenuScreenState extends State<MenuScreen> {
       _targetTime = prefs.getDouble("target_time") ?? DEFAULT_TARGET_TIME;
       _raceTime = prefs.getDouble("race_time") ?? DEFAULT_RACE_TIME;
       _showNextAlg = prefs.getBool("show_next_alg") ?? false;
+      _recordTimes = prefs.getBool("record_times") ?? true;
       final practiceTypeName = prefs.getString("practice_type");
       if (practiceTypeName != null) {
         _practiceType = PracticeType.values.byName(practiceTypeName);
@@ -97,6 +99,7 @@ class _MenuScreenState extends State<MenuScreen> {
               algType,
               algsShownInAdvance,
               skippedAlgs: skippedAlgs,
+              recordTimes: _recordTimes,
             ),
           ),
         );
@@ -160,11 +163,56 @@ class _MenuScreenState extends State<MenuScreen> {
     return null;
   }
 
+  Widget? _getRecordTimesWidget(ThemeData theme) {
+    if (_practiceType != PracticeType.timeRace) {
+      return null;
+    }
+
+    bool enabled = !_showNextAlg;
+    Widget checkbox = Checkbox(
+      value: enabled && _recordTimes,
+      onChanged: enabled
+          ? (bool? newValue) async {
+              SharedPreferences prefs = await SharedPreferences.getInstance();
+              prefs.setBool("record_times", newValue!);
+              setState(() {
+                _recordTimes = newValue;
+              });
+            }
+          : null,
+    );
+    if (!enabled) {
+      // A disabled Checkbox ignores taps, so wrap it to explain why.
+      checkbox = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content:
+                Text(AppLocalizations.of(context)!.recordTimesDisabledReason),
+          ));
+        },
+        child: checkbox,
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.recordTimes,
+          style: theme.textTheme.labelSmall,
+        ),
+        checkbox,
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
     final timeSelectionWidget = _getTimeSelectionWidget();
     final showNextAlgWidget = _getShowNextAlgWidget(theme);
+    final recordTimesWidget = _getRecordTimesWidget(theme);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.primary,
@@ -210,6 +258,7 @@ class _MenuScreenState extends State<MenuScreen> {
           SizedBox(height: 10),
           if (timeSelectionWidget != null) timeSelectionWidget,
           if (showNextAlgWidget != null) showNextAlgWidget,
+          if (recordTimesWidget != null) recordTimesWidget,
         ],
       ),
       floatingActionButton: Column(

@@ -22,10 +22,11 @@ class TimerScreen extends StatefulWidget {
   final AlgType algType;
   final List<String> skippedAlgs;
   final int algsShownInAdvance;
+  final bool recordTimes;
 
   TimerScreen(this.practiceType, this.targetTime, this.raceTime,
       this.algProvider, this.algType, this.algsShownInAdvance,
-      {this.skippedAlgs = const []});
+      {this.skippedAlgs = const [], this.recordTimes = true});
 
   @override
   State<TimerScreen> createState() => _TimerScreenState();
@@ -68,7 +69,9 @@ class _TimerScreenState extends State<TimerScreen> {
         if (widget.algType != AlgType.Custom) {
           var databaseManager = DatabaseManager();
           databaseManager.insertExecutedTimeRaceAlg(algType, algName);
-          databaseManager.insertResult(algType, algName, elapsedMilliseconds);
+          if (widget.recordTimes) {
+            databaseManager.insertResult(algType, algName, elapsedMilliseconds);
+          }
         }
       }
     });

@@ -19,6 +19,24 @@ class AlgTime {
   const AlgTime(this.index, this.timeMs, this.alg);
 }
 
+// Aggregated times for a single alg, built from the results history.
+class AlgStats {
+  final String alg;
+  final int count;
+  final int minMs;
+  final int maxMs;
+  final double avgMs;
+
+  const AlgStats(this.alg, this.count, this.minMs, this.maxMs, this.avgMs);
+
+  AlgStats.fromMap(Map<String, Object?> map)
+      : alg = map["alg"] as String,
+        count = (map["count"] as num).toInt(),
+        minMs = (map["minMs"] as num).toInt(),
+        maxMs = (map["maxMs"] as num).toInt(),
+        avgMs = (map["avgMs"] as num).toDouble();
+}
+
 enum CornerBuffer {
   UFR,
   UFL,

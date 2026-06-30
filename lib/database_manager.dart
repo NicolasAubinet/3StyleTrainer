@@ -9,7 +9,7 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 import 'alg_structs.dart';
 
-const int DB_VERSION = 3;
+const int DB_VERSION = 4;
 
 const String RESULTS = "results";
 const String EXECUTED_TIME_RACE_ALGS = "executed_time_race_algs";
@@ -34,15 +34,23 @@ class DatabaseManager {
         )''');
   }
 
-  void _createDb(Database db, int version) {
-    db.execute('''
+  // History of every recorded time: one row per timed solve.
+  Future<void> _createResultsTable(Database db) async {
+    await db.execute('''
           CREATE TABLE $RESULTS(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             algType TEXT,
             alg TEXT,
             resultMs INTEGER,
-            PRIMARY KEY(algType, alg)
+            timestamp INTEGER
           )''');
-    db.execute('''
+    await db.execute(
+        'CREATE INDEX idx_results_algType_alg ON $RESULTS(algType, alg)');
+  }
+
+  Future<void> _createDb(Database db, int version) async {
+    await _createResultsTable(db);
+    await db.execute('''
           CREATE TABLE $EXECUTED_TIME_RACE_ALGS(
             algType TEXT,
             alg TEXT,
@@ -51,9 +59,19 @@ class DatabaseManager {
     createCustomSetsTable(db);
   }
 
-  void _upgradeDb(Database db, int oldVersion, int newVersion) {
+  Future<void> _upgradeDb(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 3) {
       createCustomSetsTable(db);
+    }
+    if (oldVersion < 4) {
+      // Convert the latest-time-only results table into a per-attempt history.
+      // Existing rows are kept with timestamp 0 (counted only under "All").
+      await db.execute('ALTER TABLE $RESULTS RENAME TO results_old');
+      await _createResultsTable(db);
+      await db
+          .execute('INSERT INTO $RESULTS(algType, alg, resultMs, timestamp) '
+              'SELECT algType, alg, resultMs, 0 FROM results_old');
+      await db.execute('DROP TABLE results_old');
     }
   }
 
@@ -104,12 +122,33 @@ class DatabaseManager {
       'algType': algType.name,
       'alg': alg,
       'resultMs': resultMs,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
-    await _database.insert(
-      RESULTS,
-      map,
-      conflictAlgorithm: ConflictAlgorithm.replace,
+    await _database.insert(RESULTS, map);
+  }
+
+  Future<List<AlgStats>> getAlgStats(AlgType algType, {int? sinceMs}) async {
+    if (!isUsingDatabase()) {
+      return List.empty();
+    }
+
+    String where = "algType = ?";
+    List<Object> whereArgs = [algType.name];
+    if (sinceMs != null) {
+      where += " AND timestamp >= ?";
+      whereArgs.add(sinceMs);
+    }
+
+    final List<Map<String, Object?>> rows = await _database.rawQuery(
+      'SELECT alg, COUNT(*) AS count, MIN(resultMs) AS minMs, '
+      'MAX(resultMs) AS maxMs, AVG(resultMs) AS avgMs '
+      'FROM $RESULTS WHERE $where GROUP BY alg',
+      whereArgs,
     );
+
+    return [
+      for (final row in rows) AlgStats.fromMap(row),
+    ];
   }
 
   void insertExecutedTimeRaceAlg(AlgType algType, String alg) async {

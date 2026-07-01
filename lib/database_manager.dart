@@ -191,6 +191,7 @@ class DatabaseManager {
     }
 
     await _database.delete(RESULTS);
+    await _database.delete(EXECUTED_TIME_RACE_ALGS);
   }
 
   void insertExecutedTimeRaceAlg(AlgType algType, String alg) async {

@@ -519,6 +519,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Result'**
   String get columnResult;
+
+  /// No description provided for @appearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get appearance;
+
+  /// No description provided for @theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get theme;
+
+  /// No description provided for @themeKeycap.
+  ///
+  /// In en, this message translates to:
+  /// **'Keycap'**
+  String get themeKeycap;
+
+  /// No description provided for @themeSlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Slate'**
+  String get themeSlate;
+
+  /// No description provided for @themeCubeFace.
+  ///
+  /// In en, this message translates to:
+  /// **'Cube Face'**
+  String get themeCubeFace;
+
+  /// No description provided for @schemesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Lettering schemes'**
+  String get schemesSection;
+
+  /// No description provided for @buffersSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Buffers'**
+  String get buffersSection;
+
+  /// No description provided for @practiceTypeLetterPairsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairs'**
+  String get practiceTypeLetterPairsShort;
+
+  /// No description provided for @typeSubtitleLetters.
+  ///
+  /// In en, this message translates to:
+  /// **'24-letter scheme'**
+  String get typeSubtitleLetters;
+
+  /// No description provided for @typeSubtitleFlips.
+  ///
+  /// In en, this message translates to:
+  /// **'edge-flip cases'**
+  String get typeSubtitleFlips;
+
+  /// No description provided for @typeSubtitleCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Sets mode only'**
+  String get typeSubtitleCustom;
+
+  /// No description provided for @statsSolvesRange.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} solves · {min}–{max}s'**
+  String statsSolvesRange(Object count, Object max, Object min);
+
+  /// No description provided for @totalSolves.
+  ///
+  /// In en, this message translates to:
+  /// **'Total solves: {count}'**
+  String totalSolves(Object count);
+
+  /// No description provided for @globalAvg.
+  ///
+  /// In en, this message translates to:
+  /// **'Global avg: {avg}'**
+  String globalAvg(Object avg);
 }
 
 class _AppLocalizationsDelegate

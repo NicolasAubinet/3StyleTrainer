@@ -9,7 +9,9 @@ import '../alg_provider.dart';
 import '../alg_structs.dart';
 import '../l10n/app_localizations.dart';
 import '../practice_type.dart';
+import '../theme/theme_scope.dart';
 import '../utils.dart';
+import '../widgets/app_scaffold.dart';
 import 'session_summary_screen.dart';
 
 const double MINIMUM_ALLOWED_TIME = 0.30; // to prevent misclick via double tap
@@ -253,101 +255,131 @@ class _TimerScreenState extends State<TimerScreen> {
     return progression;
   }
 
+  String _title(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    String typeName;
+    switch (widget.algType) {
+      case AlgType.Corner:
+        typeName = l10n.corners;
+      case AlgType.Edge:
+        typeName = l10n.edges;
+      case AlgType.TwoFlip:
+        typeName = l10n.flips;
+      case AlgType.Custom:
+        typeName = l10n.custom;
+    }
+    return "$typeName · ${widget.practiceType.getLocalizedName(context)}";
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final p = context.palette;
 
     var timerText = timeToString(stopwatch.elapsedMilliseconds);
+    final progress = widget.practiceType == PracticeType.sets
+        ? widget.algProvider.getProgression(preFetchedAlgsCount: nextAlgs.length)
+        : getTimeRaceProgression();
 
-    return Scaffold(
-      backgroundColor:
-          isPressed ? theme.colorScheme.secondary : theme.colorScheme.primary,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.timer),
-      ),
-      body: isReady
-          ? Listener(
-              behavior: HitTestBehavior.translucent,
-              onPointerDown: (_) => _onTapDown(),
-              onPointerUp: (_) => _onTapUp(),
-              child: Column(
-                children: [
-                  Container(
-                    height: 12.0,
-                    padding: EdgeInsets.all(1.5),
-                    color: Colors.white,
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: LinearProgressIndicator(
-                        value: widget.practiceType == PracticeType.sets
-                            ? widget.algProvider.getProgression(
-                                preFetchedAlgsCount: nextAlgs.length)
-                            : getTimeRaceProgression(),
-                        minHeight: 10,
-                        color: theme.colorScheme.tertiary,
+    final Widget content = isReady
+        ? Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (_) => _onTapDown(),
+            onPointerUp: (_) => _onTapUp(),
+            child: Stack(
+              children: [
+                // Subtle press feedback flash.
+                if (isPressed)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(color: p.pop.withValues(alpha: 0.10)),
+                    ),
+                  ),
+                Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 5,
+                          backgroundColor: p.panelBorder,
+                          color: p.accent,
+                        ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (var nextAlg in nextAlgs)
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (var nextAlg in nextAlgs)
+                            RichText(
+                                text: TextSpan(
+                                    children: nextAlg.name.characters
+                                        .map((e) => getAlgTextSpan(
+                                            theme,
+                                            e,
+                                            theme.textTheme.displaySmall!
+                                                .copyWith(
+                                                    color: p.textFaint,
+                                                    letterSpacing: 2)))
+                                        .toList())),
+                          const SizedBox(height: 8),
                           RichText(
-                              text: TextSpan(
-                                  children: nextAlg.name.characters
-                                      .map((e) => getAlgTextSpan(theme, e,
-                                          theme.textTheme.displaySmall!))
-                                      .toList())),
-                        RichText(
-                          text: TextSpan(
-                            children: (alg != null ? alg!.name : "--")
-                                .characters
-                                .map((e) => getAlgTextSpan(
-                                    theme, e, theme.textTheme.displayLarge!))
-                                .toList(),
+                            text: TextSpan(
+                              children: (alg != null ? alg!.name : "--")
+                                  .characters
+                                  .map((e) => getAlgTextSpan(theme, e,
+                                      theme.textTheme.displayLarge!))
+                                  .toList(),
+                            ),
                           ),
-                        ),
-                        Text(
-                          timerText,
-                          style: theme.textTheme.displaySmall,
-                        ),
-                      ],
+                          const SizedBox(height: 20),
+                          Text(
+                            timerText,
+                            style: theme.textTheme.displayMedium
+                                ?.copyWith(color: p.pop),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            )
-          : Center(
-              child: Countdown(
-                seconds: 3,
-                build: (BuildContext context, double time) => Text(
-                  time.ceil() > 0 ? time.ceil().toString() : "",
-                  style: theme.textTheme.displayLarge,
+                  ],
                 ),
-                interval: Duration(milliseconds: 100),
-                onFinished: () {
-                  setState(() {
-                    isReady = true;
-                    timerStartTime = DateTime.now();
-                    nextAlgs.clear();
-                    for (int i = 0; i < widget.algsShownInAdvance; ++i) {
-                      Alg? nextAlg = _fetchNextAlg();
-                      if (nextAlg != null) {
-                        nextAlgs.add(nextAlg);
-                      }
-                    }
-                    alg = _fetchNextAlg();
-                    if (alg == null) {
-                      assert(nextAlgs.isNotEmpty);
-                      alg = nextAlgs.removeLast();
-                    }
-
-                    stopwatch.start();
-                  });
-                },
-              ),
+              ],
             ),
-    );
+          )
+        : Center(
+            child: Countdown(
+              seconds: 3,
+              build: (BuildContext context, double time) => Text(
+                time.ceil() > 0 ? time.ceil().toString() : "",
+                style: theme.textTheme.displayLarge?.copyWith(color: p.accent),
+              ),
+              interval: Duration(milliseconds: 100),
+              onFinished: () {
+                setState(() {
+                  isReady = true;
+                  timerStartTime = DateTime.now();
+                  nextAlgs.clear();
+                  for (int i = 0; i < widget.algsShownInAdvance; ++i) {
+                    Alg? nextAlg = _fetchNextAlg();
+                    if (nextAlg != null) {
+                      nextAlgs.add(nextAlg);
+                    }
+                  }
+                  alg = _fetchNextAlg();
+                  if (alg == null) {
+                    assert(nextAlgs.isNotEmpty);
+                    alg = nextAlgs.removeLast();
+                  }
+
+                  stopwatch.start();
+                });
+              },
+            ),
+          );
+
+    return AppScaffold(title: _title(context), body: content);
   }
 }

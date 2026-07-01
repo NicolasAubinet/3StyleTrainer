@@ -4,6 +4,12 @@ import 'package:three_style_trainer/database_manager.dart';
 import 'package:three_style_trainer/settings.dart';
 
 import '../l10n/app_localizations.dart';
+import '../theme/app_palette.dart';
+import '../theme/theme_controller.dart';
+import '../theme/theme_scope.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_segmented_control.dart';
+import '../widgets/glass_panel.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -15,7 +21,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _edgesSchemeTextController = TextEditingController();
   final _cornersFormKey = GlobalKey<FormState>();
   final _edgesFormKey = GlobalKey<FormState>();
-  final _cardColor = Color(0x44000000);
 
   @override
   void initState() {
@@ -46,25 +51,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return true;
   }
 
-  void _onChangedCornersScheme(String scheme) {
-    _cornersFormKey.currentState!.validate();
-  }
-
-  void _onChangedEdgesScheme(String scheme) {
-    _edgesFormKey.currentState!.validate();
-  }
-
   String? _validateScheme(BuildContext context, String? scheme) {
     var localizations = AppLocalizations.of(context)!;
     if (scheme == null || scheme.isEmpty) {
       return localizations.enterScheme;
     }
-
     const int expectedSize = SPEFFZ.length;
     if (scheme.length != expectedSize) {
       return localizations.invalidSchemeSize(expectedSize);
     }
-
     List<String> previousChars = [];
     for (var char in scheme.toLowerCase().split('')) {
       if (previousChars.contains(char)) {
@@ -72,171 +67,121 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
       previousChars.add(char);
     }
-
     return null;
   }
 
-  Widget getCornersSchemeWidget(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      color: _cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                AppLocalizations.of(context)!.cornersScheme,
-                style: theme.textTheme.displaySmall!.copyWith(
-                    color: theme.colorScheme.onPrimary,
-                    fontWeight: FontWeight.normal),
-              ),
-            ),
-            Form(
-              key: _cornersFormKey,
-              child: TextFormField(
-                style: theme.textTheme.labelLarge,
-                cursorColor: theme.colorScheme.onPrimary,
-                keyboardType: TextInputType.text,
-                controller: _cornersSchemeTextController,
-                onTapOutside: _onTapOutsideCornerScheme,
-                onChanged: _onChangedCornersScheme,
-                validator: (value) {
-                  return _validateScheme(context, value);
-                },
-              ),
-            ),
-            Text(
-              AppLocalizations.of(context)!.cornersPiecesOrder,
-              style: theme.textTheme.labelSmall!.copyWith(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget getEdgesSchemeWidget(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      color: _cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                AppLocalizations.of(context)!.edgesScheme,
-                style: theme.textTheme.displaySmall!.copyWith(
-                    color: theme.colorScheme.onPrimary,
-                    fontWeight: FontWeight.normal),
-              ),
-            ),
-            Form(
-              key: _edgesFormKey,
-              child: TextFormField(
-                style: theme.textTheme.labelLarge,
-                cursorColor: theme.colorScheme.onPrimary,
-                keyboardType: TextInputType.text,
-                controller: _edgesSchemeTextController,
-                onTapOutside: _onTapOutsideEdgesScheme,
-                onChanged: _onChangedEdgesScheme,
-                validator: (value) {
-                  return _validateScheme(context, value);
-                },
-              ),
-            ),
-            Text(
-              AppLocalizations.of(context)!.edgesPiecesOrder,
-              style: theme.textTheme.labelSmall!.copyWith(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget getCornerBufferWidget(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      color: _cardColor,
-      child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: DropdownMenu<CornerBuffer>(
-            initialSelection: Settings().getCornerBuffer(),
-            textStyle: theme.textTheme.labelSmall,
-            label: Text(
-              AppLocalizations.of(context)!.cornerBuffer,
-              style: theme.textTheme.labelSmall,
-            ),
-            onSelected: (CornerBuffer? buffer) {
-              if (buffer != null) {
-                Settings().setCornerBuffer(buffer);
-              }
-            },
-            dropdownMenuEntries: CornerBuffer.values
-                .map<DropdownMenuEntry<CornerBuffer>>((CornerBuffer type) {
-              return DropdownMenuEntry<CornerBuffer>(
-                value: type,
-                label: type.name,
-                style: MenuItemButton.styleFrom(
-                  textStyle: theme.textTheme.labelSmall,
-                ),
-              );
-            }).toList(),
-          )),
-    );
-  }
-
-  Widget getEdgeBufferWidget(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      color: _cardColor,
-      child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: DropdownMenu<EdgeBuffer>(
-            initialSelection: Settings().getEdgeBuffer(),
-            textStyle: theme.textTheme.labelSmall,
-            label: Text(
-              AppLocalizations.of(context)!.edgeBuffer,
-              style: theme.textTheme.labelSmall,
-            ),
-            onSelected: (EdgeBuffer? buffer) {
-              if (buffer != null) {
-                Settings().setEdgeBuffer(buffer);
-              }
-            },
-            dropdownMenuEntries: EdgeBuffer.values
-                .map<DropdownMenuEntry<EdgeBuffer>>((EdgeBuffer type) {
-              return DropdownMenuEntry<EdgeBuffer>(
-                value: type,
-                label: type.name,
-                style: MenuItemButton.styleFrom(
-                  textStyle: theme.textTheme.labelSmall,
-                ),
-              );
-            }).toList(),
-          )),
-    );
-  }
-
-  Widget getClearTimesWidget(BuildContext context) {
+  Widget _sectionLabel(String text) {
+    final p = context.palette;
     return Padding(
-      padding: const EdgeInsets.only(top: 10.0),
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700),
-        icon: Icon(Icons.delete_forever, color: Colors.white),
-        label: Text(
-          AppLocalizations.of(context)!.clearAllTimes,
-          style: const TextStyle(color: Colors.white),
+      padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
+      child: Text(text.toUpperCase(),
+          style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w700,
+              color: p.accent)),
+    );
+  }
+
+  Widget _schemeCard({
+    required String title,
+    required TextEditingController controller,
+    required GlobalKey<FormState> formKey,
+    required void Function(PointerDownEvent) onTapOutside,
+    String? hint,
+  }) {
+    final p = context.palette;
+    return GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: p.textMuted)),
+          const SizedBox(height: 8),
+          Form(
+            key: formKey,
+            child: TextFormField(
+              controller: controller,
+              cursorColor: p.accent,
+              onTapOutside: onTapOutside,
+              onChanged: (_) => formKey.currentState!.validate(),
+              validator: (value) => _validateScheme(context, value),
+              style: TextStyle(
+                  fontFamily: MONO_FONT,
+                  fontSize: 15,
+                  letterSpacing: 1.5,
+                  color: p.textPrimary),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: p.inputFill,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: p.panelBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: p.panelBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: p.accent),
+                ),
+              ),
+            ),
+          ),
+          if (hint != null) ...[
+            const SizedBox(height: 8),
+            Text(hint, style: TextStyle(fontSize: 10, color: p.textFaint)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _bufferDropdown<T>({
+    required String label,
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    final p = context.palette;
+    return Expanded(
+      child: GlassPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: p.textMuted)),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 28,
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<T>(
+                  value: value,
+                  isExpanded: true,
+                  isDense: true,
+                  dropdownColor: p.surfaceOpaque,
+                  iconEnabledColor: p.textMuted,
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: p.textPrimary),
+                  items: items,
+                  onChanged: onChanged,
+                ),
+              ),
+            ),
+          ],
         ),
-        onPressed: () => _confirmClearAllTimes(context),
       ),
     );
   }
@@ -276,28 +221,102 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final p = context.palette;
 
     return PopScope(
       onPopInvokedWithResult: _onWillPop,
-      child: Scaffold(
-        backgroundColor: theme.colorScheme.primary,
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context)!.settings),
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(5.0),
+      child: AppScaffold(
+        title: l10n.settings,
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(15, 6, 15, 24),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              getCornersSchemeWidget(context),
-              getEdgesSchemeWidget(context),
+              _sectionLabel(l10n.appearance),
+              GlassPanel(
+                padding: const EdgeInsets.all(10),
+                child: AppSegmentedControl<AppThemeId>(
+                  selected: ThemeController().current,
+                  options: AppThemeId.values
+                      .map((id) =>
+                          SegmentOption(id, id.getLocalizedName(context)))
+                      .toList(),
+                  onChanged: (id) {
+                    ThemeController().set(id);
+                    setState(() {});
+                  },
+                ),
+              ),
+              const SizedBox(height: 18),
+              _sectionLabel(l10n.schemesSection),
+              _schemeCard(
+                title: l10n.cornersScheme,
+                controller: _cornersSchemeTextController,
+                formKey: _cornersFormKey,
+                onTapOutside: _onTapOutsideCornerScheme,
+                hint: l10n.cornersPiecesOrder,
+              ),
+              const SizedBox(height: 12),
+              _schemeCard(
+                title: l10n.edgesScheme,
+                controller: _edgesSchemeTextController,
+                formKey: _edgesFormKey,
+                onTapOutside: _onTapOutsideEdgesScheme,
+              ),
+              const SizedBox(height: 18),
+              _sectionLabel(l10n.buffersSection),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  getCornerBufferWidget(context),
-                  getEdgeBufferWidget(context),
+                  _bufferDropdown<CornerBuffer>(
+                    label: l10n.cornerBuffer,
+                    value: Settings().getCornerBuffer(),
+                    items: CornerBuffer.values
+                        .map((b) =>
+                            DropdownMenuItem(value: b, child: Text(b.name)))
+                        .toList(),
+                    onChanged: (b) {
+                      if (b != null) {
+                        Settings().setCornerBuffer(b);
+                        setState(() {});
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 12),
+                  _bufferDropdown<EdgeBuffer>(
+                    label: l10n.edgeBuffer,
+                    value: Settings().getEdgeBuffer(),
+                    items: EdgeBuffer.values
+                        .map((b) =>
+                            DropdownMenuItem(value: b, child: Text(b.name)))
+                        .toList(),
+                    onChanged: (b) {
+                      if (b != null) {
+                        Settings().setEdgeBuffer(b);
+                        setState(() {});
+                      }
+                    },
+                  ),
                 ],
               ),
-              getClearTimesWidget(context),
+              const SizedBox(height: 28),
+              GlassPanel(
+                onTap: () => _confirmClearAllTimes(context),
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.delete_forever_rounded, color: p.bad, size: 20),
+                    const SizedBox(width: 8),
+                    Text(l10n.clearAllTimes,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: p.bad)),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

@@ -1,4 +1,3 @@
-import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -6,18 +5,12 @@ import '../alg_structs.dart';
 import '../database_manager.dart';
 import '../l10n/app_localizations.dart';
 import '../stats_date_range.dart';
+import '../theme/app_palette.dart';
+import '../theme/theme_scope.dart';
 import '../utils.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/glass_panel.dart';
 import 'alg_result_details_screen.dart';
-
-// Column indices for sorting / persisted sort state.
-const int _colAlg = 0;
-const int _colCount = 1;
-const int _colMin = 2;
-const int _colMax = 3;
-const int _colAvg = 4;
-
-const String _sortColumnKey = "alg_times_sort_column";
-const String _sortAscendingKey = "alg_times_sort_ascending";
 
 class AlgTimesScreen extends StatefulWidget {
   const AlgTimesScreen({super.key});
@@ -33,15 +26,22 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     AlgType.TwoFlip,
   ];
 
+  static const String _sortByAvgKey = "alg_times_sort_by_avg";
+  static const String _sortAscendingKey = "alg_times_sort_ascending";
+
   AlgType _category = AlgType.Corner;
   StatsDateRange _range = StatsDateRange.all;
   List<AlgStats> _stats = [];
+  // Sort: by average (default, slowest first) or by alg name.
+  bool _sortByAvg = true;
+  bool _sortAscending = false;
+  // Gradient anchors over the shown averages: median = white (so ~half the
+  // cases are green and half red), 10th/90th percentile = full green/red.
+  double _loAvgMs = 0;
+  double _medAvgMs = 0;
+  double _hiAvgMs = 0;
   bool _loading = true;
   int _loadGeneration = 0;
-
-  // Default: worst (highest average) first.
-  int _sortColumnIndex = _colAvg;
-  bool _sortAscending = false;
 
   @override
   void initState() {
@@ -50,62 +50,88 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
   }
 
   void _init() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    int storedColumn = prefs.getInt(_sortColumnKey) ?? _colAvg;
-    _sortColumnIndex =
-        (storedColumn >= _colAlg && storedColumn <= _colAvg) ? storedColumn : _colAvg;
+    final prefs = await SharedPreferences.getInstance();
+    _sortByAvg = prefs.getBool(_sortByAvgKey) ?? true;
     _sortAscending = prefs.getBool(_sortAscendingKey) ?? false;
     await _loadStats();
   }
 
   Future<void> _loadStats() async {
     if (!mounted) return;
-    // Ignore responses from superseded loads (rapid Type/Period switches).
     int generation = ++_loadGeneration;
     setState(() => _loading = true);
     List<AlgStats> stats =
         await DatabaseManager().getAlgStats(_category, sinceMs: _range.cutoffMs());
     if (!mounted || generation != _loadGeneration) return;
-    _applySort(stats, _sortColumnIndex, _sortAscending);
+    _applySort(stats);
+    final avgs = stats.map((s) => s.avgMs).toList()..sort();
     setState(() {
       _stats = stats;
+      _loAvgMs = _percentile(avgs, 0.10);
+      _medAvgMs = _median(avgs);
+      _hiAvgMs = _percentile(avgs, 0.90);
       _loading = false;
     });
   }
 
-  int _compareInt(bool ascending, int a, int b) =>
-      ascending ? a.compareTo(b) : b.compareTo(a);
-
-  int _compareDouble(bool ascending, double a, double b) =>
-      ascending ? a.compareTo(b) : b.compareTo(a);
-
-  int _compareString(bool ascending, String a, String b) =>
-      ascending ? a.compareTo(b) : b.compareTo(a);
-
-  void _applySort(List<AlgStats> stats, int columnIndex, bool ascending) {
-    switch (columnIndex) {
-      case _colAlg:
-        stats.sort((a, b) => _compareString(ascending, a.alg, b.alg));
-      case _colCount:
-        stats.sort((a, b) => _compareInt(ascending, a.count, b.count));
-      case _colMin:
-        stats.sort((a, b) => _compareInt(ascending, a.minMs, b.minMs));
-      case _colMax:
-        stats.sort((a, b) => _compareInt(ascending, a.maxMs, b.maxMs));
-      case _colAvg:
-        stats.sort((a, b) => _compareDouble(ascending, a.avgMs, b.avgMs));
-    }
+  void _applySort(List<AlgStats> stats) {
+    stats.sort((a, b) {
+      final cmp =
+          _sortByAvg ? a.avgMs.compareTo(b.avgMs) : a.alg.compareTo(b.alg);
+      return _sortAscending ? cmp : -cmp;
+    });
   }
 
-  void _onSort(int columnIndex, bool ascending) async {
+  void _onSort(bool byAvg) {
     setState(() {
-      _sortColumnIndex = columnIndex;
-      _sortAscending = ascending;
-      _applySort(_stats, columnIndex, ascending);
+      if (_sortByAvg == byAvg) {
+        _sortAscending = !_sortAscending;
+      } else {
+        _sortByAvg = byAvg;
+        _sortAscending = !byAvg; // alg -> A→Z, avg -> slowest first
+      }
+      _applySort(_stats);
     });
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setInt(_sortColumnKey, columnIndex);
-    prefs.setBool(_sortAscendingKey, ascending);
+    _persistSort();
+  }
+
+  void _persistSort() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool(_sortByAvgKey, _sortByAvg);
+    prefs.setBool(_sortAscendingKey, _sortAscending);
+  }
+
+  double _percentile(List<double> sortedAsc, double p) {
+    if (sortedAsc.isEmpty) return 0;
+    final idx = ((sortedAsc.length - 1) * p).round();
+    return sortedAsc[idx];
+  }
+
+  double _median(List<double> sortedAsc) {
+    if (sortedAsc.isEmpty) return 0;
+    final m = sortedAsc.length ~/ 2;
+    return sortedAsc.length.isOdd
+        ? sortedAsc[m]
+        : (sortedAsc[m - 1] + sortedAsc[m]) / 2;
+  }
+
+  // Green (fastest) -> white (median) -> red (slowest). White is anchored on
+  // the median so about half the cases fall on each side; the 10th/90th
+  // percentiles are the full green/red ends so outliers don't wash it out.
+  Color _avgColor(double avgMs, AppPalette p) {
+    if (_hiAvgMs <= _loAvgMs) return p.textPrimary;
+    double t;
+    if (avgMs <= _medAvgMs) {
+      final span = _medAvgMs - _loAvgMs;
+      t = span <= 0 ? 0.5 : 0.5 * ((avgMs - _loAvgMs) / span).clamp(0.0, 1.0);
+    } else {
+      final span = _hiAvgMs - _medAvgMs;
+      final frac = span <= 0 ? 1.0 : ((avgMs - _medAvgMs) / span).clamp(0.0, 1.0);
+      t = 0.5 + 0.5 * frac;
+    }
+    return t <= 0.5
+        ? Color.lerp(p.good, p.textPrimary, t / 0.5)!
+        : Color.lerp(p.textPrimary, p.bad, (t - 0.5) / 0.5)!;
   }
 
   String _categoryName(AlgType type) {
@@ -122,65 +148,6 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     }
   }
 
-  Widget _buildCategoryDropdown(ThemeData theme) {
-    return DropdownMenu<AlgType>(
-      initialSelection: _category,
-      label: Text(AppLocalizations.of(context)!.statsType,
-          style: theme.textTheme.labelSmall),
-      textStyle: theme.textTheme.labelSmall,
-      onSelected: (AlgType? type) {
-        if (type != null && type != _category) {
-          setState(() => _category = type);
-          _loadStats();
-        }
-      },
-      dropdownMenuEntries: _categories
-          .map((type) => DropdownMenuEntry<AlgType>(
-                value: type,
-                label: _categoryName(type),
-                style: MenuItemButton.styleFrom(
-                    textStyle: theme.textTheme.labelSmall),
-              ))
-          .toList(),
-    );
-  }
-
-  Widget _buildRangeDropdown(ThemeData theme) {
-    return DropdownMenu<StatsDateRange>(
-      initialSelection: _range,
-      label: Text(AppLocalizations.of(context)!.statsPeriod,
-          style: theme.textTheme.labelSmall),
-      textStyle: theme.textTheme.labelSmall,
-      onSelected: (StatsDateRange? range) {
-        if (range != null && range != _range) {
-          setState(() => _range = range);
-          _loadStats();
-        }
-      },
-      dropdownMenuEntries: StatsDateRange.values
-          .map((range) => DropdownMenuEntry<StatsDateRange>(
-                value: range,
-                label: range.getLocalizedName(context),
-                style: MenuItemButton.styleFrom(
-                    textStyle: theme.textTheme.labelSmall),
-              ))
-          .toList(),
-    );
-  }
-
-  DataColumn _column(ThemeData theme, String label,
-      {bool numeric = false, double? fixedWidth, ColumnSize size = ColumnSize.M}) {
-    return DataColumn2(
-      numeric: numeric,
-      size: size,
-      fixedWidth: fixedWidth,
-      onSort: _onSort,
-      label: Text(label,
-          style: theme.textTheme.labelMedium
-              ?.copyWith(fontWeight: FontWeight.bold)),
-    );
-  }
-
   void _openDetails(String alg) async {
     await Navigator.push(
       context,
@@ -192,75 +159,215 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
         ),
       ),
     );
-    // Times may have been deleted; refresh the aggregates.
     if (mounted) _loadStats();
   }
 
-  DataRow _row(ThemeData theme, AlgStats stats) {
-    final cellStyle = theme.textTheme.labelMedium;
-    return DataRow(cells: [
-      DataCell(Text(stats.alg, style: cellStyle)),
-      DataCell(Text(stats.count.toString(), style: cellStyle)),
-      DataCell(Text(timeToString(stats.minMs, fractionDigits: 2), style: cellStyle)),
-      DataCell(Text(timeToString(stats.maxMs, fractionDigits: 2), style: cellStyle)),
-      DataCell(Text(timeToString(stats.avgMs.round(), fractionDigits: 2),
-          style: cellStyle)),
-    ], onSelectChanged: (_) => _openDetails(stats.alg));
+  Widget _filter<T>({
+    required String label,
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    final p = context.palette;
+    return Expanded(
+      child: GlassPanel(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label.toUpperCase(),
+                style: TextStyle(
+                    fontSize: 10,
+                    letterSpacing: 0.5,
+                    fontWeight: FontWeight.w600,
+                    color: p.textFaint)),
+            SizedBox(
+              height: 26,
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<T>(
+                  value: value,
+                  isExpanded: true,
+                  isDense: true,
+                  dropdownColor: p.surfaceOpaque,
+                  iconEnabledColor: p.textMuted,
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: p.textPrimary),
+                  items: items,
+                  onChanged: onChanged,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _buildTable(ThemeData theme) {
-    final l10n = AppLocalizations.of(context)!;
-    return DataTable2(
-      fixedTopRows: 1,
-      horizontalMargin: 10,
-      columnSpacing: 5,
-      showCheckboxColumn: false,
-      sortColumnIndex: _sortColumnIndex,
-      sortAscending: _sortAscending,
-      columns: [
-        _column(theme, l10n.columnAlg, fixedWidth: 64),
-        _column(theme, l10n.columnCount, numeric: true),
-        _column(theme, l10n.columnMin, numeric: true),
-        _column(theme, l10n.columnMax, numeric: true),
-        _column(theme, l10n.columnAvg, numeric: true),
-      ],
-      rows: _stats.map((stats) => _row(theme, stats)).toList(),
+  Widget _statCard(AlgStats stats, AppPalette p, AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GlassPanel(
+        onTap: () => _openDetails(stats.alg),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 46,
+              child: Text(stats.alg,
+                  style: TextStyle(
+                      fontFamily: MONO_FONT,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: p.textPrimary)),
+            ),
+            Expanded(
+              child: Text(
+                l10n.statsSolvesRange(
+                  stats.count,
+                  timeToString(stats.maxMs, fractionDigits: 1),
+                  timeToString(stats.minMs, fractionDigits: 1),
+                ),
+                style: TextStyle(fontSize: 12, color: p.textFaint),
+              ),
+            ),
+            Text(
+              timeToString(stats.avgMs.round(), fractionDigits: 2),
+              style: TextStyle(
+                  fontFamily: MONO_FONT,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  color: _avgColor(stats.avgMs, p)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sortHeader(String label, bool byAvg, AppPalette p) {
+    final active = _sortByAvg == byAvg;
+    final arrow = active ? (_sortAscending ? " ↑" : " ↓") : "";
+    return InkWell(
+      onTap: () => _onSort(byAvg),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Text("$label$arrow",
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+                color: active ? p.accent : p.textMuted)),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final p = context.palette;
+    final l10n = AppLocalizations.of(context)!;
+    final totalSolves = _stats.fold<int>(0, (sum, s) => sum + s.count);
+    final totalTimeMs =
+        _stats.fold<double>(0, (sum, s) => sum + s.avgMs * s.count);
+    final globalAvgMs = totalSolves > 0 ? totalTimeMs / totalSolves : 0.0;
 
     Widget content;
     if (_loading) {
-      content = Center(child: CircularProgressIndicator());
+      content = const Center(child: CircularProgressIndicator());
     } else if (_stats.isEmpty) {
       content = Center(
-        child: Text(AppLocalizations.of(context)!.noRecordedTimes,
-            style: theme.textTheme.labelLarge),
+        child: Text(l10n.noRecordedTimes,
+            style: TextStyle(fontSize: 16, color: p.textMuted)),
       );
     } else {
-      content = Card(color: Colors.black12, child: _buildTable(theme));
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(2, 2, 2, 6),
+            child: Row(
+              children: [
+                _sortHeader(l10n.columnAlg.toUpperCase(), false, p),
+                const Spacer(),
+                _sortHeader(l10n.columnAvg.toUpperCase(), true, p),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _stats.length,
+              itemBuilder: (context, i) => _statCard(_stats[i], p, l10n),
+            ),
+          ),
+        ],
+      );
     }
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.primary,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.algTimesTitle),
-      ),
+    return AppScaffold(
+      title: l10n.algTimesTitle,
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                l10n.totalSolves(totalSolves),
+                style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w600, color: p.textMuted),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                l10n.globalAvg(timeToString(globalAvgMs.round(), fractionDigits: 2)),
+                style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w500, color: p.textFaint),
+              ),
+            ],
+          ),
+        ),
+      ],
       body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15),
+        padding: const EdgeInsets.fromLTRB(15, 6, 15, 6),
         child: Column(
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildCategoryDropdown(theme),
-                _buildRangeDropdown(theme),
+                _filter<AlgType>(
+                  label: l10n.statsType,
+                  value: _category,
+                  items: _categories
+                      .map((t) => DropdownMenuItem(
+                          value: t, child: Text(_categoryName(t))))
+                      .toList(),
+                  onChanged: (t) {
+                    if (t != null && t != _category) {
+                      setState(() => _category = t);
+                      _loadStats();
+                    }
+                  },
+                ),
+                const SizedBox(width: 12),
+                _filter<StatsDateRange>(
+                  label: l10n.statsPeriod,
+                  value: _range,
+                  items: StatsDateRange.values
+                      .map((r) => DropdownMenuItem(
+                          value: r, child: Text(r.getLocalizedName(context))))
+                      .toList(),
+                  onChanged: (r) {
+                    if (r != null && r != _range) {
+                      setState(() => _range = r);
+                      _loadStats();
+                    }
+                  },
+                ),
               ],
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 12),
             Expanded(child: content),
           ],
         ),

@@ -6,7 +6,9 @@ import 'package:three_style_trainer/practice_type.dart';
 
 import '../alg_structs.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/theme_scope.dart';
 import '../utils.dart';
+import '../widgets/app_scaffold.dart';
 
 const int BUTTON_PRESS_DELAY_MS = 250;
 
@@ -82,7 +84,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
           ? Colors.green
           : Colors.red;
     } else {
-      return theme.colorScheme.onPrimary;
+      return theme.colorScheme.onSurface;
     }
   }
 
@@ -163,12 +165,10 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final p = context.palette;
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.primary,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.sessionSummary),
-      ),
+    return AppScaffold(
+      title: AppLocalizations.of(context)!.sessionSummary,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(5.0),
@@ -191,7 +191,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
               SizedBox(height: 8),
               Expanded(
                 child: Card(
-                  color: Colors.black12,
+                  color: p.panel,
                   child: DataTable2(
                       fixedTopRows: 1,
                       horizontalMargin: 10,

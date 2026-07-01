@@ -3,6 +3,8 @@ import 'package:three_style_trainer/alg_provider.dart';
 import 'package:three_style_trainer/alg_structs.dart';
 
 import '../l10n/app_localizations.dart';
+import '../theme/theme_scope.dart';
+import '../widgets/app_scaffold.dart';
 
 class LetterPairsListScreen extends StatefulWidget {
   final AlgProvider algProvider;
@@ -36,19 +38,17 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final p = context.palette;
     const double crossAxisExtent = 80.0;
     const double childAspectRatio = 2.0;
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.primary,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.practiceTypeLetterPairsList),
-      ),
+    return AppScaffold(
+      title: AppLocalizations.of(context)!.practiceTypeLetterPairsList,
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
         child: Card(
           clipBehavior: Clip.antiAlias,
-          color: Colors.black12,
+          color: p.panel,
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
               final crossAxisCount =
@@ -86,8 +86,7 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
                     }
 
                     return Container(
-                      color:
-                          rowIndex.isEven ? Colors.transparent : Colors.black26,
+                      color: rowIndex.isEven ? Colors.transparent : p.panelBorder,
                       height: itemHeight,
                       child: Row(
                         children: rowChildren,

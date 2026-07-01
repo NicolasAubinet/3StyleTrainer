@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import '../alg_structs.dart';
 import '../database_manager.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/theme_scope.dart';
 import '../utils.dart';
+import '../widgets/app_scaffold.dart';
 
 // Lists every recorded attempt for one (algType, alg)
 class AlgResultDetailsScreen extends StatefulWidget {
@@ -117,7 +119,7 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
             child: IconButton(
               padding: EdgeInsets.zero,
               icon: Icon(Icons.delete),
-              color: Colors.white,
+              color: context.palette.textMuted,
               onPressed: () => _confirmDelete(result),
             ),
           ),
@@ -129,6 +131,7 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final p = context.palette;
 
     Widget content;
     if (_loading) {
@@ -144,7 +147,7 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
           _buildHeader(theme),
           Expanded(
             child: Card(
-              color: Colors.black12,
+              color: p.panel,
               child: ListView.builder(
                 itemCount: _results.length,
                 itemBuilder: (context, index) =>
@@ -156,11 +159,8 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.primary,
-      appBar: AppBar(
-        title: Text(widget.alg),
-      ),
+    return AppScaffold(
+      title: widget.alg,
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15),
         child: content,

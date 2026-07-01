@@ -6,6 +6,8 @@ import 'package:three_style_trainer/widgets/custom_set_dialog.dart';
 import '../alg_provider.dart';
 import '../database_manager.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/theme_scope.dart';
+import '../widgets/app_scaffold.dart';
 import 'timer_screen.dart';
 
 class AlgSetSelectorScreen extends StatefulWidget {
@@ -290,19 +292,17 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
       ),
       onTap: () => onAlgSetTap(index),
       selected: selectedIndices.contains(index),
-      selectedTileColor: theme.colorScheme.onPrimary,
+      selectedTileColor: theme.colorScheme.primary,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
+    final p = context.palette;
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.primary,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.algSet),
-      ),
+    return AppScaffold(
+      title: AppLocalizations.of(context)!.algSet,
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20),
         child: Column(
@@ -316,7 +316,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
             SizedBox(height: 5),
             Expanded(
               child: Card(
-                color: Colors.black12,
+                color: p.panel,
                 child: ListView.builder(
                   itemCount: selectableAlgSets.length,
                   itemBuilder: getAlgSetsItemBuilder,
@@ -350,6 +350,9 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                   style: ElevatedButton.styleFrom(
                     fixedSize: Size(270, 60),
                     padding: EdgeInsets.all(2),
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    elevation: 3,
                   ),
                   onPressed: () {
                     if (selectedIndices.isEmpty) {
@@ -379,7 +382,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                     AppLocalizations.of(context)!.start,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
+                      color: theme.colorScheme.onPrimary,
                     ),
                   ),
                 ),

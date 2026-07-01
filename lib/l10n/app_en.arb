@@ -69,5 +69,19 @@
   "columnMax": "Max",
   "columnAvg": "Avg",
   "columnDateTime": "Date - time",
-  "columnResult": "Result"
+  "columnResult": "Result",
+  "appearance": "Appearance",
+  "theme": "Theme",
+  "themeKeycap": "Keycap",
+  "themeSlate": "Slate",
+  "themeCubeFace": "Cube Face",
+  "schemesSection": "Lettering schemes",
+  "buffersSection": "Buffers",
+  "practiceTypeLetterPairsShort": "Pairs",
+  "typeSubtitleLetters": "24-letter scheme",
+  "typeSubtitleFlips": "edge-flip cases",
+  "typeSubtitleCustom": "Sets mode only",
+  "statsSolvesRange": "{count} solves · {min}–{max}s",
+  "totalSolves": "Total solves: {count}",
+  "globalAvg": "Global avg: {avg}"
 }

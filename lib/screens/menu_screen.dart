@@ -11,6 +11,12 @@ import 'package:three_style_trainer/screens/settings_screen.dart';
 import 'package:three_style_trainer/screens/timer_screen.dart';
 
 import '../l10n/app_localizations.dart';
+import '../theme/theme_scope.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_segmented_control.dart';
+import '../widgets/cube_icons.dart';
+import '../widgets/glass_panel.dart';
+import '../widgets/keycap_button.dart';
 import '../widgets/number_input_field.dart';
 
 const double DEFAULT_TARGET_TIME = 2.0;
@@ -114,278 +120,206 @@ class _MenuScreenState extends State<MenuScreen> {
     }
   }
 
-  TimeSelectionWidget? _getTimeSelectionWidget() {
-    if (_practiceType == PracticeType.sets) {
-      return TimeSelectionWidget(
-          AppLocalizations.of(context)!.targetTime, _targetTime,
-          (targetTime) async {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        prefs.setDouble("target_time", targetTime);
-        setState(() {
-          _targetTime = targetTime;
-        });
-      });
-    } else if (_practiceType == PracticeType.timeRace) {
-      return TimeSelectionWidget(
-          AppLocalizations.of(context)!.raceTime, _raceTime, (raceTime) async {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        prefs.setDouble("race_time", raceTime);
-        setState(() {
-          _raceTime = raceTime;
-        });
-      });
-    }
-    return null;
+  Future<void> _setPref(void Function(SharedPreferences) write) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    write(prefs);
   }
 
-  Row? _getShowNextAlgWidget(ThemeData theme) {
-    if (_practiceType == PracticeType.sets ||
-        _practiceType == PracticeType.timeRace) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            AppLocalizations.of(context)!.showNextAlg,
-            style: theme.textTheme.labelSmall,
-          ),
-          Checkbox(
-              value: _showNextAlg,
-              onChanged: (bool? newValue) async {
-                SharedPreferences prefs = await SharedPreferences.getInstance();
-                prefs.setBool("show_next_alg", newValue!);
-                setState(() {
-                  _showNextAlg = newValue;
-                });
-              }),
-        ],
+  Widget _buildKeycapGrid(AppLocalizations l10n) {
+    final letters = l10n.typeSubtitleLetters;
+    // 2-Flips can't be listed as pairs; Custom only exists in Sets mode.
+    final flipsEnabled = _practiceType != PracticeType.letterPairsList;
+    final customEnabled = _practiceType == PracticeType.sets;
+
+    Widget cap(AlgType type, String label, String subtitle,
+        {IconData? icon,
+        Widget Function(Color)? iconBuilder,
+        bool enabled = true}) {
+      return Expanded(
+        child: KeycapButton(
+          label: label,
+          subtitle: subtitle,
+          icon: icon,
+          iconBuilder: iconBuilder,
+          enabled: enabled,
+          onTap: () => _onButtonPressed(context, type),
+        ),
       );
     }
-    return null;
+
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            cap(AlgType.Corner, l10n.corners, letters,
+                iconBuilder: (c) =>
+                    CubePieceIcon(piece: CubePiece.corners, color: c)),
+            const SizedBox(width: 12),
+            cap(AlgType.Edge, l10n.edges, letters,
+                iconBuilder: (c) =>
+                    CubePieceIcon(piece: CubePiece.edges, color: c)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            cap(AlgType.TwoFlip, l10n.flips, l10n.typeSubtitleFlips,
+                icon: Icons.swap_horiz_rounded, enabled: flipsEnabled),
+            const SizedBox(width: 12),
+            cap(AlgType.Custom, l10n.custom, l10n.typeSubtitleCustom,
+                icon: Icons.tune_rounded, enabled: customEnabled),
+          ],
+        ),
+      ],
+    );
   }
 
-  Widget? _getRecordTimesWidget(ThemeData theme) {
-    if (_practiceType != PracticeType.timeRace) {
+  Widget? _buildTimeField(AppLocalizations l10n) {
+    final bool isSets = _practiceType == PracticeType.sets;
+    final String label;
+    final double value;
+    final String prefKey;
+    final double fallback;
+    if (isSets) {
+      label = l10n.targetTime;
+      value = _targetTime;
+      prefKey = "target_time";
+      fallback = DEFAULT_TARGET_TIME;
+    } else if (_practiceType == PracticeType.timeRace) {
+      label = l10n.raceTime;
+      value = _raceTime;
+      prefKey = "race_time";
+      fallback = DEFAULT_RACE_TIME;
+    } else {
       return null;
     }
 
-    bool enabled = !_showNextAlg;
-    Widget checkbox = Checkbox(
+    final p = context.palette;
+    return GlassField(
+      label: label,
+      trailing: Container(
+        width: 64,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+        decoration: BoxDecoration(
+          color: p.inputFill,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: NumberInputField(
+          decimal: true,
+          defaultValue: value.toString(),
+          onTapOutside: (text) {
+            final parsed = double.tryParse(text) ?? fallback;
+            _setPref((prefs) => prefs.setDouble(prefKey, parsed));
+            setState(() {
+              if (isSets) {
+                _targetTime = parsed;
+              } else {
+                _raceTime = parsed;
+              }
+            });
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget? _buildShowNextAlg(AppLocalizations l10n) {
+    if (_practiceType == PracticeType.letterPairsList) return null;
+    return GlassField(
+      label: l10n.showNextAlg,
+      trailing: Switch(
+        value: _showNextAlg,
+        onChanged: (v) {
+          _setPref((prefs) => prefs.setBool("show_next_alg", v));
+          setState(() => _showNextAlg = v);
+        },
+      ),
+    );
+  }
+
+  Widget? _buildRecordTimes(AppLocalizations l10n) {
+    if (_practiceType != PracticeType.timeRace) return null;
+    final enabled = !_showNextAlg;
+    final sw = Switch(
       value: enabled && _recordTimes,
       onChanged: enabled
-          ? (bool? newValue) async {
-              SharedPreferences prefs = await SharedPreferences.getInstance();
-              prefs.setBool("record_times", newValue!);
-              setState(() {
-                _recordTimes = newValue;
-              });
+          ? (v) {
+              _setPref((prefs) => prefs.setBool("record_times", v));
+              setState(() => _recordTimes = v);
             }
           : null,
     );
-    if (!enabled) {
-      // A disabled Checkbox ignores taps, so wrap it to explain why.
-      checkbox = GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content:
-                Text(AppLocalizations.of(context)!.recordTimesDisabledReason),
-          ));
-        },
-        child: checkbox,
-      );
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          AppLocalizations.of(context)!.recordTimes,
-          style: theme.textTheme.labelSmall,
-        ),
-        checkbox,
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    var theme = Theme.of(context);
-    final timeSelectionWidget = _getTimeSelectionWidget();
-    final showNextAlgWidget = _getShowNextAlgWidget(theme);
-    final recordTimesWidget = _getRecordTimesWidget(theme);
-
-    return Scaffold(
-      backgroundColor: theme.colorScheme.primary,
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ElevatedButton(
-            child: Text(AppLocalizations.of(context)!.corners),
-            onPressed: () => _onButtonPressed(context, AlgType.Corner),
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            child: Text(AppLocalizations.of(context)!.edges),
-            onPressed: () => _onButtonPressed(context, AlgType.Edge),
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _practiceType == PracticeType.letterPairsList
-                ? null
-                : () => _onButtonPressed(context, AlgType.TwoFlip),
-            child: Text(AppLocalizations.of(context)!.flips),
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _practiceType == PracticeType.sets
-                ? () => _onButtonPressed(context, AlgType.Custom)
-                : null,
-            child: Text(AppLocalizations.of(context)!.custom),
-          ),
-          SizedBox(height: 50),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              PracticeTypeSelectionWidget(_practiceType, (PracticeType? type) async {
-                SharedPreferences prefs = await SharedPreferences.getInstance();
-                prefs.setString("practice_type", (type ?? PracticeType.sets).name);
-                setState(() {
-                  _practiceType = type ?? PracticeType.sets;
-                });
-              }),
-            ],
-          ),
-          SizedBox(height: 10),
-          if (timeSelectionWidget != null) timeSelectionWidget,
-          if (showNextAlgWidget != null) showNextAlgWidget,
-          if (recordTimesWidget != null) recordTimesWidget,
-        ],
-      ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton(
-            heroTag: 'stats',
-            backgroundColor: theme.colorScheme.secondary,
-            tooltip: AppLocalizations.of(context)!.algTimesTitle,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AlgTimesScreen()),
-              );
-            },
-            child: Icon(
-              Icons.bar_chart,
-              color: theme.colorScheme.onSecondary,
-              size: 28,
+    return GlassField(
+      label: l10n.recordTimes,
+      trailing: enabled
+          ? sw
+          : GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(l10n.recordTimesDisabledReason),
+              )),
+              child: sw,
             ),
-          ),
-          SizedBox(height: 16),
-          FloatingActionButton(
-            heroTag: 'settings',
-            backgroundColor: theme.colorScheme.secondary,
-            tooltip: AppLocalizations.of(context)!.settings,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SettingsScreen()),
-              );
-            },
-            child: Icon(
-              Icons.settings,
-              color: theme.colorScheme.onSecondary,
-              size: 28,
-            ),
-          ),
-        ],
-      ),
     );
   }
-}
 
-class PracticeTypeSelectionWidget extends StatefulWidget {
-  final PracticeType _initialSelection;
-  final Function(PracticeType?) _onSelected;
-
-  PracticeTypeSelectionWidget(this._initialSelection, this._onSelected);
-
-  @override
-  State<PracticeTypeSelectionWidget> createState() =>
-      _PracticeTypeSelectionWidgetState();
-}
-
-class _PracticeTypeSelectionWidgetState
-    extends State<PracticeTypeSelectionWidget> {
   @override
   Widget build(BuildContext context) {
-    var theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
-    return DropdownMenu<PracticeType>(
-      initialSelection: widget._initialSelection,
-      label: Text(
-        AppLocalizations.of(context)!.practiceType,
-        style: theme.textTheme.labelSmall,
-      ),
-      onSelected: (PracticeType? type) {
-        widget._onSelected(type);
-      },
-      textStyle: theme.textTheme.labelSmall,
-      dropdownMenuEntries: PracticeType.values
-          .map<DropdownMenuEntry<PracticeType>>((PracticeType type) {
-        return DropdownMenuEntry<PracticeType>(
-          value: type,
-          label: type.getLocalizedName(context),
-          style: MenuItemButton.styleFrom(
-            textStyle: theme.textTheme.labelSmall,
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
+    final timeField = _buildTimeField(l10n);
+    final showNext = _buildShowNextAlg(l10n);
+    final recordTimes = _buildRecordTimes(l10n);
 
-class TimeSelectionWidget extends StatefulWidget {
-  final String _label;
-  final double _targetTime;
-  final Function(double) _onTapOutside;
-
-  TimeSelectionWidget(this._label, this._targetTime, this._onTapOutside);
-
-  @override
-  State<TimeSelectionWidget> createState() => _TimeSelectionWidgetState();
-}
-
-class _TimeSelectionWidgetState extends State<TimeSelectionWidget> {
-  @override
-  Widget build(BuildContext context) {
-    var theme = Theme.of(context);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          widget._label,
-          style: theme.textTheme.labelSmall,
+    return AppScaffold(
+      title: "3-Style Trainer",
+      showBack: false,
+      actions: [
+        IconButton(
+          tooltip: l10n.algTimesTitle,
+          icon: const Icon(Icons.bar_chart_rounded),
+          onPressed: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const AlgTimesScreen())),
         ),
-        Container(
-          color: Colors.black26,
-          padding: EdgeInsets.symmetric(horizontal: 5.0),
-          width: 50,
-          // height: 30,
-          child: NumberInputField(
-            decimal: true,
-            onTapOutside: (value) async {
-              var doubleValue = double.tryParse(value);
-              doubleValue ??= DEFAULT_TARGET_TIME;
-              widget._onTapOutside(doubleValue);
-
-              FocusManager.instance.primaryFocus?.unfocus();
-            },
-            defaultValue: widget._targetTime.toString(),
-          ),
+        IconButton(
+          tooltip: l10n.settings,
+          icon: const Icon(Icons.settings_rounded),
+          onPressed: () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => SettingsScreen())),
         ),
+        const SizedBox(width: 4),
       ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppSegmentedControl<PracticeType>(
+              selected: _practiceType,
+              options: [
+                SegmentOption(
+                    PracticeType.timeRace, l10n.practiceTypeTimeRace),
+                SegmentOption(PracticeType.sets, l10n.practiceTypeSets),
+                SegmentOption(PracticeType.letterPairsList,
+                    l10n.practiceTypeLetterPairsShort),
+              ],
+              onChanged: (type) {
+                _setPref((prefs) => prefs.setString("practice_type", type.name));
+                setState(() => _practiceType = type);
+              },
+            ),
+            const SizedBox(height: 18),
+            _buildKeycapGrid(l10n),
+            const SizedBox(height: 18),
+            if (timeField != null) ...[timeField, const SizedBox(height: 10)],
+            if (showNext != null) ...[showNext, const SizedBox(height: 10)],
+            if (recordTimes != null) recordTimes,
+          ],
+        ),
+      ),
     );
   }
 }

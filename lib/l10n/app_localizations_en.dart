@@ -236,4 +236,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get columnResult => 'Result';
+
+  @override
+  String get appearance => 'Appearance';
+
+  @override
+  String get theme => 'Theme';
+
+  @override
+  String get themeKeycap => 'Keycap';
+
+  @override
+  String get themeSlate => 'Slate';
+
+  @override
+  String get themeCubeFace => 'Cube Face';
+
+  @override
+  String get schemesSection => 'Lettering schemes';
+
+  @override
+  String get buffersSection => 'Buffers';
+
+  @override
+  String get practiceTypeLetterPairsShort => 'Pairs';
+
+  @override
+  String get typeSubtitleLetters => '24-letter scheme';
+
+  @override
+  String get typeSubtitleFlips => 'edge-flip cases';
+
+  @override
+  String get typeSubtitleCustom => 'Sets mode only';
+
+  @override
+  String statsSolvesRange(Object count, Object max, Object min) {
+    return '$count solves · $min–${max}s';
+  }
+
+  @override
+  String totalSolves(Object count) {
+    return 'Total solves: $count';
+  }
+
+  @override
+  String globalAvg(Object avg) {
+    return 'Global avg: $avg';
+  }
 }

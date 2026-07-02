@@ -22,12 +22,14 @@ class SessionSummaryScreen extends StatefulWidget {
   final List<AlgTime> algTimes;
   final double targetTime;
   final PracticeType practiceType;
+  final int totalTimeMs;
 
   const SessionSummaryScreen(
       {super.key,
       required this.algTimes,
       required this.targetTime,
-      required this.practiceType});
+      required this.practiceType,
+      required this.totalTimeMs});
 
   @override
   State<SessionSummaryScreen> createState() => _SessionSummaryScreenState();
@@ -175,6 +177,21 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 
     return AppScaffold(
       title: AppLocalizations.of(context)!.sessionSummary,
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Center(
+            child: Text(
+              AppLocalizations.of(context)!
+                  .totalTime(totalTimeToString(widget.totalTimeMs)),
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: p.textMuted),
+            ),
+          ),
+        ),
+      ],
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.0),

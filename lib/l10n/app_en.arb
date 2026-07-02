@@ -85,5 +85,6 @@
   "twists": "2Twists",
   "statsSolvesRange": "{count} solves · {min}–{max}s",
   "totalSolves": "Total solves: {count}",
-  "globalAvg": "Global avg: {avg}"
+  "globalAvg": "Global avg: {avg}",
+  "totalTime": "Total time: {time}"
 }

@@ -290,4 +290,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String globalAvg(Object avg) {
     return 'Global avg: $avg';
   }
+
+  @override
+  String totalTime(Object time) {
+    return 'Total time: $time';
+  }
 }

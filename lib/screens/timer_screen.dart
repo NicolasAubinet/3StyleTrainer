@@ -85,6 +85,7 @@ class _TimerScreenState extends State<TimerScreen> {
     }
 
     List<AlgTime> timesCopy = List.from(times);
+    int totalTimeMs = _elapsedSessionMs();
 
     setState(() {
       isPressed = false;
@@ -114,6 +115,7 @@ class _TimerScreenState extends State<TimerScreen> {
                     algTimes: timesCopy,
                     targetTime: widget.targetTime,
                     practiceType: widget.practiceType,
+                    totalTimeMs: totalTimeMs,
                   )));
 
       setState(() {
@@ -155,6 +157,7 @@ class _TimerScreenState extends State<TimerScreen> {
 
   void _onTimeRaceEnded() async {
     List<AlgTime> timesCopy = List.from(times);
+    int totalTimeMs = _elapsedSessionMs();
     setState(() {
       stopwatch.stop();
       stopwatch.reset();
@@ -170,6 +173,7 @@ class _TimerScreenState extends State<TimerScreen> {
                   algTimes: timesCopy,
                   targetTime: widget.targetTime,
                   practiceType: widget.practiceType,
+                  totalTimeMs: totalTimeMs,
                 )));
 
     setState(() {
@@ -240,6 +244,14 @@ class _TimerScreenState extends State<TimerScreen> {
         style: style,
       );
     }
+  }
+
+  // Wall-clock time from countdown finish to session end (0 if not started).
+  int _elapsedSessionMs() {
+    if (timerStartTime == null) {
+      return 0;
+    }
+    return DateTime.now().difference(timerStartTime!).inMilliseconds;
   }
 
   double getTimeRaceProgression() {

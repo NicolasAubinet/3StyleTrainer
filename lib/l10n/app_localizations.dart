@@ -615,6 +615,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Global avg: {avg}'**
   String globalAvg(Object avg);
+
+  /// No description provided for @totalTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Total time: {time}'**
+  String totalTime(Object time);
 }
 
 class _AppLocalizationsDelegate

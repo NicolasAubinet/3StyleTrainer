@@ -12,6 +12,12 @@ import '../widgets/app_scaffold.dart';
 
 const int BUTTON_PRESS_DELAY_MS = 250;
 
+ButtonStyle summaryButtonStyle(ThemeData theme) => ElevatedButton.styleFrom(
+      backgroundColor: theme.colorScheme.primary,
+      foregroundColor: theme.colorScheme.onPrimary,
+      elevation: 3,
+    );
+
 class SessionSummaryScreen extends StatefulWidget {
   final List<AlgTime> algTimes;
   final double targetTime;
@@ -171,7 +177,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
       title: AppLocalizations.of(context)!.sessionSummary,
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(5.0),
+          padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.0),
           child: Column(
             children: [
               widget.practiceType == PracticeType.sets
@@ -180,15 +186,18 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                   : TimeRaceStatsWidget(widget.algTimes.length),
               Text(AppLocalizations.of(context)!.average(getFormatedAverage()),
                   style: theme.textTheme.displaySmall),
-              SizedBox(height: 5),
               widget.practiceType == PracticeType.timeRace
-                  ? ElevatedButton(
-                      onPressed: () => _canPressButtons
-                          ? {Navigator.pop(context, 'again')}
-                          : null,
-                      child: Text(AppLocalizations.of(context)!.again))
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: ElevatedButton(
+                          style: summaryButtonStyle(theme),
+                          onPressed: () => _canPressButtons
+                              ? {Navigator.pop(context, 'again')}
+                              : null,
+                          child: Text(AppLocalizations.of(context)!.again)),
+                    )
                   : Container(),
-              SizedBox(height: 8),
+              SizedBox(height: 6),
               Expanded(
                 child: Card(
                   color: p.panel,
@@ -221,23 +230,26 @@ class SetsPracticeButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         ElevatedButton(
+            style: summaryButtonStyle(theme),
             onPressed: () =>
                 _canPress ? {Navigator.pop(context, 'repeat_all')} : null,
             child: Text(AppLocalizations.of(context)!.repeatAll)),
-        SizedBox(height: 8),
+        SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton(
+                style: summaryButtonStyle(theme),
                 onPressed: () => _canPress ? _onPressed() : null,
                 child: Text(AppLocalizations.of(context)!
                     .repeatTargetTime(_targetTime))),
           ],
         ),
-        SizedBox(height: 8),
+        SizedBox(height: 6),
       ],
     );
   }

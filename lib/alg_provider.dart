@@ -25,13 +25,32 @@ List<String> getAlgSets(AlgType algType) {
     } else {
       return Settings().getEdgesScheme();
     }
-  } else if (algType == AlgType.Corner) {
+  } else if (algType == AlgType.Corner || algType == AlgType.TwoTwist) {
+    // 2-twists target corner stickers, so they share the corner scheme.
     return Settings().getCornersScheme();
   } else if (algType == AlgType.TwoFlip) {
     return LetterPairScheme.Flips;
   } else {
     throw UnimplementedError();
   }
+}
+
+// Corner-twist orientation of a SpeFFz sticker index, or null if the sticker is
+// a U/D facelet (indices 0-3, 20-23) — those are the solved orientation and are
+// never twist targets. Each side face is lettered clockwise in SpeFFz, so the
+// two twist directions alternate by index parity: odd = +1, even = +2 (mod 3).
+int? cornerTwistOrientation(int index) {
+  if (index < 4 || index > 19) return null;
+  return index.isOdd ? 1 : 2;
+}
+
+// A legit 2-twist twists two different corners in opposite directions, i.e. the
+// two orientations sum to 0 mod 3 (one +1, one +2). Same-direction pairs are
+// physically impossible with only two corners moved and are excluded.
+bool _isValidTwoTwistPair(int i, int j) {
+  final oi = cornerTwistOrientation(i);
+  final oj = cornerTwistOrientation(j);
+  return oi != null && oj != null && (oi + oj) % 3 == 0;
 }
 
 class LetterPairScheme {
@@ -153,7 +172,7 @@ class CollidingIndices {
 
 List<int> _getCollidingIndices(AlgType algType, int index) {
   List<List<int>> collidingIndicesList = [];
-  if (algType == AlgType.Corner) {
+  if (algType == AlgType.Corner || algType == AlgType.TwoTwist) {
     collidingIndicesList = CollidingIndices.cornerSpeffz;
   } else if (algType == AlgType.Edge) {
     if (USE_EDGE_AUDIO_SYLLABLES) {
@@ -221,7 +240,7 @@ List<int> getEdgeBufferIndices(EdgeBuffer buffer) {
 
 List<int> getBufferIndices(AlgType algType) {
   List<int> bufferIndices = [];
-  if (algType == AlgType.Corner) {
+  if (algType == AlgType.Corner || algType == AlgType.TwoTwist) {
     bufferIndices = getCornerBufferIndices(Settings().getCornerBuffer());
   } else if (algType == AlgType.Edge) {
     bufferIndices = getEdgeBufferIndices(Settings().getEdgeBuffer());
@@ -259,7 +278,8 @@ class LetterPairProvider implements AlgProvider {
       }
     }
 
-    String separator = algType == AlgType.TwoFlip ? "-" : "";
+    String separator =
+        (algType == AlgType.TwoFlip || algType == AlgType.TwoTwist) ? "-" : "";
     for (int setIndex in actualSetIndices) {
       assert(setIndex >= 0 && setIndex < scheme.length);
       List<int> collidingIndices = _getCollidingIndices(algType, setIndex);
@@ -267,7 +287,9 @@ class LetterPairProvider implements AlgProvider {
         if (!collidingIndices.contains(l2Index) &&
             !bufferIndices.contains(setIndex) &&
             !bufferIndices.contains(l2Index) &&
-            setIndex != l2Index) {
+            setIndex != l2Index &&
+            (algType != AlgType.TwoTwist ||
+                _isValidTwoTwistPair(setIndex, l2Index))) {
           addToOriginalLetterPairs(
               setIndex, l2Index, scheme, secondLetterScheme, separator);
           if (invertedAlgs) {
@@ -381,6 +403,16 @@ class TwoFlipsAlgProvider extends LetterPairProvider {
       super.invertedAlgs = false})
       : super(
           algType: AlgType.TwoFlip,
+        );
+}
+
+class TwoTwistsAlgProvider extends LetterPairProvider {
+  TwoTwistsAlgProvider(
+      {super.setIndices = const [],
+      super.skippedAlgs = const [],
+      super.invertedAlgs = false})
+      : super(
+          algType: AlgType.TwoTwist,
         );
 }
 

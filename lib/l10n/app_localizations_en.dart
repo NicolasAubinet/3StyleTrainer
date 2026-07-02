@@ -268,7 +268,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get typeSubtitleFlips => 'edge-flip cases';
 
   @override
+  String get typeSubtitleTwists => 'corner-twist cases';
+
+  @override
   String get typeSubtitleCustom => 'Sets mode only';
+
+  @override
+  String get twists => '2Twists';
 
   @override
   String statsSolvesRange(Object count, Object max, Object min) {

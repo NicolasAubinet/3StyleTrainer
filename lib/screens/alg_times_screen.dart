@@ -24,6 +24,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     AlgType.Corner,
     AlgType.Edge,
     AlgType.TwoFlip,
+    AlgType.TwoTwist,
   ];
 
   static const String _sortByAvgKey = "alg_times_sort_by_avg";
@@ -143,6 +144,8 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
         return l10n.edges;
       case AlgType.TwoFlip:
         return l10n.flips;
+      case AlgType.TwoTwist:
+        return l10n.twists;
       case AlgType.Custom:
         return l10n.custom;
     }

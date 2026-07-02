@@ -80,7 +80,9 @@
   "practiceTypeLetterPairsShort": "Pairs",
   "typeSubtitleLetters": "24-letter scheme",
   "typeSubtitleFlips": "edge-flip cases",
+  "typeSubtitleTwists": "corner-twist cases",
   "typeSubtitleCustom": "Sets mode only",
+  "twists": "2Twists",
   "statsSolvesRange": "{count} solves · {min}–{max}s",
   "totalSolves": "Total solves: {count}",
   "globalAvg": "Global avg: {avg}"

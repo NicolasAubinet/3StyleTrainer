@@ -77,6 +77,11 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
         setIndices: algSetIndices,
         invertedAlgs: invertedAlgs,
       );
+    } else if (widget.algType == AlgType.TwoTwist) {
+      algProvider = TwoTwistsAlgProvider(
+        setIndices: algSetIndices,
+        invertedAlgs: invertedAlgs,
+      );
     }
     assert(algProvider != null, "Alg type not supported");
     return algProvider!;
@@ -105,12 +110,16 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
   List<String> getAlgSetWithoutBuffers() {
     List<String> algSets = List.from(getAlgSets(widget.algType));
 
-    List<int> bufferIndices = getBufferIndices(widget.algType);
-    bufferIndices.sort((e1, e2) => e1.compareTo(e2));
+    Set<int> indicesToRemove = getBufferIndices(widget.algType).toSet();
+    if (widget.algType == AlgType.TwoTwist) {
+      // U/D facelets (0-3, 20-23) are the solved orientation, not twist targets.
+      indicesToRemove.addAll([0, 1, 2, 3, 20, 21, 22, 23]);
+    }
 
+    final sortedIndices = indicesToRemove.toList()..sort();
     int deletedCount = 0;
-    for (int bufferIndex in bufferIndices) {
-      algSets.removeAt(bufferIndex - deletedCount);
+    for (int index in sortedIndices) {
+      algSets.removeAt(index - deletedCount);
       deletedCount++;
     }
 
@@ -324,7 +333,8 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
               ),
             ),
             widget.algType == AlgType.Custom ||
-                    widget.algType == AlgType.TwoFlip
+                    widget.algType == AlgType.TwoFlip ||
+                    widget.algType == AlgType.TwoTwist
                 ? Container()
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,

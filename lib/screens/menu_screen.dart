@@ -63,6 +63,8 @@ class _MenuScreenState extends State<MenuScreen> {
       algProvider = EdgesAlgProvider(skippedAlgs: skippedAlgs);
     } else if (algType == AlgType.TwoFlip) {
       algProvider = TwoFlipsAlgProvider(skippedAlgs: skippedAlgs);
+    } else if (algType == AlgType.TwoTwist) {
+      algProvider = TwoTwistsAlgProvider(skippedAlgs: skippedAlgs);
     }
     assert(algProvider != null, "Alg type not supported");
     return algProvider!;
@@ -127,8 +129,8 @@ class _MenuScreenState extends State<MenuScreen> {
 
   Widget _buildKeycapGrid(AppLocalizations l10n) {
     final letters = l10n.typeSubtitleLetters;
-    // 2-Flips can't be listed as pairs; Custom only exists in Sets mode.
-    final flipsEnabled = _practiceType != PracticeType.letterPairsList;
+    // 2-Flips / 2-Twists can't be listed as pairs; Custom only exists in Sets.
+    final orientationEnabled = _practiceType != PracticeType.letterPairsList;
     final customEnabled = _practiceType == PracticeType.sets;
 
     Widget cap(AlgType type, String label, String subtitle,
@@ -147,31 +149,39 @@ class _MenuScreenState extends State<MenuScreen> {
       );
     }
 
+    Widget row(List<Widget> caps) => Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (int i = 0; i < caps.length; i++) ...[
+              if (i > 0) const SizedBox(width: 12),
+              caps[i],
+            ],
+          ],
+        );
+
     return Column(
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            cap(AlgType.Corner, l10n.corners, letters,
-                iconBuilder: (c) =>
-                    CubePieceIcon(piece: CubePiece.corners, color: c)),
-            const SizedBox(width: 12),
-            cap(AlgType.Edge, l10n.edges, letters,
-                iconBuilder: (c) =>
-                    CubePieceIcon(piece: CubePiece.edges, color: c)),
-          ],
-        ),
+        row([
+          cap(AlgType.Corner, l10n.corners, letters,
+              iconBuilder: (c) =>
+                  CubePieceIcon(piece: CubePiece.corners, color: c)),
+          cap(AlgType.Edge, l10n.edges, letters,
+              iconBuilder: (c) =>
+                  CubePieceIcon(piece: CubePiece.edges, color: c)),
+        ]),
         const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            cap(AlgType.TwoFlip, l10n.flips, l10n.typeSubtitleFlips,
-                icon: Icons.swap_horiz_rounded, enabled: flipsEnabled),
-            const SizedBox(width: 12),
-            cap(AlgType.Custom, l10n.custom, l10n.typeSubtitleCustom,
-                icon: Icons.tune_rounded, enabled: customEnabled),
-          ],
-        ),
+        row([
+          cap(AlgType.TwoFlip, l10n.flips, l10n.typeSubtitleFlips,
+              icon: Icons.swap_horiz_rounded, enabled: orientationEnabled),
+          cap(AlgType.TwoTwist, l10n.twists, l10n.typeSubtitleTwists,
+              icon: Icons.rotate_right_rounded, enabled: orientationEnabled),
+        ]),
+        const SizedBox(height: 12),
+        row([
+          cap(AlgType.Custom, l10n.custom, l10n.typeSubtitleCustom,
+              icon: Icons.tune_rounded, enabled: customEnabled),
+          Expanded(child: const SizedBox()),
+        ]),
       ],
     );
   }

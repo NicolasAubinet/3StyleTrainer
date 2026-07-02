@@ -580,11 +580,23 @@ abstract class AppLocalizations {
   /// **'edge-flip cases'**
   String get typeSubtitleFlips;
 
+  /// No description provided for @typeSubtitleTwists.
+  ///
+  /// In en, this message translates to:
+  /// **'corner-twist cases'**
+  String get typeSubtitleTwists;
+
   /// No description provided for @typeSubtitleCustom.
   ///
   /// In en, this message translates to:
   /// **'Sets mode only'**
   String get typeSubtitleCustom;
+
+  /// No description provided for @twists.
+  ///
+  /// In en, this message translates to:
+  /// **'2Twists'**
+  String get twists;
 
   /// No description provided for @statsSolvesRange.
   ///

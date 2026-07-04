@@ -10,6 +10,8 @@ class KeycapButton extends StatefulWidget {
   final IconData? icon;
   // Custom icon builder; receives the resolved (palette-aware) icon color.
   final Widget Function(Color color)? iconBuilder;
+  // A fixed icon widget with its own colors (ignores the palette), e.g. a cube.
+  final Widget? iconWidget;
   final bool enabled;
   final VoidCallback onTap;
 
@@ -19,9 +21,10 @@ class KeycapButton extends StatefulWidget {
     required this.subtitle,
     this.icon,
     this.iconBuilder,
+    this.iconWidget,
     required this.onTap,
     this.enabled = true,
-  }) : assert(icon != null || iconBuilder != null);
+  }) : assert(icon != null || iconBuilder != null || iconWidget != null);
 
   @override
   State<KeycapButton> createState() => _KeycapButtonState();
@@ -68,28 +71,35 @@ class _KeycapButtonState extends State<KeycapButton> {
               ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(widget.label,
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: textColor,
-                        letterSpacing: -0.2)),
-                widget.iconBuilder != null
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(widget.label,
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: textColor,
+                          letterSpacing: -0.2)),
+                  const SizedBox(height: 3),
+                  Text(widget.subtitle,
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: subColor)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            widget.iconWidget != null
+                ? Opacity(opacity: enabled ? 1 : 0.4, child: widget.iconWidget!)
+                : widget.iconBuilder != null
                     ? widget.iconBuilder!(textColor)
                     : Icon(widget.icon, size: 20, color: textColor),
-              ],
-            ),
-            const SizedBox(height: 3),
-            Text(widget.subtitle,
-                style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w600, color: subColor)),
           ],
         ),
       ),

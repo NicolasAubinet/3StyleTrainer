@@ -22,6 +22,11 @@ class NumberInputField extends StatelessWidget {
 
     return TextFormField(
       style: Theme.of(context).textTheme.labelSmall,
+      decoration: const InputDecoration(
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(vertical: 4),
+        border: InputBorder.none,
+      ),
       keyboardType: TextInputType.numberWithOptions(
         decimal: decimal,
         signed: signed,

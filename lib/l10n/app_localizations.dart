@@ -621,6 +621,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Total time: {time}'**
   String totalTime(Object time);
+
+  /// No description provided for @optionsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get optionsSection;
 }
 
 class _AppLocalizationsDelegate

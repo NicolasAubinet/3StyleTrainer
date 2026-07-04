@@ -9,6 +9,8 @@ class AppScaffold extends StatelessWidget {
   final List<Widget>? actions;
   final Widget body;
   final bool showBack;
+  final Widget? leading;
+  final double? leadingWidth;
 
   const AppScaffold({
     super.key,
@@ -16,6 +18,8 @@ class AppScaffold extends StatelessWidget {
     this.actions,
     required this.body,
     this.showBack = true,
+    this.leading,
+    this.leadingWidth,
   });
 
   @override
@@ -34,7 +38,9 @@ class AppScaffold extends StatelessWidget {
         appBar: title == null
             ? null
             : AppBar(
-                automaticallyImplyLeading: showBack,
+                automaticallyImplyLeading: showBack && leading == null,
+                leading: leading,
+                leadingWidth: leadingWidth,
                 title: Text(title!),
                 actions: actions,
               ),

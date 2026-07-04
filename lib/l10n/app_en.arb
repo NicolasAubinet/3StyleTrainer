@@ -86,5 +86,6 @@
   "statsSolvesRange": "{count} solves · {min}–{max}s",
   "totalSolves": "Total solves: {count}",
   "globalAvg": "Global avg: {avg}",
-  "totalTime": "Total time: {time}"
+  "totalTime": "Total time: {time}",
+  "optionsSection": "Options"
 }

@@ -14,7 +14,7 @@ import '../l10n/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_segmented_control.dart';
-import '../widgets/cube_icons.dart';
+import '../widgets/cube_type_icon.dart';
 import '../widgets/glass_panel.dart';
 import '../widgets/keycap_button.dart';
 import '../widgets/number_input_field.dart';
@@ -134,15 +134,12 @@ class _MenuScreenState extends State<MenuScreen> {
     final customEnabled = _practiceType == PracticeType.sets;
 
     Widget cap(AlgType type, String label, String subtitle,
-        {IconData? icon,
-        Widget Function(Color)? iconBuilder,
-        bool enabled = true}) {
+        {bool enabled = true}) {
       return Expanded(
         child: KeycapButton(
           label: label,
           subtitle: subtitle,
-          icon: icon,
-          iconBuilder: iconBuilder,
+          iconWidget: CubeTypeIcon(type: type, size: 46),
           enabled: enabled,
           onTap: () => _onButtonPressed(context, type),
         ),
@@ -162,31 +159,27 @@ class _MenuScreenState extends State<MenuScreen> {
     return Column(
       children: [
         row([
-          cap(AlgType.Corner, l10n.corners, letters,
-              iconBuilder: (c) =>
-                  CubePieceIcon(piece: CubePiece.corners, color: c)),
-          cap(AlgType.Edge, l10n.edges, letters,
-              iconBuilder: (c) =>
-                  CubePieceIcon(piece: CubePiece.edges, color: c)),
+          cap(AlgType.Corner, l10n.corners, letters),
+          cap(AlgType.Edge, l10n.edges, letters),
         ]),
         const SizedBox(height: 12),
         row([
           cap(AlgType.TwoFlip, l10n.flips, l10n.typeSubtitleFlips,
-              icon: Icons.swap_horiz_rounded, enabled: orientationEnabled),
+              enabled: orientationEnabled),
           cap(AlgType.TwoTwist, l10n.twists, l10n.typeSubtitleTwists,
-              icon: Icons.rotate_right_rounded, enabled: orientationEnabled),
+              enabled: orientationEnabled),
         ]),
         const SizedBox(height: 12),
         row([
           cap(AlgType.Custom, l10n.custom, l10n.typeSubtitleCustom,
-              icon: Icons.tune_rounded, enabled: customEnabled),
+              enabled: customEnabled),
           Expanded(child: const SizedBox()),
         ]),
       ],
     );
   }
 
-  Widget? _buildTimeField(AppLocalizations l10n) {
+  (String, Widget)? _buildTimeField(AppLocalizations l10n) {
     final bool isSets = _practiceType == PracticeType.sets;
     final String label;
     final double value;
@@ -207,9 +200,9 @@ class _MenuScreenState extends State<MenuScreen> {
     }
 
     final p = context.palette;
-    return GlassField(
-      label: label,
-      trailing: Container(
+    return (
+      label,
+      Container(
         width: 64,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
         decoration: BoxDecoration(
@@ -236,11 +229,12 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget? _buildShowNextAlg(AppLocalizations l10n) {
+  (String, Widget)? _buildShowNextAlg(AppLocalizations l10n) {
     if (_practiceType == PracticeType.letterPairsList) return null;
-    return GlassField(
-      label: l10n.showNextAlg,
-      trailing: Switch(
+    return (
+      l10n.showNextAlg,
+      Switch(
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         value: _showNextAlg,
         onChanged: (v) {
           _setPref((prefs) => prefs.setBool("show_next_alg", v));
@@ -250,10 +244,11 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget? _buildRecordTimes(AppLocalizations l10n) {
+  (String, Widget)? _buildRecordTimes(AppLocalizations l10n) {
     if (_practiceType != PracticeType.timeRace) return null;
     final enabled = !_showNextAlg;
     final sw = Switch(
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       value: enabled && _recordTimes,
       onChanged: enabled
           ? (v) {
@@ -262,9 +257,9 @@ class _MenuScreenState extends State<MenuScreen> {
             }
           : null,
     );
-    return GlassField(
-      label: l10n.recordTimes,
-      trailing: enabled
+    return (
+      l10n.recordTimes,
+      enabled
           ? sw
           : GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -276,17 +271,49 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
+  /// One row inside the grouped options panel. Fixed height so every option
+  /// lines up regardless of whether the control is a switch or a number field.
+  Widget _optionRow(String label, Widget trailing) {
+    final p = context.palette;
+    return SizedBox(
+      height: 48,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(fontSize: 14, color: p.textMuted)),
+            ),
+            trailing,
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final p = context.palette;
 
-    final timeField = _buildTimeField(l10n);
-    final showNext = _buildShowNextAlg(l10n);
-    final recordTimes = _buildRecordTimes(l10n);
+    final options = [
+      _buildTimeField(l10n),
+      _buildShowNextAlg(l10n),
+      _buildRecordTimes(l10n),
+    ].whereType<(String, Widget)>().toList();
 
     return AppScaffold(
       title: "3-Style Trainer",
       showBack: false,
+      leading: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 8, 0, 8),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Image.asset('assets/icon/icon.png', width: 26, height: 26),
+        ),
+      ),
+      leadingWidth: 48,
       actions: [
         IconButton(
           tooltip: l10n.algTimesTitle,
@@ -323,10 +350,39 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
             const SizedBox(height: 18),
             _buildKeycapGrid(l10n),
-            const SizedBox(height: 18),
-            if (timeField != null) ...[timeField, const SizedBox(height: 10)],
-            if (showNext != null) ...[showNext, const SizedBox(height: 10)],
-            if (recordTimes != null) recordTimes,
+            if (options.isNotEmpty) ...[
+              const SizedBox(height: 26),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Text(
+                  l10n.optionsSection.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    color: p.textFaint,
+                  ),
+                ),
+              ),
+              GlassPanel(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  children: [
+                    for (int i = 0; i < options.length; i++) ...[
+                      if (i > 0)
+                        Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: p.panelBorder,
+                          indent: 16,
+                          endIndent: 16,
+                        ),
+                      _optionRow(options[i].$1, options[i].$2),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),

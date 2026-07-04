@@ -295,4 +295,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String totalTime(Object time) {
     return 'Total time: $time';
   }
+
+  @override
+  String get optionsSection => 'Options';
 }

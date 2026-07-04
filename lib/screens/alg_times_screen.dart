@@ -136,23 +136,6 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
         : Color.lerp(p.textPrimary, p.bad, (t - 0.5) / 0.5)!;
   }
 
-  String _categoryName(AlgType type) {
-    final l10n = AppLocalizations.of(context)!;
-    switch (type) {
-      case AlgType.Corner:
-        return l10n.corners;
-      case AlgType.Edge:
-        return l10n.edges;
-      case AlgType.TwoFlip:
-        return l10n.flips;
-      case AlgType.TwoTwist:
-        return l10n.twists;
-      case AlgType.Parity:
-        return l10n.parity;
-      case AlgType.Custom:
-        return l10n.custom;
-    }
-  }
 
   void _openDetails(String alg) async {
     await Navigator.push(
@@ -347,7 +330,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
                   value: _category,
                   items: _categories
                       .map((t) => DropdownMenuItem(
-                          value: t, child: Text(_categoryName(t))))
+                          value: t, child: Text(t.getLocalizedName(context))))
                       .toList(),
                   onChanged: (t) {
                     if (t != null && t != _category) {

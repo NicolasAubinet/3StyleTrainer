@@ -109,6 +109,25 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
     });
   }
 
+  bool get _allSelected =>
+      selectableAlgSets.isNotEmpty &&
+      selectedIndices.length == selectableAlgSets.length;
+
+  // Number of algs the current selection would drill (nothing selected → 0).
+  int get _algCount => selectedIndices.isEmpty ? 0 : getAlgProvider().totalAlgs;
+
+  void _toggleSelectAll() {
+    setState(() {
+      if (_allSelected) {
+        selectedIndices.clear();
+      } else {
+        selectedIndices = {
+          for (int i = 0; i < selectableAlgSets.length; i++) i
+        };
+      }
+    });
+  }
+
   List<String> getAlgSetWithoutBuffers() {
     List<String> algSets = List.from(getAlgSets(widget.algType));
 
@@ -313,7 +332,20 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
     final p = context.palette;
 
     return AppScaffold(
-      title: AppLocalizations.of(context)!.algSet,
+      title:
+          "${AppLocalizations.of(context)!.algSet} · ${widget.algType.getLocalizedName(context)}",
+      actions: [
+        IconButton(
+          tooltip: _allSelected
+              ? AppLocalizations.of(context)!.deselectAll
+              : AppLocalizations.of(context)!.selectAll,
+          icon: Icon(_allSelected
+              ? Icons.remove_done_rounded
+              : Icons.done_all_rounded),
+          onPressed: _toggleSelectAll,
+        ),
+        const SizedBox(width: 4),
+      ],
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20),
         child: Column(
@@ -321,7 +353,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
           children: [
             Text(
               AppLocalizations.of(context)!
-                  .selectSetsToPractice(selectedIndices.length),
+                  .selectSetsToPractice(selectedIndices.length, _algCount),
               style: theme.textTheme.labelSmall,
             ),
             SizedBox(height: 5),

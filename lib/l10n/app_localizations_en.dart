@@ -73,12 +73,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get algSet => 'Alg set';
 
   @override
-  String selectSetsToPractice(Object count) {
-    return 'Select sets to practice ($count selected)';
+  String selectSetsToPractice(int count, int algCount) {
+    return 'Select sets to practice ($count selected, $algCount algs)';
   }
 
   @override
   String get selectAtLeastOneSet => 'Select at least one set';
+
+  @override
+  String get selectAll => 'Select all';
+
+  @override
+  String get deselectAll => 'Deselect all';
 
   @override
   String average(Object average) {

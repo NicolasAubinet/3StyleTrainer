@@ -25,9 +25,7 @@ class CubeTypeIcon extends StatelessWidget {
 // Logical (unshaded) sticker colours; the painter darkens the side faces.
 const Color _g = Color(0xFF8E8E88); // grey base ("not this piece")
 const Color _w = Color(0xFFF2F2EA);
-const Color _y = Color(0xFFFAC81E);
 const Color _r = Color(0xFFE23A2C);
-const Color _o = Color(0xFFF97316);
 const Color _b = Color(0xFF2F6FE0);
 const Color _n = Color(0xFF1FAE4D); // green
 

@@ -19,8 +19,16 @@
   "flips": "2Flips",
   "start": "Start",
   "algSet": "Alg set",
-  "selectSetsToPractice": "Select sets to practice ({count} selected)",
+  "selectSetsToPractice": "Select sets to practice ({count} selected, {algCount} algs)",
+  "@selectSetsToPractice": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "algCount": { "type": "int" }
+    }
+  },
   "selectAtLeastOneSet": "Select at least one set",
+  "selectAll": "Select all",
+  "deselectAll": "Deselect all",
   "average": "Average: {average}",
   "invertedAlgs": "Inverted algs",
   "createCustomSet": "Create custom set",

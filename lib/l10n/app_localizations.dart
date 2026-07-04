@@ -217,14 +217,26 @@ abstract class AppLocalizations {
   /// No description provided for @selectSetsToPractice.
   ///
   /// In en, this message translates to:
-  /// **'Select sets to practice ({count} selected)'**
-  String selectSetsToPractice(Object count);
+  /// **'Select sets to practice ({count} selected, {algCount} algs)'**
+  String selectSetsToPractice(int count, int algCount);
 
   /// No description provided for @selectAtLeastOneSet.
   ///
   /// In en, this message translates to:
   /// **'Select at least one set'**
   String get selectAtLeastOneSet;
+
+  /// No description provided for @selectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get selectAll;
+
+  /// No description provided for @deselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get deselectAll;
 
   /// No description provided for @average.
   ///

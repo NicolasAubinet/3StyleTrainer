@@ -1,10 +1,32 @@
+import 'package:flutter/widgets.dart';
+
+import 'l10n/app_localizations.dart';
+
 enum AlgType {
   Corner,
   Edge,
   TwoFlip,
   TwoTwist,
   Parity,
-  Custom,
+  Custom;
+
+  String getLocalizedName(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (this) {
+      case AlgType.Corner:
+        return l10n.corners;
+      case AlgType.Edge:
+        return l10n.edges;
+      case AlgType.TwoFlip:
+        return l10n.flips;
+      case AlgType.TwoTwist:
+        return l10n.twists;
+      case AlgType.Parity:
+        return l10n.parity;
+      case AlgType.Custom:
+        return l10n.custom;
+    }
+  }
 }
 
 class Alg {

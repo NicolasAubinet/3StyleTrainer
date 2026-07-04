@@ -7,7 +7,6 @@ import 'package:timer_count_down/timer_count_down.dart';
 
 import '../alg_provider.dart';
 import '../alg_structs.dart';
-import '../l10n/app_localizations.dart';
 import '../practice_type.dart';
 import '../theme/theme_scope.dart';
 import '../utils.dart';
@@ -268,22 +267,7 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   String _title(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    String typeName;
-    switch (widget.algType) {
-      case AlgType.Corner:
-        typeName = l10n.corners;
-      case AlgType.Edge:
-        typeName = l10n.edges;
-      case AlgType.TwoFlip:
-        typeName = l10n.flips;
-      case AlgType.TwoTwist:
-        typeName = l10n.twists;
-      case AlgType.Parity:
-        typeName = l10n.parity;
-      case AlgType.Custom:
-        typeName = l10n.custom;
-    }
+    final typeName = widget.algType.getLocalizedName(context);
     return "$typeName · ${widget.practiceType.getLocalizedName(context)}";
   }
 

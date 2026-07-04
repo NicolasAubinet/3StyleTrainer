@@ -279,6 +279,8 @@ class _TimerScreenState extends State<TimerScreen> {
         typeName = l10n.flips;
       case AlgType.TwoTwist:
         typeName = l10n.twists;
+      case AlgType.Parity:
+        typeName = l10n.parity;
       case AlgType.Custom:
         typeName = l10n.custom;
     }

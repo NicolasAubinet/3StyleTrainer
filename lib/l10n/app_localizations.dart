@@ -598,6 +598,18 @@ abstract class AppLocalizations {
   /// **'2Twists'**
   String get twists;
 
+  /// No description provided for @parity.
+  ///
+  /// In en, this message translates to:
+  /// **'Parity'**
+  String get parity;
+
+  /// No description provided for @typeSubtitleParity.
+  ///
+  /// In en, this message translates to:
+  /// **'UF/UR + 2 corners'**
+  String get typeSubtitleParity;
+
   /// No description provided for @statsSolvesRange.
   ///
   /// In en, this message translates to:

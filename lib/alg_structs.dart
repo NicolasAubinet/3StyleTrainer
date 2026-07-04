@@ -3,6 +3,7 @@ enum AlgType {
   Edge,
   TwoFlip,
   TwoTwist,
+  Parity,
   Custom,
 }
 

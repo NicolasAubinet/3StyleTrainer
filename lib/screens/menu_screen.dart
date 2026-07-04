@@ -65,6 +65,8 @@ class _MenuScreenState extends State<MenuScreen> {
       algProvider = TwoFlipsAlgProvider(skippedAlgs: skippedAlgs);
     } else if (algType == AlgType.TwoTwist) {
       algProvider = TwoTwistsAlgProvider(skippedAlgs: skippedAlgs);
+    } else if (algType == AlgType.Parity) {
+      algProvider = ParityAlgProvider(skippedAlgs: skippedAlgs);
     }
     assert(algProvider != null, "Alg type not supported");
     return algProvider!;
@@ -73,6 +75,23 @@ class _MenuScreenState extends State<MenuScreen> {
   void _onButtonPressed(BuildContext context, AlgType algType) async {
     int algsShownInAdvance = _showNextAlg ? 1 : 0;
     if (_practiceType == PracticeType.sets) {
+      if (algType == AlgType.Parity) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TimerScreen(
+              PracticeType.sets,
+              _targetTime,
+              _raceTime,
+              ParityAlgProvider(),
+              algType,
+              algsShownInAdvance,
+            ),
+          ),
+        );
+        return;
+      }
+
       List<CustomSet> customSets = [];
       if (algType == AlgType.Custom) {
         customSets = await DatabaseManager().getCustomSets();
@@ -129,8 +148,9 @@ class _MenuScreenState extends State<MenuScreen> {
 
   Widget _buildKeycapGrid(AppLocalizations l10n) {
     final letters = l10n.typeSubtitleLetters;
-    // 2-Flips / 2-Twists can't be listed as pairs; Custom only exists in Sets.
+    // 2-Flips / 2-Twists / Parity can't be listed as pairs; Custom only in Sets.
     final orientationEnabled = _practiceType != PracticeType.letterPairsList;
+    final parityEnabled = _practiceType != PracticeType.letterPairsList;
     final customEnabled = _practiceType == PracticeType.sets;
 
     Widget cap(AlgType type, String label, String subtitle,
@@ -171,9 +191,10 @@ class _MenuScreenState extends State<MenuScreen> {
         ]),
         const SizedBox(height: 12),
         row([
+          cap(AlgType.Parity, l10n.parity, l10n.typeSubtitleParity,
+              enabled: parityEnabled),
           cap(AlgType.Custom, l10n.custom, l10n.typeSubtitleCustom,
               enabled: customEnabled),
-          Expanded(child: const SizedBox()),
         ]),
       ],
     );

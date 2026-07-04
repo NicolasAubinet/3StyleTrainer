@@ -25,8 +25,9 @@ List<String> getAlgSets(AlgType algType) {
     } else {
       return Settings().getEdgesScheme();
     }
-  } else if (algType == AlgType.Corner || algType == AlgType.TwoTwist) {
-    // 2-twists target corner stickers, so they share the corner scheme.
+  } else if (algType == AlgType.Corner ||
+      algType == AlgType.TwoTwist ||
+      algType == AlgType.Parity) {
     return Settings().getCornersScheme();
   } else if (algType == AlgType.TwoFlip) {
     return LetterPairScheme.Flips;
@@ -240,7 +241,9 @@ List<int> getEdgeBufferIndices(EdgeBuffer buffer) {
 
 List<int> getBufferIndices(AlgType algType) {
   List<int> bufferIndices = [];
-  if (algType == AlgType.Corner || algType == AlgType.TwoTwist) {
+  if (algType == AlgType.Corner ||
+      algType == AlgType.TwoTwist ||
+      algType == AlgType.Parity) {
     bufferIndices = getCornerBufferIndices(Settings().getCornerBuffer());
   } else if (algType == AlgType.Edge) {
     bufferIndices = getEdgeBufferIndices(Settings().getEdgeBuffer());
@@ -414,6 +417,56 @@ class TwoTwistsAlgProvider extends LetterPairProvider {
       : super(
           algType: AlgType.TwoTwist,
         );
+}
+
+// Single-letter drill
+class ParityAlgProvider implements AlgProvider {
+  var originalAlgs = <Alg>[];
+  var algsToExecute = <Alg>[];
+  int originalToExecute = 0;
+
+  ParityAlgProvider(
+      {List<int> setIndices = const [], List<String> skippedAlgs = const []}) {
+    List<String> scheme = getAlgSets(AlgType.Parity);
+    List<int> bufferIndices = getBufferIndices(AlgType.Parity);
+    List<int> indices = List.from(setIndices);
+    if (indices.isEmpty) {
+      // empty selection means all non-buffer stickers
+      for (int i = 0; i < scheme.length; ++i) {
+        if (!bufferIndices.contains(i)) {
+          indices.add(i);
+        }
+      }
+    }
+    for (int i in indices) {
+      if (!bufferIndices.contains(i)) {
+        originalAlgs.add(Alg(scheme[i]));
+      }
+    }
+    reset(skippedAlgs: skippedAlgs);
+  }
+
+  @override
+  Alg? getNextAlg() {
+    if (algsToExecute.isEmpty) {
+      return null;
+    }
+    var random = Random();
+    return algsToExecute.removeAt(random.nextInt(algsToExecute.length));
+  }
+
+  @override
+  void reset({List<String> skippedAlgs = const []}) {
+    algsToExecute = List.from(originalAlgs);
+    algsToExecute.removeWhere((alg) => skippedAlgs.contains(alg.name));
+    originalToExecute = algsToExecute.length;
+  }
+
+  @override
+  double getProgression({int preFetchedAlgsCount = 0}) {
+    return _getProgression(
+        originalToExecute, algsToExecute.length + preFetchedAlgsCount);
+  }
 }
 
 // class EdgesAlgProvider extends CustomProvider {

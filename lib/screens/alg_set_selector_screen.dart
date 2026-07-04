@@ -82,6 +82,8 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
         setIndices: algSetIndices,
         invertedAlgs: invertedAlgs,
       );
+    } else if (widget.algType == AlgType.Parity) {
+      algProvider = ParityAlgProvider(setIndices: algSetIndices);
     }
     assert(algProvider != null, "Alg type not supported");
     return algProvider!;
@@ -334,7 +336,8 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
             ),
             widget.algType == AlgType.Custom ||
                     widget.algType == AlgType.TwoFlip ||
-                    widget.algType == AlgType.TwoTwist
+                    widget.algType == AlgType.TwoTwist ||
+                    widget.algType == AlgType.Parity
                 ? Container()
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,

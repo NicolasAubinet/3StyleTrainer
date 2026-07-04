@@ -119,6 +119,27 @@ _Stickers _stickersFor(AlgType type) {
           [_g, _g, _g],
         ],
       );
+    case AlgType.Parity:
+      // The exact sticker colours of a parity case (top=U, left=F, right=R).
+      // UF/UR edges stay white-on-top (correctly oriented); UFR & URB corners
+      // carry the swap — FUR shows blue. BUR (green) faces the hidden back.
+      return const _Stickers(
+        [
+          [_g, _g, _r], // URB (U)
+          [_g, _g, _w], // UR (U)
+          [_g, _w, _r], // UF (U); UFR (U)
+        ],
+        [
+          [_g, _r, _b], // FU (F); FUR (F)
+          [_g, _g, _g],
+          [_g, _g, _g],
+        ],
+        [
+          [_w, _n, _w], // RUB (R); RU (green); RUF (R)
+          [_g, _g, _g],
+          [_g, _g, _g],
+        ],
+      );
     case AlgType.Custom:
       // A solved cube — clean, "your own complete sets".
       return const _Stickers(

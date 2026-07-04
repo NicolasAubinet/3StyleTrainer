@@ -277,6 +277,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get twists => '2Twists';
 
   @override
+  String get parity => 'Parity';
+
+  @override
+  String get typeSubtitleParity => 'UF/UR + 2 corners';
+
+  @override
   String statsSolvesRange(Object count, Object max, Object min) {
     return '$count solves · $min–${max}s';
   }

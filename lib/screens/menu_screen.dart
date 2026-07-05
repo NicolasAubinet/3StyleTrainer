@@ -233,7 +233,7 @@ class _MenuScreenState extends State<MenuScreen> {
         child: NumberInputField(
           decimal: true,
           defaultValue: value.toString(),
-          onTapOutside: (text) {
+          onCommit: (text) {
             final parsed = double.tryParse(text) ?? fallback;
             _setPref((prefs) => prefs.setDouble(prefKey, parsed));
             setState(() {

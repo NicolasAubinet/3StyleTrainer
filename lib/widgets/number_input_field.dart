@@ -5,7 +5,7 @@ class NumberInputField extends StatelessWidget {
   final bool decimal;
   final bool signed;
   final Function(String)? onChanged;
-  final Function(String)? onTapOutside;
+  final Function(String)? onCommit;
   final String? defaultValue;
   final textController = TextEditingController();
 
@@ -13,7 +13,7 @@ class NumberInputField extends StatelessWidget {
       {this.decimal = false,
       this.signed = false,
       this.onChanged,
-      this.onTapOutside,
+      this.onCommit,
       this.defaultValue});
 
   @override
@@ -32,11 +32,8 @@ class NumberInputField extends StatelessWidget {
         signed: signed,
       ),
       onChanged: onChanged,
-      onTapOutside: (_) {
-        if (onTapOutside != null) {
-          onTapOutside!(textController.text);
-        }
-      },
+      onTapOutside: (_) => onCommit?.call(textController.text),
+      onFieldSubmitted: (_) => onCommit?.call(textController.text),
       controller: textController,
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r"[0-9.]")),

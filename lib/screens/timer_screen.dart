@@ -46,18 +46,17 @@ class _TimerScreenState extends State<TimerScreen> {
 
   void _onTapDown() {
     if (!isReady ||
+        isPressed ||
         alg == null ||
         stopwatch.elapsedMilliseconds / 1000 < MINIMUM_ALLOWED_TIME) {
       return;
     }
 
-    Alg localAlg =
-        alg!; // try to fix alg that sometimes shows up twice in summary (probably a race condition)
     setState(() {
       isPressed = true;
 
       int elapsedMilliseconds = stopwatch.elapsedMilliseconds;
-      times.add(AlgTime(times.length + 1, elapsedMilliseconds, localAlg));
+      times.add(AlgTime(times.length + 1, elapsedMilliseconds, alg!));
 
       stopwatch.stop();
 
@@ -158,6 +157,7 @@ class _TimerScreenState extends State<TimerScreen> {
     List<AlgTime> timesCopy = List.from(times);
     int totalTimeMs = _elapsedSessionMs();
     setState(() {
+      isPressed = false;
       stopwatch.stop();
       stopwatch.reset();
       times.clear();
@@ -360,6 +360,7 @@ class _TimerScreenState extends State<TimerScreen> {
               onFinished: () {
                 setState(() {
                   isReady = true;
+                  isPressed = false;
                   timerStartTime = DateTime.now();
                   nextAlgs.clear();
                   for (int i = 0; i < widget.algsShownInAdvance; ++i) {

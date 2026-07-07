@@ -219,6 +219,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportData => 'Export data';
 
   @override
+  String get exportSucceeded => 'Export saved';
+
+  @override
   String exportFailed(Object error) {
     return 'Export failed: $error';
   }

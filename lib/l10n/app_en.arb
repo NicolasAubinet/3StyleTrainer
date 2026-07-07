@@ -70,6 +70,7 @@
   "deleteTimeConfirmTitle": "Delete time",
   "deleteTimeConfirmMessage": "Delete this recorded time?",
   "exportData": "Export data",
+  "exportSucceeded": "Export saved",
   "exportFailed": "Export failed: {error}",
   "importData": "Import data",
   "importResultTitle": "Import result",

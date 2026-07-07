@@ -206,13 +206,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final bytes =
           Uint8List.fromList(utf8.encode(jsonEncode(export.toJson())));
       const fileName = 'three-style-trainer-export.json';
-      await SharePlus.instance.share(ShareParams(
-        files: [
-          XFile.fromData(bytes, mimeType: 'application/json', name: fileName)
-        ],
-        fileNameOverrides: [fileName],
-        subject: fileName,
-      ));
+
+      // The OS share sheet is unreliable on desktop, so save to a file there
+      // (and on web, which downloads the file). Mobile keeps the share sheet.
+      final isDesktop = !kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.windows ||
+              defaultTargetPlatform == TargetPlatform.linux ||
+              defaultTargetPlatform == TargetPlatform.macOS);
+      if (kIsWeb || isDesktop) {
+        final path = await FilePicker.saveFile(
+          dialogTitle: l10n.exportData,
+          fileName: fileName,
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+          bytes: bytes,
+        );
+        if (!kIsWeb && path == null) {
+          return; // user cancelled the save dialog
+        }
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(l10n.exportSucceeded),
+          ));
+        }
+      } else {
+        await SharePlus.instance.share(ShareParams(
+          files: [
+            XFile.fromData(bytes, mimeType: 'application/json', name: fileName)
+          ],
+          fileNameOverrides: [fileName],
+          subject: fileName,
+        ));
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(

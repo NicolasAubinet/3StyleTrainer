@@ -30,6 +30,8 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
 
   static const String _sortByAvgKey = "alg_times_sort_by_avg";
   static const String _sortAscendingKey = "alg_times_sort_ascending";
+  static const String _categoryKey = "alg_times_category";
+  static const String _rangeKey = "alg_times_range";
 
   AlgType _category = AlgType.Corner;
   StatsDateRange _range = StatsDateRange.all;
@@ -55,8 +57,14 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     final prefs = await SharedPreferences.getInstance();
     _sortByAvg = prefs.getBool(_sortByAvgKey) ?? true;
     _sortAscending = prefs.getBool(_sortAscendingKey) ?? false;
+    _category = _readEnum(prefs.getString(_categoryKey), _categories, _category);
+    _range =
+        _readEnum(prefs.getString(_rangeKey), StatsDateRange.values, _range);
     await _loadStats();
   }
+
+  T _readEnum<T extends Enum>(String? name, List<T> values, T fallback) =>
+      values.firstWhere((e) => e.name == name, orElse: () => fallback);
 
   Future<void> _loadStats() async {
     if (!mounted) return;
@@ -101,6 +109,12 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     final prefs = await SharedPreferences.getInstance();
     prefs.setBool(_sortByAvgKey, _sortByAvg);
     prefs.setBool(_sortAscendingKey, _sortAscending);
+  }
+
+  void _persistFilters() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString(_categoryKey, _category.name);
+    prefs.setString(_rangeKey, _range.name);
   }
 
   double _percentile(List<double> sortedAsc, double p) {
@@ -335,6 +349,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
                   onChanged: (t) {
                     if (t != null && t != _category) {
                       setState(() => _category = t);
+                      _persistFilters();
                       _loadStats();
                     }
                   },
@@ -350,6 +365,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
                   onChanged: (r) {
                     if (r != null && r != _range) {
                       setState(() => _range = r);
+                      _persistFilters();
                       _loadStats();
                     }
                   },

@@ -289,4 +289,14 @@ class DatabaseManager {
 
     _database.delete(EXECUTED_TIME_RACE_ALGS);
   }
+
+  // Read-only backup: checkpoints the WAL then copies the live DB to a temp
+  // file, leaving the original untouched. Returns the copy's path.
+  Future<String> exportDatabaseCopy() async {
+    await _database.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
+    final Directory tempDir = await getTemporaryDirectory();
+    final String outPath = join(tempDir.path, 'trainer_backup.db');
+    await File(_database.path).copy(outPath);
+    return outPath;
+  }
 }

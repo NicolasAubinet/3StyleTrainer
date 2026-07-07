@@ -216,6 +216,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteTimeConfirmMessage => 'Delete this recorded time?';
 
   @override
+  String get exportDatabase => 'Backup / Export database';
+
+  @override
+  String exportDatabaseFailed(Object error) {
+    return 'Export failed: $error';
+  }
+
+  @override
   String get clearAllTimes => 'Clear all times';
 
   @override

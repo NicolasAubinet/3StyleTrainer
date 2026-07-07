@@ -478,6 +478,18 @@ abstract class AppLocalizations {
   /// **'Delete this recorded time?'**
   String get deleteTimeConfirmMessage;
 
+  /// No description provided for @exportDatabase.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup / Export database'**
+  String get exportDatabase;
+
+  /// No description provided for @exportDatabaseFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: {error}'**
+  String exportDatabaseFailed(Object error);
+
   /// No description provided for @clearAllTimes.
   ///
   /// In en, this message translates to:

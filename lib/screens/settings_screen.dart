@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/database_manager.dart';
 import 'package:three_style_trainer/settings.dart';
@@ -186,6 +187,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _exportDatabase(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final String path = await DatabaseManager().exportDatabaseCopy();
+      await SharePlus.instance
+          .share(ShareParams(files: [XFile(path)], subject: 'trainer.db'));
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.exportDatabaseFailed(e.toString())),
+        ));
+      }
+    }
+  }
+
   void _confirmClearAllTimes(BuildContext context) async {
     bool confirmed = false;
     await showDialog<void>(
@@ -301,6 +317,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               const SizedBox(height: 28),
+              GlassPanel(
+                onTap: () => _exportDatabase(context),
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.ios_share_rounded, color: p.accent, size: 20),
+                    const SizedBox(width: 8),
+                    Text(l10n.exportDatabase,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: p.accent)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               GlassPanel(
                 onTap: () => _confirmClearAllTimes(context),
                 padding: const EdgeInsets.symmetric(vertical: 15),

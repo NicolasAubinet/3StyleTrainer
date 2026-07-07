@@ -271,8 +271,14 @@ abstract class AppLocalizations {
   /// No description provided for @customSetAlgs.
   ///
   /// In en, this message translates to:
-  /// **'Algs (coma or newline separated)'**
+  /// **'Algs'**
   String get customSetAlgs;
+
+  /// No description provided for @customSetAlgsHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Comma or newline separated'**
+  String get customSetAlgsHelper;
 
   /// No description provided for @emptyCustomSetName.
   ///

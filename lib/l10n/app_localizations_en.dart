@@ -104,7 +104,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customSetName => 'Name';
 
   @override
-  String get customSetAlgs => 'Algs (coma or newline separated)';
+  String get customSetAlgs => 'Algs';
+
+  @override
+  String get customSetAlgsHelper => 'Comma or newline separated';
 
   @override
   String get emptyCustomSetName => 'Custom set name cannot be empty';

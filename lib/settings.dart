@@ -18,7 +18,7 @@ class Settings {
 
   Settings._internal();
 
-  void initPrefs() async {
+  Future<void> initPrefs() async {
     WidgetsFlutterBinding.ensureInitialized();
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -35,7 +35,7 @@ class Settings {
     String? cornerBufferStr = prefs.getString("corner_buffer");
     if (cornerBufferStr != null) {
       CornerBuffer cornerBuffer = CornerBuffer.values.firstWhere(
-          (e) => e.toString() == cornerBufferStr,
+          (e) => e.name == cornerBufferStr,
           orElse: () => CornerBuffer.UFR);
       setCornerBuffer(cornerBuffer);
     }
@@ -43,8 +43,7 @@ class Settings {
     String? edgeBufferStr = prefs.getString("edge_buffer");
     if (edgeBufferStr != null) {
       EdgeBuffer edgeBuffer = EdgeBuffer.values.firstWhere(
-          (e) => e.toString() == edgeBufferStr,
-          orElse: () => EdgeBuffer.UF);
+          (e) => e.name == edgeBufferStr, orElse: () => EdgeBuffer.UF);
       setEdgeBuffer(edgeBuffer);
     }
   }
@@ -139,5 +138,28 @@ class Settings {
       }
     }
     return snapshot;
+  }
+
+  // Overwrite the persisted settings from an imported snapshot, then reload the
+  // in-memory scheme/buffer state. Only known keys are applied; unknown keys are
+  // ignored and absent keys leave the existing value untouched.
+  Future<void> importSettings(Map<String, Object?> snapshot) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    for (String key in exportedPrefKeys) {
+      if (!snapshot.containsKey(key)) {
+        continue;
+      }
+      Object? value = snapshot[key];
+      if (value is bool) {
+        await prefs.setBool(key, value);
+      } else if (value is String) {
+        await prefs.setString(key, value);
+      } else if (value is int) {
+        await prefs.setInt(key, value);
+      } else if (value is double) {
+        await prefs.setDouble(key, value);
+      }
+    }
+    await initPrefs();
   }
 }

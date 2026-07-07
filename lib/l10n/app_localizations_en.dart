@@ -224,6 +224,66 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importData => 'Import data';
+
+  @override
+  String get importResultTitle => 'Import result';
+
+  @override
+  String get importSucceeded => 'Import succeeded';
+
+  @override
+  String get importErrorInvalidFile =>
+      'This file couldn\'t be read. Make sure it\'s a valid, uncorrupted export file.';
+
+  @override
+  String get importErrorUnknownFormat =>
+      'Unrecognized file. This doesn\'t look like a 3-Style Trainer export.';
+
+  @override
+  String get importErrorUnsupportedVersion =>
+      'This file was created by a newer version of the app. Please update to import it.';
+
+  @override
+  String importRecordedTimesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count recorded times imported',
+      one: '1 recorded time imported',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCustomSetsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count custom sets imported',
+      one: '1 custom set imported',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importSettingsApplied => 'Settings applied';
+
+  @override
+  String get importSettingsNotPresent => 'Settings: not present in file';
+
+  @override
+  String importSkippedCustomSets(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count custom sets skipped (names already exist)',
+      one: '1 custom set skipped (name already exists)',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get clearAllTimes => 'Clear all times';
 
   @override

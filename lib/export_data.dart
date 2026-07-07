@@ -1,4 +1,18 @@
+import 'dart:convert';
+
 import 'alg_structs.dart';
+
+// Why an import couldn't proceed, surfaced to the user as a friendly message.
+enum ImportErrorType {
+  invalidFile, // not JSON, or structurally corrupt
+  unknownFormat, // missing/unexpected "format" field
+  unsupportedVersion, // formatVersion newer than this app understands
+}
+
+class ImportException implements Exception {
+  final ImportErrorType type;
+  ImportException(this.type);
+}
 
 // A single recorded solve, as carried in an export file.
 class RecordedTime {
@@ -67,6 +81,38 @@ class ExportData {
       'exportedAt': exportedAt,
       'sections': sections,
     };
+  }
+
+  // Parse and validate a raw export file. Throws [ImportException] with a
+  // categorized reason on anything we can't safely import.
+  static ExportData parse(String raw) {
+    Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (_) {
+      throw ImportException(ImportErrorType.invalidFile);
+    }
+    if (decoded is! Map) {
+      throw ImportException(ImportErrorType.invalidFile);
+    }
+    final json = decoded.cast<String, Object?>();
+
+    if (json['format'] != kFormat) {
+      throw ImportException(ImportErrorType.unknownFormat);
+    }
+    final formatVersion = json['formatVersion'];
+    if (formatVersion is! num) {
+      throw ImportException(ImportErrorType.invalidFile);
+    }
+    if (formatVersion > kCurrentFormatVersion) {
+      throw ImportException(ImportErrorType.unsupportedVersion);
+    }
+
+    try {
+      return ExportData.fromJson(json);
+    } catch (_) {
+      throw ImportException(ImportErrorType.invalidFile);
+    }
   }
 
   factory ExportData.fromJson(Map<String, Object?> json) {

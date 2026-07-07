@@ -345,8 +345,11 @@ class _MenuScreenState extends State<MenuScreen> {
         IconButton(
           tooltip: l10n.settings,
           icon: const Icon(Icons.settings_rounded),
-          onPressed: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => SettingsScreen())),
+          onPressed: () async {
+            await Navigator.push(context,
+                MaterialPageRoute(builder: (_) => SettingsScreen()));
+            _loadPreferences(); // pick up any settings changed via import
+          },
         ),
         const SizedBox(width: 4),
       ],

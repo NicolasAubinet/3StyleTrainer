@@ -62,7 +62,7 @@ import 'app_localizations_en.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -85,11 +85,11 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[Locale('en')];
@@ -490,6 +490,72 @@ abstract class AppLocalizations {
   /// **'Export failed: {error}'**
   String exportFailed(Object error);
 
+  /// No description provided for @importData.
+  ///
+  /// In en, this message translates to:
+  /// **'Import data'**
+  String get importData;
+
+  /// No description provided for @importResultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import result'**
+  String get importResultTitle;
+
+  /// No description provided for @importSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Import succeeded'**
+  String get importSucceeded;
+
+  /// No description provided for @importErrorInvalidFile.
+  ///
+  /// In en, this message translates to:
+  /// **'This file couldn\'t be read. Make sure it\'s a valid, uncorrupted export file.'**
+  String get importErrorInvalidFile;
+
+  /// No description provided for @importErrorUnknownFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrecognized file. This doesn\'t look like a 3-Style Trainer export.'**
+  String get importErrorUnknownFormat;
+
+  /// No description provided for @importErrorUnsupportedVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'This file was created by a newer version of the app. Please update to import it.'**
+  String get importErrorUnsupportedVersion;
+
+  /// No description provided for @importRecordedTimesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 recorded time imported} other{{count} recorded times imported}}'**
+  String importRecordedTimesCount(int count);
+
+  /// No description provided for @importCustomSetsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 custom set imported} other{{count} custom sets imported}}'**
+  String importCustomSetsCount(int count);
+
+  /// No description provided for @importSettingsApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings applied'**
+  String get importSettingsApplied;
+
+  /// No description provided for @importSettingsNotPresent.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings: not present in file'**
+  String get importSettingsNotPresent;
+
+  /// No description provided for @importSkippedCustomSets.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 custom set skipped (name already exists)} other{{count} custom sets skipped (names already exist)}}'**
+  String importSkippedCustomSets(int count);
+
   /// No description provided for @clearAllTimes.
   ///
   /// In en, this message translates to:
@@ -708,9 +774,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-    'an issue with the localizations generation tool. Please file an issue '
-    'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
-  );
+      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
 }

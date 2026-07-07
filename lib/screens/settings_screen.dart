@@ -1,11 +1,13 @@
 import 'dart:convert';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/database_manager.dart';
 import 'package:three_style_trainer/export_data.dart';
+import 'package:three_style_trainer/import_service.dart';
 import 'package:three_style_trainer/settings.dart';
 
 import '../l10n/app_localizations.dart';
@@ -220,6 +222,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _importData(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final picked = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+      final bytes = picked?.files.singleOrNull?.bytes;
+      if (bytes == null) {
+        return; // user cancelled
+      }
+
+      final data = ExportData.parse(utf8.decode(bytes));
+      final result = await applyImport(data);
+
+      if (!context.mounted) return;
+      // Reflect any imported schemes/buffers in this screen.
+      setState(() {
+        _cornersSchemeTextController.text = Settings().getCornersScheme().join();
+        _edgesSchemeTextController.text = Settings().getEdgesScheme().join();
+      });
+      _showImportResult(context, result);
+    } on ImportException catch (e) {
+      if (context.mounted) {
+        _showImportError(context, _importErrorMessage(l10n, e.type));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showImportError(context, l10n.importErrorInvalidFile);
+      }
+    }
+  }
+
+  String _importErrorMessage(AppLocalizations l10n, ImportErrorType type) {
+    switch (type) {
+      case ImportErrorType.invalidFile:
+        return l10n.importErrorInvalidFile;
+      case ImportErrorType.unknownFormat:
+        return l10n.importErrorUnknownFormat;
+      case ImportErrorType.unsupportedVersion:
+        return l10n.importErrorUnsupportedVersion;
+    }
+  }
+
+  void _showImportError(BuildContext context, String message) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.importData),
+        content: Text(message),
+        actions: [
+          TextButton(
+            child: Text(l10n.close),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImportResult(BuildContext context, ImportResult result) {
+    final l10n = AppLocalizations.of(context)!;
+    final p = context.palette;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.importSucceeded),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.importRecordedTimesCount(result.recordedTimesImported)),
+              const SizedBox(height: 6),
+              Text(l10n.importCustomSetsCount(result.customSetsImported)),
+              const SizedBox(height: 6),
+              Text(result.settingsApplied
+                  ? l10n.importSettingsApplied
+                  : l10n.importSettingsNotPresent),
+              if (result.skippedCustomSets.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  l10n.importSkippedCustomSets(result.skippedCustomSets.length),
+                  style: TextStyle(color: p.textMuted, fontSize: 13),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  result.skippedCustomSets.join(', '),
+                  style: TextStyle(color: p.textFaint, fontSize: 13),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: Text(l10n.close),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _confirmClearAllTimes(BuildContext context) async {
     bool confirmed = false;
     await showDialog<void>(
@@ -344,6 +452,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Icon(Icons.ios_share_rounded, color: p.accent, size: 20),
                     const SizedBox(width: 8),
                     Text(l10n.exportData,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: p.accent)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              GlassPanel(
+                onTap: () => _importData(context),
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.file_download_rounded,
+                        color: p.accent, size: 20),
+                    const SizedBox(width: 8),
+                    Text(l10n.importData,
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,

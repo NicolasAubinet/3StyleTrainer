@@ -71,6 +71,26 @@
   "deleteTimeConfirmMessage": "Delete this recorded time?",
   "exportData": "Export data",
   "exportFailed": "Export failed: {error}",
+  "importData": "Import data",
+  "importResultTitle": "Import result",
+  "importSucceeded": "Import succeeded",
+  "importErrorInvalidFile": "This file couldn't be read. Make sure it's a valid, uncorrupted export file.",
+  "importErrorUnknownFormat": "Unrecognized file. This doesn't look like a 3-Style Trainer export.",
+  "importErrorUnsupportedVersion": "This file was created by a newer version of the app. Please update to import it.",
+  "importRecordedTimesCount": "{count, plural, =1{1 recorded time imported} other{{count} recorded times imported}}",
+  "importCustomSetsCount": "{count, plural, =1{1 custom set imported} other{{count} custom sets imported}}",
+  "@importRecordedTimesCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "@importCustomSetsCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "importSettingsApplied": "Settings applied",
+  "importSettingsNotPresent": "Settings: not present in file",
+  "importSkippedCustomSets": "{count, plural, =1{1 custom set skipped (name already exists)} other{{count} custom sets skipped (names already exist)}}",
+  "@importSkippedCustomSets": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "clearAllTimes": "Clear all times",
   "clearAllTimesConfirmMessage": "Are you sure you want to delete ALL your times?",
   "allTimesCleared": "All times deleted",

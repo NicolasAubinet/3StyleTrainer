@@ -502,6 +502,30 @@ abstract class AppLocalizations {
   /// **'Import data'**
   String get importData;
 
+  /// No description provided for @export.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get export;
+
+  /// No description provided for @import.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get import;
+
+  /// No description provided for @categoryRecordedTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded times'**
+  String get categoryRecordedTimes;
+
+  /// No description provided for @categoryCustomSets.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom sets'**
+  String get categoryCustomSets;
+
   /// No description provided for @importResultTitle.
   ///
   /// In en, this message translates to:

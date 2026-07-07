@@ -230,6 +230,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importData => 'Import data';
 
   @override
+  String get export => 'Export';
+
+  @override
+  String get import => 'Import';
+
+  @override
+  String get categoryRecordedTimes => 'Recorded times';
+
+  @override
+  String get categoryCustomSets => 'Custom sets';
+
+  @override
   String get importResultTitle => 'Import result';
 
   @override

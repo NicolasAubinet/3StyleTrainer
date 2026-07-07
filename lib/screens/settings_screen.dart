@@ -16,6 +16,7 @@ import '../theme/theme_controller.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_segmented_control.dart';
+import '../widgets/data_category_dialog.dart';
 import '../widgets/glass_panel.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -195,13 +196,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _exportData(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
+    final chosen = await showDataCategoryDialog(context,
+        title: l10n.exportData, confirmLabel: l10n.export);
+    if (chosen == null || !context.mounted) {
+      return; // cancelled
+    }
     try {
       final export = ExportData(
         dbVersion: DB_VERSION,
         exportedAt: DateTime.now().millisecondsSinceEpoch,
-        recordedTimes: await DatabaseManager().getAllRecordedTimes(),
-        customSets: await DatabaseManager().getCustomSets(),
-        settings: await Settings().exportSettings(),
+        recordedTimes: chosen.contains(DataCategory.recordedTimes)
+            ? await DatabaseManager().getAllRecordedTimes()
+            : null,
+        customSets: chosen.contains(DataCategory.customSets)
+            ? await DatabaseManager().getCustomSets()
+            : null,
+        settings: chosen.contains(DataCategory.settings)
+            ? await Settings().exportSettings()
+            : null,
       );
       final bytes =
           Uint8List.fromList(utf8.encode(jsonEncode(export.toJson())));
@@ -261,7 +273,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       final data = ExportData.parse(utf8.decode(bytes));
-      final result = await applyImport(data);
+
+      final present = <DataCategory>{
+        if (data.recordedTimes != null) DataCategory.recordedTimes,
+        if (data.customSets != null) DataCategory.customSets,
+        if (data.settings != null) DataCategory.settings,
+      };
+      if (!context.mounted) return;
+
+      ImportResult result;
+      if (present.isEmpty) {
+        result = await applyImport(data); // nothing to import
+      } else {
+        final chosen = await showDataCategoryDialog(context,
+            title: l10n.importData,
+            confirmLabel: l10n.import,
+            available: present);
+        if (chosen == null) return; // cancelled
+        result = await applyImport(ExportData(
+          formatVersion: data.formatVersion,
+          dbVersion: data.dbVersion,
+          exportedAt: data.exportedAt,
+          recordedTimes: chosen.contains(DataCategory.recordedTimes)
+              ? data.recordedTimes
+              : null,
+          customSets:
+              chosen.contains(DataCategory.customSets) ? data.customSets : null,
+          settings:
+              chosen.contains(DataCategory.settings) ? data.settings : null,
+        ));
+      }
 
       if (!context.mounted) return;
       // Reflect any imported schemes/buffers in this screen.

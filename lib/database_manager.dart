@@ -8,6 +8,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 import 'alg_structs.dart';
+import 'export_data.dart';
 
 const int DB_VERSION = 5;
 
@@ -290,13 +291,25 @@ class DatabaseManager {
     _database.delete(EXECUTED_TIME_RACE_ALGS);
   }
 
-  // Read-only backup: checkpoints the WAL then copies the live DB to a temp
-  // file, leaving the original untouched. Returns the copy's path.
-  Future<String> exportDatabaseCopy() async {
-    await _database.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
-    final Directory tempDir = await getTemporaryDirectory();
-    final String outPath = join(tempDir.path, 'trainer_backup.db');
-    await File(_database.path).copy(outPath);
-    return outPath;
+  // Every recorded solve, for export.
+  Future<List<RecordedTime>> getAllRecordedTimes() async {
+    if (!isUsingDatabase()) {
+      return List.empty();
+    }
+
+    final List<Map<String, Object?>> rows = await _database.query(
+      RESULTS,
+      columns: ['algType', 'alg', 'resultMs', 'timestamp'],
+    );
+
+    return [
+      for (final row in rows)
+        RecordedTime(
+          row['algType'] as String,
+          row['alg'] as String,
+          (row['resultMs'] as num).toInt(),
+          (row['timestamp'] as num).toInt(),
+        ),
+    ];
   }
 }

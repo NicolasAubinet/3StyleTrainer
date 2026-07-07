@@ -108,4 +108,36 @@ class Settings {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString("edge_buffer", _edgeBuffer.name);
   }
+
+  // Preference keys carried in an export's settings section. Spans schemes and
+  // buffers (this class) plus theme and the menu/alg-times choices owned by
+  // other widgets.
+  static const List<String> exportedPrefKeys = [
+    "corners_scheme",
+    "edges_scheme",
+    "corner_buffer",
+    "edge_buffer",
+    "app_theme",
+    "target_time",
+    "race_time",
+    "show_next_alg",
+    "record_times",
+    "practice_type",
+    "alg_times_sort_by_avg",
+    "alg_times_sort_ascending",
+  ];
+
+  // Snapshot of the persisted settings, for export. Only keys that are actually
+  // set are included; missing ones default on restore.
+  Future<Map<String, Object?>> exportSettings() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    Map<String, Object?> snapshot = {};
+    for (String key in exportedPrefKeys) {
+      Object? value = prefs.get(key);
+      if (value != null) {
+        snapshot[key] = value;
+      }
+    }
+    return snapshot;
+  }
 }

@@ -216,10 +216,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteTimeConfirmMessage => 'Delete this recorded time?';
 
   @override
-  String get exportDatabase => 'Backup / Export database';
+  String get exportData => 'Export data';
 
   @override
-  String exportDatabaseFailed(Object error) {
+  String exportFailed(Object error) {
     return 'Export failed: $error';
   }
 

@@ -532,6 +532,18 @@ abstract class AppLocalizations {
   /// **'Result'**
   String get columnResult;
 
+  /// No description provided for @columnNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'#'**
+  String get columnNumber;
+
+  /// No description provided for @columnTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get columnTime;
+
   /// No description provided for @appearance.
   ///
   /// In en, this message translates to:

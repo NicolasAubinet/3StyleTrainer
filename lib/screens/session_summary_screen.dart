@@ -60,26 +60,27 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 
   List<DataColumn> getColumns(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return <DataColumn>[
       DataColumn(
         onSort: onSort,
         label: Text(
-          "ID",
+          l10n.columnNumber,
           style: theme.textTheme.titleMedium,
         ),
       ),
       DataColumn(
         onSort: onSort,
         label: Text(
-          "Alg",
+          l10n.columnAlg,
           style: theme.textTheme.titleMedium,
         ),
       ),
       DataColumn(
         onSort: onSort,
         label: Text(
-          "Time",
+          l10n.columnTime,
           style: theme.textTheme.titleMedium,
         ),
       ),

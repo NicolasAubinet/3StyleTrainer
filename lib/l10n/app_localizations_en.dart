@@ -244,6 +244,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get columnResult => 'Result';
 
   @override
+  String get columnNumber => '#';
+
+  @override
+  String get columnTime => 'Time';
+
+  @override
   String get appearance => 'Appearance';
 
   @override

@@ -78,6 +78,8 @@
   "columnAvg": "Avg",
   "columnDateTime": "Date - time",
   "columnResult": "Result",
+  "columnNumber": "#",
+  "columnTime": "Time",
   "appearance": "Appearance",
   "theme": "Theme",
   "themeKeycap": "Keycap",

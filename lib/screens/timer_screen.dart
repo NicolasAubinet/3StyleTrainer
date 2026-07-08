@@ -7,6 +7,7 @@ import 'package:timer_count_down/timer_count_down.dart';
 
 import '../alg_provider.dart';
 import '../alg_structs.dart';
+import '../equalizing_selector.dart';
 import '../practice_type.dart';
 import '../theme/theme_scope.dart';
 import '../utils.dart';
@@ -60,18 +61,19 @@ class _TimerScreenState extends State<TimerScreen> {
 
       stopwatch.stop();
 
-      if (widget.practiceType == PracticeType.timeRace &&
-          widget.algsShownInAdvance == 0) {
+      if (isRecordingRun(
+        practiceType: widget.practiceType,
+        algType: widget.algType,
+        algsShownInAdvance: widget.algsShownInAdvance,
+        recordTimes: widget.recordTimes,
+      )) {
         String algName = alg!.name;
-        skippedAlgs.add(algName);
-
-        AlgType algType = widget.algType;
-        if (widget.algType != AlgType.Custom) {
-          var databaseManager = DatabaseManager();
-          databaseManager.insertExecutedTimeRaceAlg(algType, algName);
-          if (widget.recordTimes) {
-            databaseManager.insertResult(algType, algName, elapsedMilliseconds);
-          }
+        DatabaseManager()
+            .insertResult(widget.algType, algName, elapsedMilliseconds);
+        // Keep the selector's weights fresh across a long "again" chain.
+        final provider = widget.algProvider;
+        if (provider is EqualizingSelector) {
+          provider.recordSolve(algName);
         }
       }
     });
@@ -138,17 +140,13 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   Alg? _fetchNextAlg() {
+    if (widget.practiceType == PracticeType.timeRace) {
+      return widget.algProvider.getNextAlg();
+    }
+
     Alg? nextAlg;
     do {
       nextAlg = widget.algProvider.getNextAlg();
-
-      if (nextAlg == null && widget.practiceType == PracticeType.timeRace) {
-        // Reset to all algs and keep going
-        DatabaseManager().resetExecutedTimeRaceAlgs();
-        skippedAlgs.clear();
-        widget.algProvider.reset();
-        nextAlg = widget.algProvider.getNextAlg();
-      }
     } while (nextAlg != null && skippedAlgs.contains(nextAlg.name));
     return nextAlg;
   }
@@ -278,7 +276,8 @@ class _TimerScreenState extends State<TimerScreen> {
 
     var timerText = timeToString(stopwatch.elapsedMilliseconds);
     final progress = widget.practiceType == PracticeType.sets
-        ? widget.algProvider.getProgression(preFetchedAlgsCount: nextAlgs.length)
+        ? widget.algProvider
+            .getProgression(preFetchedAlgsCount: nextAlgs.length)
         : getTimeRaceProgression();
 
     final Widget content = isReady
@@ -330,8 +329,8 @@ class _TimerScreenState extends State<TimerScreen> {
                             text: TextSpan(
                               children: (alg != null ? alg!.name : "--")
                                   .characters
-                                  .map((e) => getAlgTextSpan(theme, e,
-                                      theme.textTheme.displayLarge!))
+                                  .map((e) => getAlgTextSpan(
+                                      theme, e, theme.textTheme.displayLarge!))
                                   .toList(),
                             ),
                           ),

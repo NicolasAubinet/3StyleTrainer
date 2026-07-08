@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_style_trainer/alg_provider.dart';
 import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/database_manager.dart';
+import 'package:three_style_trainer/equalizing_selector.dart';
 import 'package:three_style_trainer/practice_type.dart';
 import 'package:three_style_trainer/screens/alg_set_selector_screen.dart';
 import 'package:three_style_trainer/screens/alg_times_screen.dart';
@@ -110,11 +111,20 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
       );
     } else if (_practiceType == PracticeType.timeRace) {
+      final Map<String, int> counts =
+          await DatabaseManager().getAlgCounts(algType);
       if (mounted && context.mounted) {
-        List<String> skippedAlgs =
-            await DatabaseManager().getExecutedTimeRaceAlgs(algType);
-        AlgProvider algProvider =
-            _constructAlgProvider(algType, skippedAlgs: skippedAlgs);
+        final recording = isRecordingRun(
+          practiceType: PracticeType.timeRace,
+          algType: algType,
+          algsShownInAdvance: algsShownInAdvance,
+          recordTimes: _recordTimes,
+        );
+        AlgProvider algProvider = EqualizingSelector(
+          algs: enumerateAlgs(algType),
+          counts: counts,
+          recording: recording,
+        );
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -125,7 +135,6 @@ class _MenuScreenState extends State<MenuScreen> {
               algProvider,
               algType,
               algsShownInAdvance,
-              skippedAlgs: skippedAlgs,
               recordTimes: _recordTimes,
             ),
           ),
@@ -346,8 +355,8 @@ class _MenuScreenState extends State<MenuScreen> {
           tooltip: l10n.settings,
           icon: const Icon(Icons.settings_rounded),
           onPressed: () async {
-            await Navigator.push(context,
-                MaterialPageRoute(builder: (_) => SettingsScreen()));
+            await Navigator.push(
+                context, MaterialPageRoute(builder: (_) => SettingsScreen()));
             _loadPreferences(); // pick up any settings changed via import
           },
         ),
@@ -361,14 +370,14 @@ class _MenuScreenState extends State<MenuScreen> {
             AppSegmentedControl<PracticeType>(
               selected: _practiceType,
               options: [
-                SegmentOption(
-                    PracticeType.timeRace, l10n.practiceTypeTimeRace),
+                SegmentOption(PracticeType.timeRace, l10n.practiceTypeTimeRace),
                 SegmentOption(PracticeType.sets, l10n.practiceTypeSets),
                 SegmentOption(PracticeType.letterPairsList,
                     l10n.practiceTypeLetterPairsShort),
               ],
               onChanged: (type) {
-                _setPref((prefs) => prefs.setString("practice_type", type.name));
+                _setPref(
+                    (prefs) => prefs.setString("practice_type", type.name));
                 setState(() => _practiceType = type);
               },
             ),

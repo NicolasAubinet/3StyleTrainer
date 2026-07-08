@@ -10,10 +10,9 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'alg_structs.dart';
 import 'export_data.dart';
 
-const int DB_VERSION = 5;
+const int DB_VERSION = 6;
 
 const String RESULTS = "results";
-const String EXECUTED_TIME_RACE_ALGS = "executed_time_race_algs";
 const String CUSTOM_SETS = "custom_sets";
 
 class DatabaseManager {
@@ -51,12 +50,6 @@ class DatabaseManager {
 
   Future<void> _createDb(Database db, int version) async {
     await _createResultsTable(db);
-    await db.execute('''
-          CREATE TABLE $EXECUTED_TIME_RACE_ALGS(
-            algType TEXT,
-            alg TEXT,
-            PRIMARY KEY(algType, alg)
-          )''');
     createCustomSetsTable(db);
   }
 
@@ -72,6 +65,10 @@ class DatabaseManager {
     }
     if (oldVersion < 5) {
       await db.execute('DELETE FROM $RESULTS');
+    }
+    if (oldVersion < 6) {
+      // Time race no longer tracks a cycle; results now drive selection.
+      await db.execute('DROP TABLE IF EXISTS executed_time_race_algs');
     }
   }
 
@@ -192,39 +189,24 @@ class DatabaseManager {
     }
 
     await _database.delete(RESULTS);
-    await _database.delete(EXECUTED_TIME_RACE_ALGS);
   }
 
-  void insertExecutedTimeRaceAlg(AlgType algType, String alg) async {
+  // Recorded-result count per alg for a type, keyed by alg. Drives time-race equalization
+  Future<Map<String, int>> getAlgCounts(AlgType algType) async {
     if (!isUsingDatabase()) {
-      return;
+      return {};
     }
 
-    Map<String, Object?> map = {
-      'algType': algType.name,
-      'alg': alg,
-    };
-    await _database.insert(
-      EXECUTED_TIME_RACE_ALGS,
-      map,
-      conflictAlgorithm: ConflictAlgorithm.replace,
+    final List<Map<String, Object?>> rows = await _database.rawQuery(
+      'SELECT alg, COUNT(*) AS count FROM $RESULTS '
+      'WHERE algType = ? GROUP BY alg',
+      [algType.name],
     );
-  }
 
-  Future<List<String>> getExecutedTimeRaceAlgs(AlgType algType) async {
-    if (!isUsingDatabase()) {
-      return List.empty();
-    }
-
-    List<Object> whereArgs = [algType.name];
-    final List<Map<String, Object?>> algs = await _database.query(
-        EXECUTED_TIME_RACE_ALGS,
-        where: "algType = ?",
-        whereArgs: whereArgs);
-
-    return [
-      for (final entry in algs) entry['alg'] as String,
-    ];
+    return {
+      for (final row in rows)
+        row['alg'] as String: (row['count'] as num).toInt(),
+    };
   }
 
   // Custom sets
@@ -281,14 +263,6 @@ class DatabaseManager {
     return [
       for (final entry in sets) CustomSet.fromMap(entry),
     ];
-  }
-
-  void resetExecutedTimeRaceAlgs() {
-    if (!isUsingDatabase()) {
-      return;
-    }
-
-    _database.delete(EXECUTED_TIME_RACE_ALGS);
   }
 
   // Every recorded solve, for export.

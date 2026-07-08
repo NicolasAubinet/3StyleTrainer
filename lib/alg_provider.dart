@@ -254,6 +254,94 @@ List<int> getBufferIndices(AlgType algType) {
   return bufferIndices;
 }
 
+// Full set of valid case names for a type, applying buffers, colliding
+// stickers, and two-twist validity. Shared by the practice providers and the
+// time-race selector so both draw from the exact same pool.
+List<String> enumerateAlgs(
+  AlgType algType, {
+  List<int> setIndices = const [],
+  bool invertedAlgs = false,
+}) {
+  if (algType == AlgType.Parity) {
+    return _enumerateParityAlgs(setIndices);
+  }
+  return _enumerateLetterPairAlgs(algType,
+      setIndices: setIndices, invertedAlgs: invertedAlgs);
+}
+
+List<String> _enumerateLetterPairAlgs(
+  AlgType algType, {
+  List<int> setIndices = const [],
+  bool invertedAlgs = false,
+}) {
+  List<String> scheme = getAlgSets(algType);
+  List<String>?
+      secondLetterScheme; // for custom schemes where the second letter is from a different set than the first
+  if (algType == AlgType.Edge && USE_EDGE_AUDIO_SYLLABLES) {
+    secondLetterScheme = LetterPairScheme.AudioEdgeVowels;
+    assert(scheme.length == secondLetterScheme.length);
+  }
+
+  List<int> bufferIndices = getBufferIndices(algType);
+  List<int> actualSetIndices = List.from(setIndices);
+  if (actualSetIndices.isEmpty) {
+    // empty set means all sets
+    for (int i = 0; i < scheme.length; ++i) {
+      if (!bufferIndices.contains(i)) {
+        actualSetIndices.add(i);
+      }
+    }
+  }
+
+  String separator =
+      (algType == AlgType.TwoFlip || algType == AlgType.TwoTwist) ? "-" : "";
+  List<String> pairs = [];
+  void addPair(int l1Index, int l2Index) {
+    String l1 = scheme[l1Index];
+    String l2 = secondLetterScheme == null
+        ? scheme[l2Index]
+        : secondLetterScheme[l2Index];
+    pairs.add(l1 + separator + l2);
+  }
+
+  for (int setIndex in actualSetIndices) {
+    assert(setIndex >= 0 && setIndex < scheme.length);
+    List<int> collidingIndices = _getCollidingIndices(algType, setIndex);
+    for (int l2Index = 0; l2Index < scheme.length; ++l2Index) {
+      if (!collidingIndices.contains(l2Index) &&
+          !bufferIndices.contains(setIndex) &&
+          !bufferIndices.contains(l2Index) &&
+          setIndex != l2Index &&
+          (algType != AlgType.TwoTwist ||
+              _isValidTwoTwistPair(setIndex, l2Index))) {
+        addPair(setIndex, l2Index);
+        if (invertedAlgs) {
+          addPair(l2Index, setIndex);
+        }
+      }
+    }
+  }
+  return pairs;
+}
+
+List<String> _enumerateParityAlgs(List<int> setIndices) {
+  List<String> scheme = getAlgSets(AlgType.Parity);
+  List<int> bufferIndices = getBufferIndices(AlgType.Parity);
+  List<int> indices = List.from(setIndices);
+  if (indices.isEmpty) {
+    // empty selection means all non-buffer stickers
+    for (int i = 0; i < scheme.length; ++i) {
+      if (!bufferIndices.contains(i)) {
+        indices.add(i);
+      }
+    }
+  }
+  return [
+    for (int i in indices)
+      if (!bufferIndices.contains(i)) scheme[i],
+  ];
+}
+
 class LetterPairProvider implements AlgProvider {
   var originalLetterPairs = <Alg>[];
   var letterPairsToExecute = <Alg>[];
@@ -265,56 +353,12 @@ class LetterPairProvider implements AlgProvider {
     bool invertedAlgs = false,
     List<String> skippedAlgs = const [],
   }) {
-    List<String> scheme = getAlgSets(algType);
-    List<String>?
-        secondLetterScheme; // for custom schemes where the second letter is from a different set than the first
-    if (algType == AlgType.Edge && USE_EDGE_AUDIO_SYLLABLES) {
-      secondLetterScheme = LetterPairScheme.AudioEdgeVowels;
-      assert(scheme.length == secondLetterScheme.length);
-    }
-
-    List<int> bufferIndices = getBufferIndices(algType);
-    List<int> actualSetIndices = List.from(setIndices);
-    if (actualSetIndices.isEmpty) {
-      // empty set means all sets
-      for (int i = 0; i < scheme.length; ++i) {
-        if (!bufferIndices.contains(i)) {
-          actualSetIndices.add(i);
-        }
-      }
-    }
-
-    String separator =
-        (algType == AlgType.TwoFlip || algType == AlgType.TwoTwist) ? "-" : "";
-    for (int setIndex in actualSetIndices) {
-      assert(setIndex >= 0 && setIndex < scheme.length);
-      List<int> collidingIndices = _getCollidingIndices(algType, setIndex);
-      for (int l2Index = 0; l2Index < scheme.length; ++l2Index) {
-        if (!collidingIndices.contains(l2Index) &&
-            !bufferIndices.contains(setIndex) &&
-            !bufferIndices.contains(l2Index) &&
-            setIndex != l2Index &&
-            (algType != AlgType.TwoTwist ||
-                _isValidTwoTwistPair(setIndex, l2Index))) {
-          addToOriginalLetterPairs(
-              setIndex, l2Index, scheme, secondLetterScheme, separator);
-          if (invertedAlgs) {
-            addToOriginalLetterPairs(
-                l2Index, setIndex, scheme, secondLetterScheme, separator);
-          }
-        }
-      }
-    }
+    originalLetterPairs = [
+      for (final name in _enumerateLetterPairAlgs(algType,
+          setIndices: setIndices, invertedAlgs: invertedAlgs))
+        Alg(name),
+    ];
     reset(skippedAlgs: skippedAlgs);
-  }
-
-  void addToOriginalLetterPairs(int l1Index, int l2Index, List<String> scheme,
-      List<String>? secondLetterScheme, String separator) {
-    String l1 = scheme[l1Index];
-    String l2 = secondLetterScheme == null
-        ? scheme[l2Index]
-        : secondLetterScheme[l2Index];
-    originalLetterPairs.add(Alg(l1 + separator + l2));
   }
 
   @override
@@ -436,22 +480,9 @@ class ParityAlgProvider implements AlgProvider {
 
   ParityAlgProvider(
       {List<int> setIndices = const [], List<String> skippedAlgs = const []}) {
-    List<String> scheme = getAlgSets(AlgType.Parity);
-    List<int> bufferIndices = getBufferIndices(AlgType.Parity);
-    List<int> indices = List.from(setIndices);
-    if (indices.isEmpty) {
-      // empty selection means all non-buffer stickers
-      for (int i = 0; i < scheme.length; ++i) {
-        if (!bufferIndices.contains(i)) {
-          indices.add(i);
-        }
-      }
-    }
-    for (int i in indices) {
-      if (!bufferIndices.contains(i)) {
-        originalAlgs.add(Alg(scheme[i]));
-      }
-    }
+    originalAlgs = [
+      for (final name in _enumerateParityAlgs(setIndices)) Alg(name),
+    ];
     reset(skippedAlgs: skippedAlgs);
   }
 

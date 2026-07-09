@@ -130,6 +130,18 @@ abstract class AppLocalizations {
   /// **'Time race'**
   String get practiceTypeTimeRace;
 
+  /// No description provided for @practiceTypeTimeRaceShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Race'**
+  String get practiceTypeTimeRaceShort;
+
+  /// No description provided for @practiceTypeSlowest.
+  ///
+  /// In en, this message translates to:
+  /// **'Slowest'**
+  String get practiceTypeSlowest;
+
   /// No description provided for @practiceTypeLetterPairsList.
   ///
   /// In en, this message translates to:
@@ -705,6 +717,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pairs'**
   String get practiceTypeLetterPairsShort;
+
+  /// No description provided for @slowestSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Slowest {type}'**
+  String slowestSheetTitle(String type);
+
+  /// No description provided for @slowestModeTopN.
+  ///
+  /// In en, this message translates to:
+  /// **'Top N'**
+  String get slowestModeTopN;
+
+  /// No description provided for @slowestModeThreshold.
+  ///
+  /// In en, this message translates to:
+  /// **'Above time'**
+  String get slowestModeThreshold;
+
+  /// No description provided for @slowestCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of algs'**
+  String get slowestCountLabel;
+
+  /// No description provided for @slowestThresholdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Slower than (seconds)'**
+  String get slowestThresholdLabel;
+
+  /// No description provided for @slowestCasesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No cases} =1{1 case} other{{count} cases}}'**
+  String slowestCasesCount(int count);
+
+  /// No description provided for @slowestNoTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'No recorded times to practice yet'**
+  String get slowestNoTimes;
+
+  /// No description provided for @slowestLockedReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Record some times in Time race first to practice your slowest cases'**
+  String get slowestLockedReason;
 
   /// No description provided for @typeSubtitleLetters.
   ///

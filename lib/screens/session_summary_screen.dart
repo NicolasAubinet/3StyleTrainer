@@ -88,7 +88,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   }
 
   Color getAlgTimeColor(int timeMs, ThemeData theme) {
-    if (widget.practiceType == PracticeType.sets) {
+    if (widget.practiceType.isSetBased) {
       return isUnderTargetTime(timeMs, widget.targetTime)
           ? Colors.green
           : Colors.red;
@@ -198,7 +198,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.0),
           child: Column(
             children: [
-              widget.practiceType == PracticeType.sets
+              widget.practiceType.isSetBased
                   ? SetsPracticeButtons(widget.targetTime,
                       () => _onRepeatTargetTimePressed(), _canPressButtons)
                   : TimeRaceStatsWidget(widget.algTimes.length),

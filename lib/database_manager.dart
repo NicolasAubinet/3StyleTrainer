@@ -9,6 +9,7 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 import 'alg_structs.dart';
 import 'export_data.dart';
+import 'slowest.dart';
 
 const int DB_VERSION = 6;
 
@@ -207,6 +208,40 @@ class DatabaseManager {
       for (final row in rows)
         row['alg'] as String: (row['count'] as num).toInt(),
     };
+  }
+
+  // Whether any solve has ever been recorded (any type). Gates "Slowest" mode.
+  Future<bool> hasAnyRecordedTimes() async {
+    if (!isUsingDatabase()) {
+      return false;
+    }
+
+    final rows = await _database.rawQuery('SELECT 1 FROM $RESULTS LIMIT 1');
+    return rows.isNotEmpty;
+  }
+
+  // Cases ranked by the average of their most recent [window] solves, slowest first
+  Future<List<SlowestAlg>> getSlowestAlgs(AlgType algType,
+      {int window = 3}) async {
+    if (!isUsingDatabase()) {
+      return List.empty();
+    }
+
+    final List<Map<String, Object?>> rows = await _database.query(
+      RESULTS,
+      columns: ['alg', 'resultMs'],
+      where: "algType = ?",
+      whereArgs: [algType.name],
+      orderBy: "timestamp DESC, id DESC",
+    );
+
+    return computeRecentAverages(
+      [
+        for (final row in rows)
+          (alg: row['alg'] as String, resultMs: (row['resultMs'] as num).toInt())
+      ],
+      window,
+    );
   }
 
   // Custom sets

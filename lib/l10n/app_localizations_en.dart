@@ -27,6 +27,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get practiceTypeTimeRace => 'Time race';
 
   @override
+  String get practiceTypeTimeRaceShort => 'Race';
+
+  @override
+  String get practiceTypeSlowest => 'Slowest';
+
+  @override
   String get practiceTypeLetterPairsList => 'Letter pairs list';
 
   @override
@@ -358,6 +364,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get practiceTypeLetterPairsShort => 'Pairs';
+
+  @override
+  String slowestSheetTitle(String type) {
+    return 'Slowest $type';
+  }
+
+  @override
+  String get slowestModeTopN => 'Top N';
+
+  @override
+  String get slowestModeThreshold => 'Above time';
+
+  @override
+  String get slowestCountLabel => 'Number of algs';
+
+  @override
+  String get slowestThresholdLabel => 'Slower than (seconds)';
+
+  @override
+  String slowestCasesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cases',
+      one: '1 case',
+      zero: 'No cases',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get slowestNoTimes => 'No recorded times to practice yet';
+
+  @override
+  String get slowestLockedReason =>
+      'Record some times in Time race first to practice your slowest cases';
 
   @override
   String get typeSubtitleLetters => '24-letter scheme';

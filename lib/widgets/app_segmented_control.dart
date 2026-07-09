@@ -5,7 +5,9 @@ import '../theme/theme_scope.dart';
 class SegmentOption<T> {
   final T value;
   final String label;
-  const SegmentOption(this.value, this.label);
+  final bool enabled;
+
+  const SegmentOption(this.value, this.label, {this.enabled = true});
 }
 
 /// A pill-style segmented control on a glass track. Replaces the raw dropdown
@@ -14,12 +16,14 @@ class AppSegmentedControl<T> extends StatelessWidget {
   final List<SegmentOption<T>> options;
   final T selected;
   final ValueChanged<T> onChanged;
+  final ValueChanged<T>? onDisabledTap;
 
   const AppSegmentedControl({
     super.key,
     required this.options,
     required this.selected,
     required this.onChanged,
+    this.onDisabledTap,
   });
 
   @override
@@ -38,7 +42,9 @@ class AppSegmentedControl<T> extends StatelessWidget {
           return Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => onChanged(opt.value),
+              onTap: () => opt.enabled
+                  ? onChanged(opt.value)
+                  : onDisabledTap?.call(opt.value),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 120),
                 margin: const EdgeInsets.symmetric(horizontal: 2),
@@ -52,14 +58,28 @@ class AppSegmentedControl<T> extends StatelessWidget {
                     color: on ? Colors.transparent : p.panelBorder,
                   ),
                 ),
-                child: Text(
-                  opt.label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: on ? p.onAccent : p.textMuted,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (!opt.enabled) ...[
+                      Icon(Icons.lock_outline, size: 13, color: p.textFaint),
+                      const SizedBox(width: 4),
+                    ],
+                    Flexible(
+                      child: Text(
+                        opt.label,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: on
+                              ? p.onAccent
+                              : (opt.enabled ? p.textMuted : p.textFaint),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

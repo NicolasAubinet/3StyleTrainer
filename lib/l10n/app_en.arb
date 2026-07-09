@@ -5,6 +5,8 @@
   "practiceType": "Practice type",
   "practiceTypeSets": "Sets",
   "practiceTypeTimeRace": "Time race",
+  "practiceTypeTimeRaceShort": "Race",
+  "practiceTypeSlowest": "Slowest",
   "practiceTypeLetterPairsList": "Letter pairs list",
   "completedAlgs": "Completed algs: ",
   "again": "Again",
@@ -116,6 +118,20 @@
   "schemesSection": "Lettering schemes",
   "buffersSection": "Buffers",
   "practiceTypeLetterPairsShort": "Pairs",
+  "slowestSheetTitle": "Slowest {type}",
+  "@slowestSheetTitle": {
+    "placeholders": { "type": { "type": "String" } }
+  },
+  "slowestModeTopN": "Top N",
+  "slowestModeThreshold": "Above time",
+  "slowestCountLabel": "Number of algs",
+  "slowestThresholdLabel": "Slower than (seconds)",
+  "slowestCasesCount": "{count, plural, =0{No cases} =1{1 case} other{{count} cases}}",
+  "@slowestCasesCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "slowestNoTimes": "No recorded times to practice yet",
+  "slowestLockedReason": "Record some times in Time race first to practice your slowest cases",
   "typeSubtitleLetters": "24-letter scheme",
   "typeSubtitleFlips": "edge-flip cases",
   "typeSubtitleTwists": "corner-twist cases",

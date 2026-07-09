@@ -97,8 +97,8 @@ class _TimerScreenState extends State<TimerScreen> {
       }
       alg = nextAlgs.isEmpty ? null : nextAlgs.removeLast();
       if (alg == null) {
-        if (widget.practiceType == PracticeType.sets) {
-          // Sets completed, stop
+        if (widget.practiceType.isSetBased) {
+          // Pool exhausted, stop
           times.clear();
           timerStartTime = null;
         }
@@ -275,7 +275,7 @@ class _TimerScreenState extends State<TimerScreen> {
     final p = context.palette;
 
     var timerText = timeToString(stopwatch.elapsedMilliseconds);
-    final progress = widget.practiceType == PracticeType.sets
+    final progress = widget.practiceType.isSetBased
         ? widget.algProvider
             .getProgression(preFetchedAlgsCount: nextAlgs.length)
         : getTimeRaceProgression();

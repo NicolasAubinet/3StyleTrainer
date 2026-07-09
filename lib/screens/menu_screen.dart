@@ -10,6 +10,7 @@ import 'package:three_style_trainer/screens/alg_times_screen.dart';
 import 'package:three_style_trainer/screens/letter_pairs_list_screen.dart';
 import 'package:three_style_trainer/screens/settings_screen.dart';
 import 'package:three_style_trainer/screens/timer_screen.dart';
+import 'package:three_style_trainer/slowest.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/theme_scope.dart';
@@ -19,6 +20,7 @@ import '../widgets/cube_type_icon.dart';
 import '../widgets/glass_panel.dart';
 import '../widgets/keycap_button.dart';
 import '../widgets/number_input_field.dart';
+import '../widgets/slowest_config_sheet.dart';
 
 const double DEFAULT_TARGET_TIME = 2.0;
 const double DEFAULT_RACE_TIME = 1.0;
@@ -34,14 +36,36 @@ class _MenuScreenState extends State<MenuScreen> {
   bool _showNextAlg = false;
   bool _recordTimes = true;
   PracticeType _practiceType = PracticeType.sets;
+  SlowestMode _slowestMode = SlowestMode.topN;
+  int _slowestTopN = 20;
+  double _slowestThresholdSeconds = DEFAULT_TARGET_TIME;
+  bool _hasRecordedTimes = false;
 
   @override
   void initState() {
     super.initState();
-    _loadPreferences();
+    _init();
   }
 
-  void _loadPreferences() async {
+  void _init() async {
+    // Load prefs first so the flag check sees the persisted practice type.
+    await _loadPreferences();
+    _refreshRecordedTimesFlag();
+  }
+
+  void _refreshRecordedTimesFlag() async {
+    final has = await DatabaseManager().hasAnyRecordedTimes();
+    if (!mounted) return;
+    setState(() {
+      _hasRecordedTimes = has;
+      // Don't leave the user stranded on a now-locked Slowest tab.
+      if (!has && _practiceType == PracticeType.slowest) {
+        _practiceType = PracticeType.timeRace;
+      }
+    });
+  }
+
+  Future<void> _loadPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       _targetTime = prefs.getDouble("target_time") ?? DEFAULT_TARGET_TIME;
@@ -52,6 +76,13 @@ class _MenuScreenState extends State<MenuScreen> {
       if (practiceTypeName != null) {
         _practiceType = PracticeType.values.byName(practiceTypeName);
       }
+      final slowestModeName = prefs.getString("slowest_mode");
+      _slowestMode = SlowestMode.values.firstWhere(
+          (m) => m.name == slowestModeName,
+          orElse: () => SlowestMode.topN);
+      _slowestTopN = prefs.getInt("slowest_top_n") ?? 20;
+      _slowestThresholdSeconds =
+          prefs.getDouble("slowest_threshold") ?? DEFAULT_TARGET_TIME;
     });
   }
 
@@ -138,6 +169,50 @@ class _MenuScreenState extends State<MenuScreen> {
               recordTimes: _recordTimes,
             ),
           ),
+        ).then((_) => _refreshRecordedTimesFlag());
+      }
+    } else if (_practiceType == PracticeType.slowest) {
+      final List<SlowestAlg> slowest =
+          await DatabaseManager().getSlowestAlgs(algType);
+      if (!mounted || !context.mounted) return;
+      if (slowest.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppLocalizations.of(context)!.slowestNoTimes),
+        ));
+        return;
+      }
+      final selection = await showSlowestConfigSheet(
+        context,
+        algType: algType,
+        slowest: slowest,
+        mode: _slowestMode,
+        topN: _slowestTopN,
+        thresholdSeconds: _slowestThresholdSeconds,
+      );
+      if (selection == null || !mounted || !context.mounted) return;
+      setState(() {
+        _slowestMode = selection.mode;
+        _slowestTopN = selection.topN;
+        _slowestThresholdSeconds = selection.thresholdSeconds;
+      });
+      _setPref((prefs) {
+        prefs.setString("slowest_mode", selection.mode.name);
+        prefs.setInt("slowest_top_n", selection.topN);
+        prefs.setDouble("slowest_threshold", selection.thresholdSeconds);
+      });
+      if (selection.algs.isNotEmpty) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TimerScreen(
+              PracticeType.slowest,
+              _targetTime,
+              _raceTime,
+              CustomProvider(selection.algs),
+              algType,
+              algsShownInAdvance,
+            ),
+          ),
         );
       }
     } else if (_practiceType == PracticeType.letterPairsList) {
@@ -210,12 +285,12 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   (String, Widget)? _buildTimeField(AppLocalizations l10n) {
-    final bool isSets = _practiceType == PracticeType.sets;
+    final bool isSetBased = _practiceType.isSetBased;
     final String label;
     final double value;
     final String prefKey;
     final double fallback;
-    if (isSets) {
+    if (isSetBased) {
       label = l10n.targetTime;
       value = _targetTime;
       prefKey = "target_time";
@@ -246,7 +321,7 @@ class _MenuScreenState extends State<MenuScreen> {
             final parsed = double.tryParse(text) ?? fallback;
             _setPref((prefs) => prefs.setDouble(prefKey, parsed));
             setState(() {
-              if (isSets) {
+              if (isSetBased) {
                 _targetTime = parsed;
               } else {
                 _raceTime = parsed;
@@ -348,8 +423,11 @@ class _MenuScreenState extends State<MenuScreen> {
         IconButton(
           tooltip: l10n.algTimesTitle,
           icon: const Icon(Icons.bar_chart_rounded),
-          onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const AlgTimesScreen())),
+          onPressed: () async {
+            await Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AlgTimesScreen()));
+            _refreshRecordedTimesFlag(); // times may have been cleared here
+          },
         ),
         IconButton(
           tooltip: l10n.settings,
@@ -358,6 +436,7 @@ class _MenuScreenState extends State<MenuScreen> {
             await Navigator.push(
                 context, MaterialPageRoute(builder: (_) => SettingsScreen()));
             _loadPreferences(); // pick up any settings changed via import
+            _refreshRecordedTimesFlag(); // import may have added/removed times
           },
         ),
         const SizedBox(width: 4),
@@ -370,8 +449,11 @@ class _MenuScreenState extends State<MenuScreen> {
             AppSegmentedControl<PracticeType>(
               selected: _practiceType,
               options: [
-                SegmentOption(PracticeType.timeRace, l10n.practiceTypeTimeRace),
+                SegmentOption(
+                    PracticeType.timeRace, l10n.practiceTypeTimeRaceShort),
                 SegmentOption(PracticeType.sets, l10n.practiceTypeSets),
+                SegmentOption(PracticeType.slowest, l10n.practiceTypeSlowest,
+                    enabled: _hasRecordedTimes),
                 SegmentOption(PracticeType.letterPairsList,
                     l10n.practiceTypeLetterPairsShort),
               ],
@@ -380,6 +462,9 @@ class _MenuScreenState extends State<MenuScreen> {
                     (prefs) => prefs.setString("practice_type", type.name));
                 setState(() => _practiceType = type);
               },
+              onDisabledTap: (_) => ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l10n.slowestLockedReason)),
+              ),
             ),
             const SizedBox(height: 18),
             _buildKeycapGrid(l10n),

@@ -1,0 +1,180 @@
+import '../crypto/gan_cipher.dart';
+import '../cube/cubie_cube.dart';
+import '../model/cube_move.dart';
+import '../model/cube_state.dart';
+
+/// One decoded event from the cube's notification stream.
+sealed class MoyuEvent {}
+
+/// The cube's initial full state (anchors move tracking).
+class MoyuStateEvent extends MoyuEvent {
+  final CubeState state;
+  MoyuStateEvent(this.state);
+}
+
+/// A single move plus the resulting full cube state.
+class MoyuMoveEvent extends MoyuEvent {
+  final CubeMove move;
+  final CubeState stateAfter;
+  MoyuMoveEvent(this.move, this.stateAfter);
+}
+
+class MoyuBatteryEvent extends MoyuEvent {
+  final int level;
+  MoyuBatteryEvent(this.level);
+}
+
+class MoyuInfoEvent extends MoyuEvent {
+  final String deviceName;
+  final String hardwareVersion;
+  final String softwareVersion;
+  MoyuInfoEvent(this.deviceName, this.hardwareVersion, this.softwareVersion);
+}
+
+/// Pure decoder + protocol parser for the MoYu WeiLong V10 AI (`WCU_MY32`),
+/// ported from csTimer `moyu32cube.js` (GPL-3.0). No BLE/Flutter dependencies —
+/// feed it decrypted-once-removed raw packets and it emits [MoyuEvent]s while
+/// tracking full cube state.
+class MoyuV10Parser {
+  /// MoYu V10 base key/IV (LZString-decompressed from the driver's KEYS).
+  static const List<int> baseKey = [21, 119, 58, 92, 103, 14, 45, 31, 23, 103, 42, 19, 155, 103, 82, 87];
+  static const List<int> baseIv = [17, 35, 38, 37, 134, 42, 44, 59, 85, 6, 127, 49, 126, 103, 33, 87];
+
+  /// Message opcodes for requests written to the cube.
+  static const int opInfo = 161;
+  static const int opStatus = 163;
+  static const int opPower = 164;
+
+  /// Move face codes index this order (`"FBUDLR"[code]`).
+  static const List<Face> _faceByCode = [Face.F, Face.B, Face.U, Face.D, Face.L, Face.R];
+
+  final GanCipher _cipher;
+  final CubieCube _cube = CubieCube();
+
+  int _prevMoveCnt = -1;
+  int _moveCnt = -1;
+  int _deviceTime = 0;
+  int _deviceTimeOffset = 0;
+  int _batteryLevel = 0;
+
+  MoyuV10Parser(List<int> macBytes)
+      : _cipher = GanCipher.forMac(baseKey, baseIv, macBytes);
+
+  int get batteryLevel => _batteryLevel;
+
+  CubeState get currentState => CubeState(_cube.toFaceCube());
+
+  /// Force the next state message to re-anchor (used after packet loss).
+  void resetAnchor() => _prevMoveCnt = -1;
+
+  /// Realign the tracked model to [state] without a physical resync.
+  void setState(CubeState state) => _cube.fromFacelet(state.facelets);
+
+  /// Build an encrypted request packet for [opcode].
+  List<int> encodeRequest(int opcode) {
+    final req = List<int>.filled(20, 0);
+    req[0] = opcode;
+    return _cipher.encode(req);
+  }
+
+  List<MoyuEvent> parse(List<int> raw, int hostTimeMs) {
+    final data = _cipher.decode(raw);
+    final bits = StringBuffer();
+    for (final b in data) {
+      bits.write(b.toRadixString(2).padLeft(8, '0'));
+    }
+    final s = bits.toString();
+    int val(int start, int end) => int.parse(s.substring(start, end), radix: 2);
+
+    switch (val(0, 8)) {
+      case 161:
+        final name = StringBuffer();
+        for (var i = 0; i < 8; i++) {
+          name.writeCharCode(val(8 + i * 8, 16 + i * 8));
+        }
+        final hw = '${val(72, 80)}.${val(80, 88)}';
+        final sw = '${val(88, 96)}.${val(96, 104)}';
+        return [MoyuInfoEvent(name.toString().trim(), hw, sw)];
+
+      case 163:
+        if (_prevMoveCnt != -1) return [];
+        _moveCnt = val(152, 160);
+        final facelet = _parseFacelet(s.substring(8, 152));
+        _cube.fromFacelet(facelet);
+        _prevMoveCnt = _moveCnt;
+        return [MoyuStateEvent(CubeState(facelet))];
+
+      case 164:
+        _batteryLevel = val(8, 16);
+        return [MoyuBatteryEvent(_batteryLevel)];
+
+      case 165:
+        _moveCnt = val(88, 96);
+        if (_moveCnt == _prevMoveCnt || _prevMoveCnt == -1) return [];
+        final timeOffs = <int>[];
+        final moves = <CubeMove>[];
+        for (var i = 0; i < 5; i++) {
+          final m = val(96 + i * 5, 101 + i * 5);
+          timeOffs.add(val(8 + i * 16, 24 + i * 16));
+          if (m >= 12) return []; // invalid move byte — drop the packet
+          moves.add(CubeMove(
+            face: _faceByCode[m >> 1],
+            prime: (m & 1) == 1,
+            cubeTimestamp: Duration.zero, // filled in below
+          ));
+        }
+        return _emitMoves(timeOffs, moves, hostTimeMs);
+
+      default:
+        return [];
+    }
+  }
+
+  List<MoyuEvent> _emitMoves(
+      List<int> timeOffs, List<CubeMove> moves, int hostTimeMs) {
+    var moveDiff = (_moveCnt - _prevMoveCnt) & 0xff;
+    _prevMoveCnt = _moveCnt;
+    if (moveDiff > moves.length) moveDiff = moves.length;
+
+    var calcTs = _deviceTime + _deviceTimeOffset;
+    for (var i = moveDiff - 1; i >= 0; i--) {
+      calcTs += timeOffs[i];
+    }
+    if (_deviceTime == 0 || (hostTimeMs - calcTs).abs() > 2000) {
+      _deviceTime += hostTimeMs - calcTs;
+    }
+
+    final events = <MoyuEvent>[];
+    for (var i = moveDiff - 1; i >= 0; i--) {
+      final m = moves[i];
+      _cube.applyMove(m.face, m.prime);
+      _deviceTime += timeOffs[i];
+      events.add(MoyuMoveEvent(
+        CubeMove(
+          face: m.face,
+          prime: m.prime,
+          cubeTimestamp: Duration(milliseconds: _deviceTime),
+          hostTimestamp:
+              i == 0 ? DateTime.fromMillisecondsSinceEpoch(hostTimeMs) : null,
+        ),
+        CubeState(_cube.toFaceCube()),
+      ));
+    }
+    _deviceTimeOffset = hostTimeMs - _deviceTime;
+    return events;
+  }
+
+  static String _parseFacelet(String faceletBits) {
+    const faces = [2, 5, 0, 3, 4, 1]; // read URFDLB from the FBUDLR-ordered data
+    const cs = 'FBUDLR';
+    final out = StringBuffer();
+    for (var i = 0; i < 6; i++) {
+      final base = faces[i] * 24;
+      for (var j = 0; j < 8; j++) {
+        out.write(cs[int.parse(faceletBits.substring(base + j * 3, base + j * 3 + 3), radix: 2)]);
+        if (j == 3) out.write(cs[faces[i]]);
+      }
+    }
+    return out.toString();
+  }
+}

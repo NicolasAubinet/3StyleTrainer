@@ -1,0 +1,59 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:smartcube/src/crypto/gan_cipher.dart';
+import 'package:smartcube/src/cube/cubie_cube.dart';
+import 'package:smartcube/src/drivers/moyu_v10_parser.dart';
+import 'package:smartcube/src/model/cube_move.dart';
+
+void main() {
+  // Encrypted packets built by csTimer's cipher for MAC CF:30:16:00:AB:CD:
+  //   c164 = battery level 77
+  //   c163 = solved cube, move counter 5
+  //   c165 = one move (U), move counter 6, dt=500ms
+  const c164 = [183, 222, 38, 107, 141, 80, 66, 141, 196, 87, 86, 24, 165, 186, 206, 194, 224, 45, 123, 22];
+  const c163 = [20, 81, 108, 156, 152, 10, 152, 58, 229, 121, 98, 221, 11, 123, 49, 53, 221, 107, 154, 186];
+  const c165 = [223, 209, 150, 204, 116, 21, 65, 40, 149, 201, 145, 0, 11, 185, 99, 221, 222, 17, 54, 129];
+
+  const uFacelet = 'UUUUUUUUUBBBRRRRRRRRRFFFFFFDDDDDDDDDFFFLLLLLLLLLBBBBBB';
+
+  MoyuV10Parser newParser() =>
+      MoyuV10Parser(GanCipher.macBytes('CF:30:16:00:AB:CD'));
+
+  test('battery packet decodes to level', () {
+    final events = newParser().parse(c164, 1000);
+    expect(events, hasLength(1));
+    expect((events.single as MoyuBatteryEvent).level, 77);
+  });
+
+  test('state packet decodes to the solved cube and anchors', () {
+    final events = newParser().parse(c163, 1000);
+    expect(events, hasLength(1));
+    expect((events.single as MoyuStateEvent).state.facelets,
+        CubieCube.solvedFacelet);
+  });
+
+  test('move packet after a state anchor yields the move and resulting state', () {
+    final parser = newParser();
+    parser.parse(c163, 1000); // anchor at solved, moveCnt 5
+    final events = parser.parse(c165, 1500); // one U move, moveCnt 6
+
+    expect(events, hasLength(1));
+    final e = events.single as MoyuMoveEvent;
+    expect(e.move.face, Face.U);
+    expect(e.move.prime, isFalse);
+    expect(e.stateAfter.facelets, uFacelet);
+    expect(parser.currentState.facelets, uFacelet);
+  });
+
+  test('a move before any state anchor is ignored', () {
+    // No 163 first → prevMoveCnt still -1 → move dropped.
+    expect(newParser().parse(c165, 1000), isEmpty);
+  });
+
+  test('resetAnchor lets a later state packet re-anchor', () {
+    final parser = newParser();
+    parser.parse(c163, 1000);
+    expect(parser.parse(c163, 1100), isEmpty); // already anchored → ignored
+    parser.resetAnchor();
+    expect(parser.parse(c163, 1200), hasLength(1)); // re-anchors
+  });
+}

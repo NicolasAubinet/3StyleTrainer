@@ -9,3 +9,5 @@ export 'src/model/cube_state.dart';
 export 'src/smart_cube.dart';
 export 'src/scanner.dart';
 export 'src/driver.dart';
+export 'src/scanner_impl.dart' show createCubeScanner, DefaultCubeScanner;
+export 'src/transport/ble_transport.dart';

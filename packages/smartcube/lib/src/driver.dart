@@ -1,4 +1,6 @@
 import 'model/connection.dart';
+import 'smart_cube.dart';
+import 'transport/ble_transport.dart';
 
 /// Advertisement data a driver inspects to decide whether it handles a device.
 class CubeAdvertisement {
@@ -33,9 +35,20 @@ abstract class CubeDriver {
   bool matches(CubeAdvertisement adv) {
     final name = adv.name;
     if (name != null && namePrefixes.any(name.startsWith)) return true;
-    final claimed = serviceUuids.map((u) => u.toLowerCase()).toSet();
-    return adv.serviceUuids.any((u) => claimed.contains(u.toLowerCase()));
+    final claimed = serviceUuids.map(normalizeUuid).toSet();
+    return adv.serviceUuids.any((u) => claimed.contains(normalizeUuid(u)));
   }
+
+  /// `true` when this cube needs a MAC the caller must supply because it can't
+  /// be derived from the advertisement (name / manufacturer data).
+  bool needsExplicitMac(CubeAdvertisement adv) => false;
+
+  /// Bring up a connected [SmartCube] over an already-open [peripheral].
+  Future<SmartCube> connect(
+    BlePeripheral peripheral,
+    CubeAdvertisement adv, {
+    String? macAddress,
+  });
 }
 
 /// Global registry of brand drivers. Each driver registers itself; the scanner

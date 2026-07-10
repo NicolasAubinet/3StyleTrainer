@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcube/smartcube.dart';
-import 'package:smartcube/src/cube/cubie_cube.dart';
 import 'package:smartcube/src/drivers/moyu_v10_driver.dart';
 
 // Same encrypted fixtures as moyu_v10_parser_test, for MAC CF:30:16:00:AB:CD.

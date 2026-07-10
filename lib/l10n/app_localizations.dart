@@ -94,6 +94,78 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[Locale('en')];
 
+  /// No description provided for @smartCube.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart cube'**
+  String get smartCube;
+
+  /// No description provided for @cubeConnectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect a cube'**
+  String get cubeConnectTitle;
+
+  /// No description provided for @cubeScanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning…'**
+  String get cubeScanning;
+
+  /// No description provided for @cubeNoneFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No cubes found yet.\nPower on and turn your cube.'**
+  String get cubeNoneFound;
+
+  /// No description provided for @cubeConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get cubeConnect;
+
+  /// No description provided for @cubeConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get cubeConnecting;
+
+  /// No description provided for @cubeConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get cubeConnected;
+
+  /// No description provided for @cubeDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get cubeDisconnect;
+
+  /// No description provided for @cubeBattery.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery'**
+  String get cubeBattery;
+
+  /// No description provided for @cubeConnectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed'**
+  String get cubeConnectFailed;
+
+  /// No description provided for @cubeMacTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter cube MAC address'**
+  String get cubeMacTitle;
+
+  /// No description provided for @cubeMacHint.
+  ///
+  /// In en, this message translates to:
+  /// **'AA:BB:CC:DD:EE:FF'**
+  String get cubeMacHint;
+
   /// No description provided for @sessionSummary.
   ///
   /// In en, this message translates to:

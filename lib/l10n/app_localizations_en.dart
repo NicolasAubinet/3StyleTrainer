@@ -9,6 +9,43 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get smartCube => 'Smart cube';
+
+  @override
+  String get cubeConnectTitle => 'Connect a cube';
+
+  @override
+  String get cubeScanning => 'Scanning…';
+
+  @override
+  String get cubeNoneFound =>
+      'No cubes found yet.\nPower on and turn your cube.';
+
+  @override
+  String get cubeConnect => 'Connect';
+
+  @override
+  String get cubeConnecting => 'Connecting…';
+
+  @override
+  String get cubeConnected => 'Connected';
+
+  @override
+  String get cubeDisconnect => 'Disconnect';
+
+  @override
+  String get cubeBattery => 'Battery';
+
+  @override
+  String get cubeConnectFailed => 'Connection failed';
+
+  @override
+  String get cubeMacTitle => 'Enter cube MAC address';
+
+  @override
+  String get cubeMacHint => 'AA:BB:CC:DD:EE:FF';
+
+  @override
   String get sessionSummary => 'Session summary';
 
   @override

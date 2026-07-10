@@ -16,6 +16,7 @@ import '../l10n/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_segmented_control.dart';
+import '../widgets/cube_connect_button.dart';
 import '../widgets/cube_type_icon.dart';
 import '../widgets/glass_panel.dart';
 import '../widgets/keycap_button.dart';
@@ -426,6 +427,7 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
       leadingWidth: 48,
       actions: [
+        const CubeConnectButton(),
         IconButton(
           tooltip: l10n.algTimesTitle,
           icon: const Icon(Icons.bar_chart_rounded),

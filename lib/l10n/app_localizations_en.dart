@@ -46,6 +46,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartCubeMacHint => 'AA:BB:CC:DD:EE:FF';
 
   @override
+  String get smartCubeRecognition => 'Recognition';
+
+  @override
+  String get smartCubeExecution => 'Execution';
+
+  @override
+  String get smartCubeSkip => 'Skip';
+
+  @override
   String get sessionSummary => 'Session summary';
 
   @override

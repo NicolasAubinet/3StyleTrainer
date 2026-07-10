@@ -166,6 +166,24 @@ abstract class AppLocalizations {
   /// **'AA:BB:CC:DD:EE:FF'**
   String get smartCubeMacHint;
 
+  /// No description provided for @smartCubeRecognition.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognition'**
+  String get smartCubeRecognition;
+
+  /// No description provided for @smartCubeExecution.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution'**
+  String get smartCubeExecution;
+
+  /// No description provided for @smartCubeSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get smartCubeSkip;
+
   /// No description provided for @sessionSummary.
   ///
   /// In en, this message translates to:

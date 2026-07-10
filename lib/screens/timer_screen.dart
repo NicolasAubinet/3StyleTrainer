@@ -3,14 +3,19 @@ import 'dart:async' as async;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smartcube/smartcube.dart';
 import 'package:three_style_trainer/database_manager.dart';
 import 'package:timer_count_down/timer_count_down.dart';
 
 import '../alg_provider.dart';
 import '../alg_structs.dart';
 import '../equalizing_selector.dart';
+import '../l10n/app_localizations.dart';
 import '../practice_type.dart';
 import '../settings.dart';
+import '../smart_cube/cube_run.dart';
+import '../smart_cube_manager.dart';
+import '../theme/app_palette.dart';
 import '../theme/theme_scope.dart';
 import '../utils.dart';
 import '../widgets/app_scaffold.dart';
@@ -48,8 +53,36 @@ class _TimerScreenState extends State<TimerScreen> {
   DateTime? timerStartTime;
   bool isReady = false;
 
+  // Cube-driven mode: a connected smart cube drives arming/advance instead of
+  // press-and-release. Active only for alg types the geometry supports.
+  late final bool _cubeMode;
+  CubeRunController? _cubeRun;
+  async.StreamSubscription<CubeState>? _stateSub;
+  async.StreamSubscription<CubeMove>? _moveSub;
+
+  // Records one solved case: appends to the session list and, for recording
+  // runs, writes the DB row and nudges the selector. Shared by both timing modes.
+  void _recordSolve(Alg solved, int elapsedMilliseconds) {
+    // The solve's timestamp; for recorded runs the same value is written to the
+    // DB row, so the summary can delete that exact row.
+    final int timestamp = DateTime.now().millisecondsSinceEpoch;
+    times.add(AlgTime(times.length + 1, elapsedMilliseconds, solved,
+        timestamp: timestamp));
+    if (_isRecordingRun) {
+      DatabaseManager().insertResult(
+          widget.algType, solved.name, elapsedMilliseconds,
+          timestamp: timestamp);
+      // Keep the selector's weights fresh across a long "again" chain.
+      final provider = widget.algProvider;
+      if (provider is EqualizingSelector) {
+        provider.recordSolve(solved.name);
+      }
+    }
+  }
+
   void _onTapDown() {
-    if (!isReady ||
+    if (_cubeMode ||
+        !isReady ||
         isPressed ||
         alg == null ||
         stopwatch.elapsedMilliseconds / 1000 < MINIMUM_ALLOWED_TIME) {
@@ -58,32 +91,13 @@ class _TimerScreenState extends State<TimerScreen> {
 
     setState(() {
       isPressed = true;
-
-      int elapsedMilliseconds = stopwatch.elapsedMilliseconds;
-      // The solve's timestamp; for recorded runs the same value is written to
-      // the DB row below, so the summary can delete that exact row.
-      final int timestamp = DateTime.now().millisecondsSinceEpoch;
-      times.add(AlgTime(times.length + 1, elapsedMilliseconds, alg!,
-          timestamp: timestamp));
-
       stopwatch.stop();
-
-      if (_isRecordingRun) {
-        String algName = alg!.name;
-        DatabaseManager().insertResult(
-            widget.algType, algName, elapsedMilliseconds,
-            timestamp: timestamp);
-        // Keep the selector's weights fresh across a long "again" chain.
-        final provider = widget.algProvider;
-        if (provider is EqualizingSelector) {
-          provider.recordSolve(algName);
-        }
-      }
+      _recordSolve(alg!, stopwatch.elapsedMilliseconds);
     });
   }
 
   void _onTapUp() async {
-    if (!isReady || alg == null || !isPressed) {
+    if (_cubeMode || !isReady || alg == null || !isPressed) {
       return;
     }
 
@@ -180,6 +194,125 @@ class _TimerScreenState extends State<TimerScreen> {
     return nextAlg;
   }
 
+  // ---- Cube-driven mode ----------------------------------------------------
+
+  String get _currentFacelets =>
+      SmartCubeManager().cube?.currentState.facelets ??
+      CubeState.solvedFacelets;
+
+  void _onCubeState(CubeState state) {
+    if (!mounted || !isReady) return;
+    final split = _cubeRun?.onState(state.facelets);
+    if (split != null) _onCubeComplete(split);
+  }
+
+  void _onCubeMove() {
+    if (!mounted || !isReady) return;
+    // First move of a case ends recognition; refresh the phase indicator.
+    if (_cubeRun?.onMove() != null) setState(() {});
+  }
+
+  // Arm from the cube's current physical state (no forced solve) once the
+  // get-ready countdown finishes.
+  void _armCubeRun() {
+    setState(() {
+      isReady = true;
+      isPressed = false;
+      timerStartTime = DateTime.now();
+      times.clear();
+      nextAlgs.clear();
+      _startCubeCase(_currentFacelets);
+    });
+  }
+
+  // Show the next case and baseline its completion check on [fromFacelets]
+  // (solved for the first case, the prior case's end state afterward).
+  void _startCubeCase(String fromFacelets) {
+    alg = _fetchNextAlg();
+    if (alg == null) return;
+    _cubeRun!.startCase(alg!.name, fromFacelets);
+    stopwatch
+      ..reset()
+      ..start();
+  }
+
+  void _onCubeComplete(CaseSplit split) {
+    final finished = alg;
+    if (finished == null) return;
+    stopwatch.stop();
+    setState(() {
+      _recordSolve(finished, split.total.inMilliseconds);
+    });
+    _advanceCubeCase(_cubeRun!.expectedFacelets ?? _currentFacelets);
+  }
+
+  void _skipCubeCase() {
+    if (!isReady || alg == null) return;
+    // Skip records nothing; rebaseline on the cube's current physical state.
+    _advanceCubeCase(_currentFacelets);
+  }
+
+  void _advanceCubeCase(String fromFacelets) {
+    setState(() {
+      stopwatch
+        ..stop()
+        ..reset();
+      _startCubeCase(fromFacelets);
+    });
+    // Sets/slowest end when the pool is exhausted; time race ends on the timer.
+    if (alg == null && widget.practiceType.isSetBased) {
+      _finishCubeSession();
+    }
+  }
+
+  void _finishCubeSession() async {
+    List<AlgTime> timesCopy = List.from(times);
+    int totalTimeMs = _elapsedSessionMs();
+    setState(() {
+      times.clear();
+      nextAlgs.clear();
+      timerStartTime = null;
+    });
+    await _showSummaryAndReset(timesCopy, totalTimeMs);
+  }
+
+  // Shared summary navigation + repeat handling for cube-driven sessions
+  // (mirrors the press/release flows, unified for sets and time race).
+  Future<void> _showSummaryAndReset(
+      List<AlgTime> timesCopy, int totalTimeMs) async {
+    final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => _buildSummary(timesCopy, totalTimeMs)));
+    if (!mounted) return;
+    setState(() {
+      isReady = false;
+    });
+    if (result == "repeat_all" || result == "again") {
+      widget.algProvider.reset(skippedAlgs: skippedAlgs);
+    } else if (result == "repeat_target_time") {
+      final prefs = await SharedPreferences.getInstance();
+      final target = prefs.getDouble("target_time") ?? widget.targetTime;
+      for (AlgTime algTime in timesCopy) {
+        if (isUnderTargetTime(algTime.timeMs, target)) {
+          skippedAlgs.add(algTime.alg.name);
+        }
+      }
+      widget.algProvider.reset(skippedAlgs: skippedAlgs);
+    } else if (context.mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+  void _onConnectionChanged() {
+    if (!mounted) return;
+    final c = SmartCubeManager().connection.value;
+    if (c == CubeConnection.lost || c == CubeConnection.disconnected) {
+      // The cube drives this screen; without it, drop back to the menu.
+      Navigator.pop(context);
+    }
+  }
+
   void _onTimeRaceEnded() async {
     List<AlgTime> timesCopy = List.from(times);
     int totalTimeMs = _elapsedSessionMs();
@@ -214,6 +347,16 @@ class _TimerScreenState extends State<TimerScreen> {
 
     skippedAlgs = List.of(widget.skippedAlgs);
 
+    final mgr = SmartCubeManager();
+    _cubeMode = mgr.isConnected && CubeRunController.supports(widget.algType);
+    if (_cubeMode) {
+      _cubeRun = CubeRunController(widget.algType);
+      final cube = mgr.cube!;
+      _stateSub = cube.states.listen(_onCubeState);
+      _moveSub = cube.moves.listen((_) => _onCubeMove());
+      mgr.connection.addListener(_onConnectionChanged);
+    }
+
     refreshTimer = async.Timer.periodic(
         Duration(milliseconds: 50),
         (async.Timer t) => setState(() {
@@ -230,11 +373,14 @@ class _TimerScreenState extends State<TimerScreen> {
   void dispose() {
     super.dispose();
     refreshTimer.cancel();
+    _stateSub?.cancel();
+    _moveSub?.cancel();
+    SmartCubeManager().connection.removeListener(_onConnectionChanged);
     ServicesBinding.instance.keyboard.removeHandler(_onKey);
   }
 
   bool _onKey(KeyEvent event) {
-    if (LogicalKeyboardKey.space != event.logicalKey) {
+    if (_cubeMode || LogicalKeyboardKey.space != event.logicalKey) {
       return false;
     }
     if (event is KeyDownEvent) {
@@ -297,6 +443,96 @@ class _TimerScreenState extends State<TimerScreen> {
   String _title(BuildContext context) =>
       sessionTitle(context, widget.algType, widget.practiceType);
 
+  // Get-ready countdown before a cube-driven run arms. Arms from the cube's
+  // current state, so no forced solve between runs.
+  Widget _buildCubeCountdown(ThemeData theme, AppPalette p) {
+    return Center(
+      child: Countdown(
+        seconds: 3,
+        build: (BuildContext context, double time) => Text(
+          time.ceil() > 0 ? time.ceil().toString() : "",
+          style: theme.textTheme.displayLarge?.copyWith(color: p.accent),
+        ),
+        interval: Duration(milliseconds: 100),
+        onFinished: _armCubeRun,
+      ),
+    );
+  }
+
+  // In-run panel: the cube drives timing and advance, so screen taps are inert;
+  // a Skip button is the only manual control.
+  Widget _buildCubeRun(
+      ThemeData theme, AppPalette p, double progress, String timerText) {
+    final l10n = AppLocalizations.of(context)!;
+    final phase = _cubeRun?.phase ?? CubePhase.recognition;
+    final phaseLabel = phase == CubePhase.execution
+        ? l10n.smartCubeExecution
+        : l10n.smartCubeRecognition;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 5,
+              backgroundColor: p.panelBorder,
+              color: p.accent,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var nextAlg in nextAlgs)
+                RichText(
+                    text: TextSpan(
+                        children: nextAlg.name.characters
+                            .map((e) => getAlgTextSpan(
+                                theme,
+                                e,
+                                theme.textTheme.displaySmall!.copyWith(
+                                    color: p.textFaint, letterSpacing: 2)))
+                            .toList())),
+              const SizedBox(height: 8),
+              RichText(
+                text: TextSpan(
+                  children: (alg != null ? alg!.name : "--")
+                      .characters
+                      .map((e) =>
+                          getAlgTextSpan(theme, e, theme.textTheme.displayLarge!))
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                phaseLabel,
+                style: theme.textTheme.labelLarge?.copyWith(
+                    color: phase == CubePhase.execution ? p.accent : p.textFaint,
+                    letterSpacing: 1.5),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                timerText,
+                style: theme.textTheme.displayMedium?.copyWith(color: p.pop),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          child: OutlinedButton.icon(
+            onPressed: _skipCubeCase,
+            icon: const Icon(Icons.skip_next),
+            label: Text(l10n.smartCubeSkip),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -308,7 +544,11 @@ class _TimerScreenState extends State<TimerScreen> {
             .getProgression(preFetchedAlgsCount: nextAlgs.length)
         : getTimeRaceProgression();
 
-    final Widget content = isReady
+    final Widget content = _cubeMode
+        ? (isReady
+            ? _buildCubeRun(theme, p, progress, timerText)
+            : _buildCubeCountdown(theme, p))
+        : isReady
         ? Listener(
             behavior: HitTestBehavior.translucent,
             onPointerDown: (_) => _onTapDown(),

@@ -543,10 +543,9 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 
   Widget _algRow(AlgTime algTime, AppPalette p) {
     final color = _rowColor(algTime.timeMs, p);
-    final isFastest = _isTimeRace && identical(algTime, _fastest);
-    final isSlowest = _isTimeRace &&
-        identical(algTime, _slowest) &&
-        !identical(_slowest, _fastest);
+    final isFastest = identical(algTime, _fastest);
+    final isSlowest =
+        identical(algTime, _slowest) && !identical(_slowest, _fastest);
 
     final card = GlassPanel(
       radius: 10,

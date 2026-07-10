@@ -1,0 +1,24 @@
+name: smartcube
+description: >-
+  Bluetooth smart-cube connectivity (scan, connect, decrypt, decode moves and
+  cube state) for GAN / MoYu / QiYi and other BLE cubes. 3-style/trainer
+  agnostic — emits raw move and cube-state streams only.
+version: 0.0.1
+publish_to: 'none'
+
+# GPL-3.0. Portions ported to Dart from csTimer (cs0x7f/cstimer, GPL-3.0).
+
+environment:
+  sdk: '>=3.4.4 <=4.0.0'
+  flutter: '>=3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Added when the transport layer lands (Phase 1, module 3):
+  # flutter_blue_plus: ^1.32.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

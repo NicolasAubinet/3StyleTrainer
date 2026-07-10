@@ -5,11 +5,13 @@ import 'package:three_style_trainer/practice_type.dart';
 
 import '../alg_structs.dart';
 import '../l10n/app_localizations.dart';
+import '../settings.dart';
 import '../theme/app_palette.dart';
 import '../theme/theme_scope.dart';
 import '../utils.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/glass_panel.dart';
+import '../widgets/recording_dot.dart';
 import '../widgets/sort_header.dart';
 
 const int BUTTON_PRESS_DELAY_MS = 250;
@@ -91,7 +93,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     super.dispose();
   }
 
-  bool get _canDelete => widget.onDeleteFromDb != null;
+  bool get _isRecording => widget.onDeleteFromDb != null;
 
   void _deleteRow(AlgTime algTime) {
     final l10n = AppLocalizations.of(context)!;
@@ -235,6 +237,9 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 
     return AppScaffold(
       title: sessionTitle(context, widget.algType, widget.practiceType),
+      titleLeading: (_isRecording && Settings().getShowRecordingDot())
+          ? const RecordingDot()
+          : null,
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 16),
@@ -536,7 +541,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
       child: _SwipeableRow(
         rowId: algTime,
         openRow: _openRow,
-        enabled: _canDelete,
+        enabled: _isRecording,
         deleteLabel: AppLocalizations.of(context)!.delete,
         radius: 10,
         onDelete: () => _deleteRow(algTime),

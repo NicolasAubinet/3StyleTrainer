@@ -9,9 +9,11 @@ import '../alg_provider.dart';
 import '../alg_structs.dart';
 import '../equalizing_selector.dart';
 import '../practice_type.dart';
+import '../settings.dart';
 import '../theme/theme_scope.dart';
 import '../utils.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/recording_dot.dart';
 import 'session_summary_screen.dart';
 
 const double MINIMUM_ALLOWED_TIME = 0.30; // to prevent misclick via double tap
@@ -397,6 +399,11 @@ class _TimerScreenState extends State<TimerScreen> {
             ),
           );
 
-    return AppScaffold(title: _title(context), body: content);
+    final showDot = _isRecordingRun && Settings().getShowRecordingDot();
+    return AppScaffold(
+      title: _title(context),
+      titleLeading: showDot ? const RecordingDot() : null,
+      body: content,
+    );
   }
 }

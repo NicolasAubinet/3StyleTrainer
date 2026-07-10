@@ -706,6 +706,12 @@ abstract class AppLocalizations {
   /// **'Buffers'**
   String get buffersSection;
 
+  /// No description provided for @showRecordingDot.
+  ///
+  /// In en, this message translates to:
+  /// **'Show recording dot'**
+  String get showRecordingDot;
+
   /// No description provided for @practiceTypeLetterPairsShort.
   ///
   /// In en, this message translates to:

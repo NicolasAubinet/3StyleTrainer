@@ -508,6 +508,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 18),
+              _sectionLabel(l10n.optionsSection),
+              GlassField(
+                label: l10n.showRecordingDot,
+                trailing: Switch(
+                  value: Settings().getShowRecordingDot(),
+                  onChanged: (v) {
+                    Settings().setShowRecordingDot(v);
+                    setState(() {});
+                  },
+                ),
+              ),
               const SizedBox(height: 28),
               GlassPanel(
                 onTap: () => _exportData(context),

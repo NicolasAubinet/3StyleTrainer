@@ -360,6 +360,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get buffersSection => 'Buffers';
 
   @override
+  String get showRecordingDot => 'Show recording dot';
+
+  @override
   String get practiceTypeLetterPairsShort => 'Pairs';
 
   @override

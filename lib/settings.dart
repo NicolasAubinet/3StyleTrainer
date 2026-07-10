@@ -9,6 +9,7 @@ class Settings {
   String _edgesScheme = SPEFFZ;
   CornerBuffer _cornerBuffer = CornerBuffer.UFR;
   EdgeBuffer _edgeBuffer = EdgeBuffer.UF;
+  bool _showRecordingDot = true;
 
   static final Settings _singleton = Settings._internal();
 
@@ -45,6 +46,11 @@ class Settings {
       EdgeBuffer edgeBuffer = EdgeBuffer.values.firstWhere(
           (e) => e.name == edgeBufferStr, orElse: () => EdgeBuffer.UF);
       setEdgeBuffer(edgeBuffer);
+    }
+
+    bool? showRecordingDot = prefs.getBool("show_recording_dot");
+    if (showRecordingDot != null) {
+      _showRecordingDot = showRecordingDot;
     }
   }
 
@@ -108,6 +114,17 @@ class Settings {
     prefs.setString("edge_buffer", _edgeBuffer.name);
   }
 
+  bool getShowRecordingDot() {
+    return _showRecordingDot;
+  }
+
+  void setShowRecordingDot(bool value) async {
+    _showRecordingDot = value;
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setBool("show_recording_dot", value);
+  }
+
   // Preference keys carried in an export's settings section. Spans schemes and
   // buffers (this class) plus theme and the menu/alg-times choices owned by
   // other widgets.
@@ -124,6 +141,7 @@ class Settings {
     "practice_type",
     "alg_times_sort_by_avg",
     "alg_times_sort_ascending",
+    "show_recording_dot",
   ];
 
   // Snapshot of the persisted settings, for export. Only keys that are actually

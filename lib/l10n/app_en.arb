@@ -116,6 +116,7 @@
   "themeCubeFace": "Cube Face",
   "schemesSection": "Lettering schemes",
   "buffersSection": "Buffers",
+  "showRecordingDot": "Show recording dot",
   "practiceTypeLetterPairsShort": "Pairs",
   "slowestSheetTitle": "Slowest {type}",
   "@slowestSheetTitle": {

@@ -6,6 +6,7 @@ import 'package:three_style_trainer/practice_type.dart';
 import 'package:three_style_trainer/screens/session_summary_screen.dart';
 import 'package:three_style_trainer/theme/app_palette.dart';
 import 'package:three_style_trainer/theme/theme_scope.dart';
+import 'package:three_style_trainer/widgets/recording_dot.dart';
 
 // Renders the summary in both modes and on a narrow screen to catch layout
 // overflow (RenderFlex) and the bar/tick rendering. Not a golden test — just
@@ -107,6 +108,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsNothing);
+    expect(find.byType(RecordingDot), findsNothing);
 
     await tester.drag(find.text('VU'), const Offset(-150, 0));
     await tester.pumpAndSettle();
@@ -131,6 +133,7 @@ void main() {
       AppPalette.slate,
     ));
     await tester.pumpAndSettle();
+    expect(find.byType(RecordingDot), findsOneWidget);
 
     // Swiping does not delete on its own — it reveals the button.
     await tester.drag(find.text('BL'), const Offset(-150, 0));

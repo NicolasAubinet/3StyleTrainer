@@ -20,6 +20,8 @@ class SlowestSelection {
 
 // Bottom sheet to configure a "Practice slowest" run for a given alg type. Shows
 // the Top-N / threshold toggle, a value field, a live case count, and Start.
+// [onChanged] fires whenever the mode/value changes so the caller can persist
+// the choice even when the sheet is dismissed without starting.
 Future<SlowestSelection?> showSlowestConfigSheet(
   BuildContext context, {
   required AlgType algType,
@@ -27,6 +29,7 @@ Future<SlowestSelection?> showSlowestConfigSheet(
   required SlowestMode mode,
   required int topN,
   required double thresholdSeconds,
+  void Function(SlowestMode mode, int topN, double thresholdSeconds)? onChanged,
 }) {
   return showModalBottomSheet<SlowestSelection>(
     context: context,
@@ -38,6 +41,7 @@ Future<SlowestSelection?> showSlowestConfigSheet(
       initialMode: mode,
       initialTopN: topN,
       initialThresholdSeconds: thresholdSeconds,
+      onChanged: onChanged,
     ),
   );
 }
@@ -48,6 +52,8 @@ class _SlowestConfigSheet extends StatefulWidget {
   final SlowestMode initialMode;
   final int initialTopN;
   final double initialThresholdSeconds;
+  final void Function(SlowestMode mode, int topN, double thresholdSeconds)?
+      onChanged;
 
   const _SlowestConfigSheet({
     required this.algType,
@@ -55,6 +61,7 @@ class _SlowestConfigSheet extends StatefulWidget {
     required this.initialMode,
     required this.initialTopN,
     required this.initialThresholdSeconds,
+    this.onChanged,
   });
 
   @override
@@ -72,6 +79,9 @@ class _SlowestConfigSheetState extends State<_SlowestConfigSheet> {
         topN: _topN,
         thresholdMs: _thresholdSeconds * 1000,
       );
+
+  void _notifyChanged() =>
+      widget.onChanged?.call(_mode, _topN, _thresholdSeconds);
 
   void _start() {
     Navigator.pop(
@@ -96,6 +106,7 @@ class _SlowestConfigSheetState extends State<_SlowestConfigSheet> {
               final parsed = int.tryParse(text);
               if (parsed != null && parsed > 0) {
                 setState(() => _topN = parsed);
+                _notifyChanged();
               }
             },
           )
@@ -106,6 +117,7 @@ class _SlowestConfigSheetState extends State<_SlowestConfigSheet> {
               final parsed = double.tryParse(text);
               if (parsed != null && parsed > 0) {
                 setState(() => _thresholdSeconds = parsed);
+                _notifyChanged();
               }
             },
           );
@@ -143,7 +155,10 @@ class _SlowestConfigSheetState extends State<_SlowestConfigSheet> {
                   SegmentOption(SlowestMode.topN, l10n.slowestModeTopN),
                   SegmentOption(SlowestMode.threshold, l10n.slowestModeThreshold),
                 ],
-                onChanged: (m) => setState(() => _mode = m),
+                onChanged: (m) {
+                  setState(() => _mode = m);
+                  _notifyChanged();
+                },
               ),
               const SizedBox(height: 16),
               Row(

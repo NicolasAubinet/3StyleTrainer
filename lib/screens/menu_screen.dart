@@ -188,18 +188,11 @@ class _MenuScreenState extends State<MenuScreen> {
         mode: _slowestMode,
         topN: _slowestTopN,
         thresholdSeconds: _slowestThresholdSeconds,
+        onChanged: _persistSlowestConfig,
       );
       if (selection == null || !mounted || !context.mounted) return;
-      setState(() {
-        _slowestMode = selection.mode;
-        _slowestTopN = selection.topN;
-        _slowestThresholdSeconds = selection.thresholdSeconds;
-      });
-      _setPref((prefs) {
-        prefs.setString("slowest_mode", selection.mode.name);
-        prefs.setInt("slowest_top_n", selection.topN);
-        prefs.setDouble("slowest_threshold", selection.thresholdSeconds);
-      });
+      _persistSlowestConfig(
+          selection.mode, selection.topN, selection.thresholdSeconds);
       if (selection.algs.isNotEmpty) {
         Navigator.push(
           context,
@@ -228,6 +221,19 @@ class _MenuScreenState extends State<MenuScreen> {
   Future<void> _setPref(void Function(SharedPreferences) write) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     write(prefs);
+  }
+
+  // Remember the slowest-mode config as it changes in the sheet, so it's
+  // restored next time even if the sheet is dismissed without starting.
+  void _persistSlowestConfig(SlowestMode mode, int topN, double thresholdSeconds) {
+    _slowestMode = mode;
+    _slowestTopN = topN;
+    _slowestThresholdSeconds = thresholdSeconds;
+    _setPref((prefs) {
+      prefs.setString("slowest_mode", mode.name);
+      prefs.setInt("slowest_top_n", topN);
+      prefs.setDouble("slowest_threshold", thresholdSeconds);
+    });
   }
 
   Widget _buildKeycapGrid(AppLocalizations l10n) {

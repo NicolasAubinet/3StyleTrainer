@@ -1,0 +1,6 @@
+# Dart/Flutter package build artifacts
+.dart_tool/
+build/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies

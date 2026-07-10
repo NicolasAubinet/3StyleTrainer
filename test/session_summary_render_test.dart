@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/l10n/app_localizations.dart';
 import 'package:three_style_trainer/practice_type.dart';
@@ -151,5 +152,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('BL'), findsOneWidget);
     expect(restored, hasLength(1));
+  });
+
+  testWidgets('sets: editing the target updates the summary', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final times = [const AlgTime(1, 800, Alg('BA'), timestamp: 1)];
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: times,
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 800,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('0.85'), findsWidgets);
+
+    await tester.tap(find.byIcon(Icons.edit));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), '1.20');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    // Target line reflects the new value; the old one is gone.
+    expect(find.textContaining('1.20'), findsWidgets);
+    expect(find.textContaining('0.85'), findsNothing);
+    expect(SharedPreferences.getInstance()
+        .then((p) => p.getDouble('target_time')), completion(1.2));
   });
 }

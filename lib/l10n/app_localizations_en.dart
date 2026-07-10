@@ -45,6 +45,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get targetTime => 'Target time (seconds): ';
 
   @override
+  String get editTargetTime => 'Edit target time';
+
+  @override
   String get raceTime => 'Race time (minutes): ';
 
   @override

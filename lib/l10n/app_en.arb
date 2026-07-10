@@ -11,6 +11,7 @@
   "completedAlgs": "Completed algs: ",
   "again": "Again",
   "targetTime": "Target time (seconds): ",
+  "editTargetTime": "Edit target time",
   "raceTime": "Race time (minutes): ",
   "showNextAlg": "Show next alg",
   "back": "Back",

@@ -166,6 +166,12 @@ abstract class AppLocalizations {
   /// **'Target time (seconds): '**
   String get targetTime;
 
+  /// No description provided for @editTargetTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit target time'**
+  String get editTargetTime;
+
   /// No description provided for @raceTime.
   ///
   /// In en, this message translates to:

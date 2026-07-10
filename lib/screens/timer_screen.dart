@@ -2,6 +2,7 @@ import 'dart:async' as async;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_style_trainer/database_manager.dart';
 import 'package:timer_count_down/timer_count_down.dart';
 
@@ -122,8 +123,10 @@ class _TimerScreenState extends State<TimerScreen> {
       if (result == "repeat_all") {
         widget.algProvider.reset(skippedAlgs: skippedAlgs);
       } else if (result == "repeat_target_time") {
+        final prefs = await SharedPreferences.getInstance();
+        final target = prefs.getDouble("target_time") ?? widget.targetTime;
         for (AlgTime algTime in timesCopy) {
-          if (isUnderTargetTime(algTime.timeMs, widget.targetTime)) {
+          if (isUnderTargetTime(algTime.timeMs, target)) {
             skippedAlgs.add(algTime.alg.name);
           }
         }

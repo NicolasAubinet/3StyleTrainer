@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_style_trainer/practice_type.dart';
 
 import '../alg_structs.dart';
@@ -11,6 +12,7 @@ import '../theme/theme_scope.dart';
 import '../utils.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/glass_panel.dart';
+import '../widgets/number_input_field.dart';
 import '../widgets/recording_dot.dart';
 import '../widgets/sort_header.dart';
 
@@ -65,6 +67,9 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   AlgTime? _slowest;
 
   final ValueNotifier<Object?> _openRow = ValueNotifier<Object?>(null);
+
+  // Editable copy of the target (Feature 7); starts from the passed-in value.
+  late double _targetTime = widget.targetTime;
 
   bool get _isTimeRace => widget.practiceType == PracticeType.timeRace;
 
@@ -188,7 +193,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 
   Color _rowColor(int timeMs, AppPalette p) => _isTimeRace
       ? _distributionColor(timeMs, p)
-      : (isUnderTargetTime(timeMs, widget.targetTime) ? p.good : p.bad);
+      : (isUnderTargetTime(timeMs, _targetTime) ? p.good : p.bad);
 
   // Time-race speed bar: fraction of track filled, scaled across the session
   // (fastest gets a small floor so it stays visible).
@@ -200,8 +205,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 
   // Sets success meter: fills toward the target tick; over-target overflows it.
   double _meterFrac(int timeMs) {
-    if (widget.targetTime <= 0) return _TARGET_TICK_FRAC;
-    final f = (timeMs / 1000) / widget.targetTime * _TARGET_TICK_FRAC;
+    if (_targetTime <= 0) return _TARGET_TICK_FRAC;
+    final f = (timeMs / 1000) / _targetTime * _TARGET_TICK_FRAC;
     return f.clamp(0.05, 1.0);
   }
 
@@ -214,20 +219,65 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   }
 
   int get _underTargetCount => widget.algTimes
-      .where((a) => isUnderTargetTime(a.timeMs, widget.targetTime))
+      .where((a) => isUnderTargetTime(a.timeMs, _targetTime))
       .length;
 
   void _onRepeatTargetTimePressed() {
     final allBelow = widget.algTimes
-        .every((a) => isUnderTargetTime(a.timeMs, widget.targetTime));
+        .every((a) => isUnderTargetTime(a.timeMs, _targetTime));
     if (allBelow) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(AppLocalizations.of(context)!
-            .allCasesWereSubTarget(widget.targetTime)),
+            .allCasesWereSubTarget(_targetTime)),
       ));
     } else {
       Navigator.pop(context, 'repeat_target_time');
     }
+  }
+
+  // Feature 7: edit the target inline; recolours rows, moves the success-meter
+  // tick, updates the repeat label, and persists so the menu picks it up too.
+  Future<void> _editTargetTime() async {
+    final l10n = AppLocalizations.of(context)!;
+    String text = _targetTime.toStringAsFixed(2);
+    final newTarget = await showDialog<double>(
+      context: context,
+      builder: (context) {
+        final p = context.palette;
+        return AlertDialog(
+          title: Text(l10n.editTargetTime),
+          content: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            decoration: BoxDecoration(
+              color: p.inputFill,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: NumberInputField(
+              decimal: true,
+              defaultValue: text,
+              onChanged: (v) => text = v,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                final parsed = double.tryParse(text);
+                if (parsed != null && parsed > 0) Navigator.pop(context, parsed);
+              },
+              child: Text(l10n.save),
+            ),
+          ],
+        );
+      },
+    );
+    if (newTarget == null) return;
+    setState(() => _targetTime = newTarget);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble("target_time", newTarget);
   }
 
   @override
@@ -367,24 +417,36 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Target line — hosts the inline edit control later (Feature 7).
-        Center(
-          child: Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                    text: "${l10n.summaryTarget}  ",
-                    style: TextStyle(fontSize: 13, color: p.textMuted)),
-                TextSpan(
-                  text: widget.targetTime.toStringAsFixed(2),
-                  style: _mono(14, p.textPrimary),
-                ),
-                TextSpan(
-                    text: "s",
-                    style: TextStyle(fontSize: 13, color: p.textMuted)),
-              ],
+        // Target line with an inline edit control (Feature 7).
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                      text: "${l10n.summaryTarget}  ",
+                      style: TextStyle(fontSize: 13, color: p.textMuted)),
+                  TextSpan(
+                    text: _targetTime.toStringAsFixed(2),
+                    style: _mono(14, p.textPrimary),
+                  ),
+                  TextSpan(
+                      text: "s",
+                      style: TextStyle(fontSize: 13, color: p.textMuted)),
+                ],
+              ),
             ),
-          ),
+            const SizedBox(width: 4),
+            InkWell(
+              onTap: _editTargetTime,
+              borderRadius: BorderRadius.circular(6),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(Icons.edit, size: 15, color: p.accent),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         _blockButton(p,
@@ -393,7 +455,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
             onPressed: () => Navigator.pop(context, 'repeat_all')),
         const SizedBox(height: 8),
         _blockButton(p,
-            label: l10n.repeatTargetTime(widget.targetTime),
+            label: l10n.repeatTargetTime(_targetTime),
             filled: false,
             onPressed: _onRepeatTargetTimePressed),
       ],

@@ -3,19 +3,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:smartcube/smartcube.dart';
 
-import '../cube_manager.dart';
+import '../smart_cube_manager.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_palette.dart';
 import '../theme/theme_scope.dart';
 
 /// App-bar button reflecting the smart-cube connection: a subtle Bluetooth icon
 /// when idle, and the battery % when connected. Tap opens the connect sheet.
-class CubeConnectButton extends StatelessWidget {
-  const CubeConnectButton({super.key});
+class SmartCubeConnectButton extends StatelessWidget {
+  const SmartCubeConnectButton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final mgr = CubeManager();
+    final mgr = SmartCubeManager();
     final p = context.palette;
     final l10n = AppLocalizations.of(context)!;
     return ValueListenableBuilder<CubeConnection>(
@@ -33,7 +33,7 @@ class CubeConnectButton extends StatelessWidget {
           message: l10n.smartCube,
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: () => showCubeConnectSheet(context),
+            onTap: () => showSmartCubeConnectSheet(context),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Row(
@@ -64,7 +64,7 @@ class CubeConnectButton extends StatelessWidget {
   }
 }
 
-Future<void> showCubeConnectSheet(BuildContext context) {
+Future<void> showSmartCubeConnectSheet(BuildContext context) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -72,19 +72,19 @@ Future<void> showCubeConnectSheet(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
     ),
-    builder: (_) => const _CubeConnectSheet(),
+    builder: (_) => const _SmartCubeConnectSheet(),
   );
 }
 
-class _CubeConnectSheet extends StatefulWidget {
-  const _CubeConnectSheet();
+class _SmartCubeConnectSheet extends StatefulWidget {
+  const _SmartCubeConnectSheet();
 
   @override
-  State<_CubeConnectSheet> createState() => _CubeConnectSheetState();
+  State<_SmartCubeConnectSheet> createState() => _SmartCubeConnectSheetState();
 }
 
-class _CubeConnectSheetState extends State<_CubeConnectSheet> {
-  final CubeManager _mgr = CubeManager();
+class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
+  final SmartCubeManager _mgr = SmartCubeManager();
   final Map<String, DiscoveredCube> _found = {};
   StreamSubscription<DiscoveredCube>? _scanSub;
   bool _connecting = false;
@@ -133,7 +133,7 @@ class _CubeConnectSheetState extends State<_CubeConnectSheet> {
       if (mounted) {
         setState(() {
           _connecting = false;
-          _error = '${AppLocalizations.of(context)!.cubeConnectFailed}: $e';
+          _error = '${AppLocalizations.of(context)!.smartCubeConnectFailed}: $e';
         });
         _startScan();
       }
@@ -146,16 +146,16 @@ class _CubeConnectSheetState extends State<_CubeConnectSheet> {
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(l10n.cubeMacTitle),
+        title: Text(l10n.smartCubeMacTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: InputDecoration(hintText: l10n.cubeMacHint),
+          decoration: InputDecoration(hintText: l10n.smartCubeMacHint),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.cubeConnect)),
+              child: Text(l10n.smartCubeConnect)),
         ],
       ),
     ).then((_) =>
@@ -174,7 +174,7 @@ class _CubeConnectSheetState extends State<_CubeConnectSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              _mgr.isConnected ? l10n.cubeConnected : l10n.cubeConnectTitle,
+              _mgr.isConnected ? l10n.smartCubeConnected : l10n.smartCubeConnectTitle,
               style: TextStyle(
                   color: p.textPrimary,
                   fontSize: 18,
@@ -184,7 +184,7 @@ class _CubeConnectSheetState extends State<_CubeConnectSheet> {
             if (_mgr.isConnected)
               _connectedBody(l10n, p)
             else if (_connecting)
-              _busy(l10n.cubeConnecting, p)
+              _busy(l10n.smartCubeConnecting, p)
             else
               _scanBody(l10n, p),
             if (_error != null) ...[
@@ -214,8 +214,8 @@ class _CubeConnectSheetState extends State<_CubeConnectSheet> {
     if (_found.isEmpty) {
       return Column(
         children: [
-          _busy(l10n.cubeScanning, p),
-          Text(l10n.cubeNoneFound,
+          _busy(l10n.smartCubeScanning, p),
+          Text(l10n.smartCubeNoneFound,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.textFaint, fontSize: 13)),
         ],
@@ -255,7 +255,7 @@ class _CubeConnectSheetState extends State<_CubeConnectSheet> {
             ValueListenableBuilder<int?>(
               valueListenable: _mgr.battery,
               builder: (context, batt, _) => Text(
-                batt == null ? '' : '${l10n.cubeBattery}: $batt%',
+                batt == null ? '' : '${l10n.smartCubeBattery}: $batt%',
                 style: TextStyle(color: p.textMuted, fontSize: 13),
               ),
             ),
@@ -268,7 +268,7 @@ class _CubeConnectSheetState extends State<_CubeConnectSheet> {
             if (mounted) Navigator.pop(context);
           },
           icon: const Icon(Icons.bluetooth_disabled),
-          label: Text(l10n.cubeDisconnect),
+          label: Text(l10n.smartCubeDisconnect),
         ),
       ],
     );

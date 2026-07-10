@@ -12,38 +12,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartCube => 'Smart cube';
 
   @override
-  String get cubeConnectTitle => 'Connect a cube';
+  String get smartCubeConnectTitle => 'Connect a smart cube';
 
   @override
-  String get cubeScanning => 'Scanning…';
+  String get smartCubeScanning => 'Scanning…';
 
   @override
-  String get cubeNoneFound =>
-      'No cubes found yet.\nPower on and turn your cube.';
+  String get smartCubeNoneFound =>
+      'No smart cubes found yet.\nPower on and turn your cube.';
 
   @override
-  String get cubeConnect => 'Connect';
+  String get smartCubeConnect => 'Connect';
 
   @override
-  String get cubeConnecting => 'Connecting…';
+  String get smartCubeConnecting => 'Connecting…';
 
   @override
-  String get cubeConnected => 'Connected';
+  String get smartCubeConnected => 'Connected';
 
   @override
-  String get cubeDisconnect => 'Disconnect';
+  String get smartCubeDisconnect => 'Disconnect';
 
   @override
-  String get cubeBattery => 'Battery';
+  String get smartCubeBattery => 'Battery';
 
   @override
-  String get cubeConnectFailed => 'Connection failed';
+  String get smartCubeConnectFailed => 'Connection failed';
 
   @override
-  String get cubeMacTitle => 'Enter cube MAC address';
+  String get smartCubeMacTitle => 'Enter smart cube MAC address';
 
   @override
-  String get cubeMacHint => 'AA:BB:CC:DD:EE:FF';
+  String get smartCubeMacHint => 'AA:BB:CC:DD:EE:FF';
 
   @override
   String get sessionSummary => 'Session summary';

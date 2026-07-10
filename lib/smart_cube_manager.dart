@@ -5,11 +5,11 @@ import 'package:smartcube/smartcube.dart';
 
 /// App-wide holder for the current smart-cube connection. A singleton (like
 /// [Settings] / [DatabaseManager]) so the connection survives navigation and any
-/// screen can observe it. Everything cube-related in the app funnels through here.
-class CubeManager {
-  static final CubeManager _instance = CubeManager._();
-  factory CubeManager() => _instance;
-  CubeManager._();
+/// screen can observe it. Everything smart-cube-related in the app funnels through here.
+class SmartCubeManager {
+  static final SmartCubeManager _instance = SmartCubeManager._();
+  factory SmartCubeManager() => _instance;
+  SmartCubeManager._();
 
   final CubeScanner _scanner = createCubeScanner();
 

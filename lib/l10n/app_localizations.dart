@@ -100,71 +100,71 @@ abstract class AppLocalizations {
   /// **'Smart cube'**
   String get smartCube;
 
-  /// No description provided for @cubeConnectTitle.
+  /// No description provided for @smartCubeConnectTitle.
   ///
   /// In en, this message translates to:
-  /// **'Connect a cube'**
-  String get cubeConnectTitle;
+  /// **'Connect a smart cube'**
+  String get smartCubeConnectTitle;
 
-  /// No description provided for @cubeScanning.
+  /// No description provided for @smartCubeScanning.
   ///
   /// In en, this message translates to:
   /// **'Scanning…'**
-  String get cubeScanning;
+  String get smartCubeScanning;
 
-  /// No description provided for @cubeNoneFound.
+  /// No description provided for @smartCubeNoneFound.
   ///
   /// In en, this message translates to:
-  /// **'No cubes found yet.\nPower on and turn your cube.'**
-  String get cubeNoneFound;
+  /// **'No smart cubes found yet.\nPower on and turn your cube.'**
+  String get smartCubeNoneFound;
 
-  /// No description provided for @cubeConnect.
+  /// No description provided for @smartCubeConnect.
   ///
   /// In en, this message translates to:
   /// **'Connect'**
-  String get cubeConnect;
+  String get smartCubeConnect;
 
-  /// No description provided for @cubeConnecting.
+  /// No description provided for @smartCubeConnecting.
   ///
   /// In en, this message translates to:
   /// **'Connecting…'**
-  String get cubeConnecting;
+  String get smartCubeConnecting;
 
-  /// No description provided for @cubeConnected.
+  /// No description provided for @smartCubeConnected.
   ///
   /// In en, this message translates to:
   /// **'Connected'**
-  String get cubeConnected;
+  String get smartCubeConnected;
 
-  /// No description provided for @cubeDisconnect.
+  /// No description provided for @smartCubeDisconnect.
   ///
   /// In en, this message translates to:
   /// **'Disconnect'**
-  String get cubeDisconnect;
+  String get smartCubeDisconnect;
 
-  /// No description provided for @cubeBattery.
+  /// No description provided for @smartCubeBattery.
   ///
   /// In en, this message translates to:
   /// **'Battery'**
-  String get cubeBattery;
+  String get smartCubeBattery;
 
-  /// No description provided for @cubeConnectFailed.
+  /// No description provided for @smartCubeConnectFailed.
   ///
   /// In en, this message translates to:
   /// **'Connection failed'**
-  String get cubeConnectFailed;
+  String get smartCubeConnectFailed;
 
-  /// No description provided for @cubeMacTitle.
+  /// No description provided for @smartCubeMacTitle.
   ///
   /// In en, this message translates to:
-  /// **'Enter cube MAC address'**
-  String get cubeMacTitle;
+  /// **'Enter smart cube MAC address'**
+  String get smartCubeMacTitle;
 
-  /// No description provided for @cubeMacHint.
+  /// No description provided for @smartCubeMacHint.
   ///
   /// In en, this message translates to:
   /// **'AA:BB:CC:DD:EE:FF'**
-  String get cubeMacHint;
+  String get smartCubeMacHint;
 
   /// No description provided for @sessionSummary.
   ///

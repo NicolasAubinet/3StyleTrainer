@@ -147,6 +147,7 @@ class _TimerScreenState extends State<TimerScreen> {
     final recording = _isRecordingRun;
     return SessionSummaryScreen(
       algTimes: algTimes,
+      algType: widget.algType,
       targetTime: widget.targetTime,
       practiceType: widget.practiceType,
       totalTimeMs: totalTimeMs,
@@ -282,10 +283,8 @@ class _TimerScreenState extends State<TimerScreen> {
     return progression;
   }
 
-  String _title(BuildContext context) {
-    final typeName = widget.algType.getLocalizedName(context);
-    return "$typeName · ${widget.practiceType.getLocalizedName(context)}";
-  }
+  String _title(BuildContext context) =>
+      sessionTitle(context, widget.algType, widget.practiceType);
 
   @override
   Widget build(BuildContext context) {

@@ -21,6 +21,7 @@ enum _SortColumn { order, time }
 
 class SessionSummaryScreen extends StatefulWidget {
   final List<AlgTime> algTimes;
+  final AlgType algType;
   final double targetTime;
   final PracticeType practiceType;
   final int totalTimeMs;
@@ -35,6 +36,7 @@ class SessionSummaryScreen extends StatefulWidget {
   const SessionSummaryScreen(
       {super.key,
       required this.algTimes,
+      required this.algType,
       required this.targetTime,
       required this.practiceType,
       required this.totalTimeMs,
@@ -232,7 +234,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return AppScaffold(
-      title: l10n.sessionSummary,
+      title: sessionTitle(context, widget.algType, widget.practiceType),
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 16),
@@ -251,9 +253,9 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _statHeader(p, l10n),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             _isTimeRace ? _timeRaceActions(p, l10n) : _setsActions(p, l10n),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
             _sortHeaderRow(l10n),
             const SizedBox(height: 8),
             Expanded(

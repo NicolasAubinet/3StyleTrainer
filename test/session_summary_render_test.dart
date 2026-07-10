@@ -38,6 +38,7 @@ void main() {
       await tester.pumpWidget(_host(
         SessionSummaryScreen(
           algTimes: _sampleTimes(),
+          algType: AlgType.Corner,
           targetTime: 0.85,
           practiceType: PracticeType.timeRace,
           totalTimeMs: 6000,
@@ -54,6 +55,7 @@ void main() {
       await tester.pumpWidget(_host(
         SessionSummaryScreen(
           algTimes: _sampleTimes(),
+          algType: AlgType.Corner,
           targetTime: 0.85,
           practiceType: PracticeType.sets,
           totalTimeMs: 12000,
@@ -75,6 +77,7 @@ void main() {
     await tester.pumpWidget(_host(
       SessionSummaryScreen(
         algTimes: times,
+        algType: AlgType.Corner,
         targetTime: 0.85,
         practiceType: PracticeType.timeRace,
         totalTimeMs: 2200,
@@ -95,6 +98,7 @@ void main() {
     await tester.pumpWidget(_host(
       SessionSummaryScreen(
         algTimes: _sampleTimes(),
+        algType: AlgType.Corner,
         targetTime: 0.85,
         practiceType: PracticeType.timeRace,
         totalTimeMs: 6000,
@@ -117,6 +121,7 @@ void main() {
     await tester.pumpWidget(_host(
       SessionSummaryScreen(
         algTimes: times,
+        algType: AlgType.Corner,
         targetTime: 0.85,
         practiceType: PracticeType.timeRace,
         totalTimeMs: 800,

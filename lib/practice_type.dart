@@ -26,6 +26,15 @@ enum PracticeType {
   }
 }
 
+/// Screen title combining practice type and alg type, always practice-first for
+/// consistency ("Time race · Corners", "Sets · Corners").
+String sessionTitle(
+    BuildContext context, AlgType algType, PracticeType practiceType) {
+  final type = algType.getLocalizedName(context);
+  final practice = practiceType.getLocalizedName(context);
+  return "$practice · $type";
+}
+
 /// Whether a run records solve times
 bool isRecordingRun({
   required PracticeType practiceType,

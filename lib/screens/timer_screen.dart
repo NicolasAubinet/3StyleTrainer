@@ -231,14 +231,20 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   bool _onKey(KeyEvent event) {
-    if (LogicalKeyboardKey.space == event.logicalKey) {
-      if (event is KeyDownEvent) {
-        _onTapDown();
-      } else if (event is KeyUpEvent) {
-        _onTapUp();
-      }
+    if (LogicalKeyboardKey.space != event.logicalKey) {
+      return false;
     }
-
+    if (event is KeyDownEvent) {
+      // Key-down while still "pressed" means the key-up was dropped; release
+      // first so the timer can't get stuck. (Repeats are KeyRepeatEvent.)
+      if (isPressed) {
+        _onTapUp();
+      } else {
+        _onTapDown();
+      }
+    } else if (event is KeyUpEvent) {
+      _onTapUp();
+    }
     return false;
   }
 

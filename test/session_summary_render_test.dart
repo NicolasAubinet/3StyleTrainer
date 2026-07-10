@@ -22,12 +22,12 @@ Widget _host(Widget child, AppPalette palette) => ThemeScope(
 
 // Modifiable list — the screen sorts it in place (production passes a copy).
 List<AlgTime> _sampleTimes() => [
-      const AlgTime(1, 770, Alg("BA")),
-      const AlgTime(2, 790, Alg("XT")),
-      const AlgTime(3, 800, Alg("AG")),
-      const AlgTime(4, 810, Alg("UF-DR")), // long 2-flip name
-      const AlgTime(5, 820, Alg("BL")),
-      const AlgTime(6, 910, Alg("VU")),
+      const AlgTime(1, 770, Alg("BA"), timestamp: 1),
+      const AlgTime(2, 790, Alg("XT"), timestamp: 2),
+      const AlgTime(3, 800, Alg("AG"), timestamp: 3),
+      const AlgTime(4, 810, Alg("UF-DR"), timestamp: 4), // long 2-flip name
+      const AlgTime(5, 820, Alg("BL"), timestamp: 5),
+      const AlgTime(6, 910, Alg("VU"), timestamp: 6),
     ];
 
 void main() {
@@ -68,9 +68,9 @@ void main() {
   testWidgets('defaults to occurrence order, not fastest time', (tester) async {
     // Occurrence order AA, BB, CC; fastest is CC (0.50).
     final times = [
-      const AlgTime(1, 800, Alg('AA')),
-      const AlgTime(2, 900, Alg('BB')),
-      const AlgTime(3, 500, Alg('CC')),
+      const AlgTime(1, 800, Alg('AA'), timestamp: 1),
+      const AlgTime(2, 900, Alg('BB'), timestamp: 2),
+      const AlgTime(3, 500, Alg('CC'), timestamp: 3),
     ];
     await tester.pumpWidget(_host(
       SessionSummaryScreen(
@@ -87,5 +87,61 @@ void main() {
     final yAA = tester.getTopLeft(find.text('AA')).dy;
     final yCC = tester.getTopLeft(find.text('CC')).dy;
     expect(yAA, lessThan(yCC));
+  });
+
+  testWidgets('non-recording: no delete button, swipe explains why',
+      (tester) async {
+    // No onDeleteFromDb callback -> not a recording run.
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _sampleTimes(),
+        targetTime: 0.85,
+        practiceType: PracticeType.timeRace,
+        totalTimeMs: 6000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsNothing);
+
+    await tester.drag(find.text('VU'), const Offset(-150, 0));
+    await tester.pumpAndSettle();
+    expect(find.textContaining("wasn't recorded"), findsOneWidget);
+  });
+
+  testWidgets('recording: swipe reveals delete, removes DB row, undo restores',
+      (tester) async {
+    final times = [const AlgTime(1, 800, Alg('BL'), timestamp: 111)];
+    final deleted = <AlgTime>[];
+    final restored = <AlgTime>[];
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: times,
+        targetTime: 0.85,
+        practiceType: PracticeType.timeRace,
+        totalTimeMs: 800,
+        onDeleteFromDb: deleted.add,
+        onRestoreToDb: restored.add,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+
+    // Swiping does not delete on its own — it reveals the button.
+    await tester.drag(find.text('BL'), const Offset(-150, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('BL'), findsOneWidget);
+    expect(deleted, isEmpty);
+
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('BL'), findsNothing);
+    expect(deleted, hasLength(1));
+    expect(find.textContaining('Deleted'), findsOneWidget);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.text('BL'), findsOneWidget);
+    expect(restored, hasLength(1));
   });
 }

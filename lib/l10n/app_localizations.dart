@@ -873,6 +873,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Slowest'**
   String get pillSlowest;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @deletedTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {alg} ({time}s)'**
+  String deletedTime(String alg, String time);
+
+  /// No description provided for @deleteUnavailableNotRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'This time wasn\'t recorded, nothing to delete'**
+  String get deleteUnavailableNotRecorded;
 }
 
 class _AppLocalizationsDelegate

@@ -149,5 +149,14 @@
   "statUnderTarget": "Under target",
   "summaryTarget": "Target",
   "pillFastest": "Fastest",
-  "pillSlowest": "Slowest"
+  "pillSlowest": "Slowest",
+  "undo": "Undo",
+  "deletedTime": "Deleted {alg} ({time}s)",
+  "@deletedTime": {
+    "placeholders": {
+      "alg": { "type": "String" },
+      "time": { "type": "String" }
+    }
+  },
+  "deleteUnavailableNotRecorded": "This time wasn't recorded, nothing to delete"
 }

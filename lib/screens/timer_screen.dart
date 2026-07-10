@@ -57,19 +57,19 @@ class _TimerScreenState extends State<TimerScreen> {
       isPressed = true;
 
       int elapsedMilliseconds = stopwatch.elapsedMilliseconds;
-      times.add(AlgTime(times.length + 1, elapsedMilliseconds, alg!));
+      // The solve's timestamp; for recorded runs the same value is written to
+      // the DB row below, so the summary can delete that exact row.
+      final int timestamp = DateTime.now().millisecondsSinceEpoch;
+      times.add(AlgTime(times.length + 1, elapsedMilliseconds, alg!,
+          timestamp: timestamp));
 
       stopwatch.stop();
 
-      if (isRecordingRun(
-        practiceType: widget.practiceType,
-        algType: widget.algType,
-        algsShownInAdvance: widget.algsShownInAdvance,
-        recordTimes: widget.recordTimes,
-      )) {
+      if (_isRecordingRun) {
         String algName = alg!.name;
-        DatabaseManager()
-            .insertResult(widget.algType, algName, elapsedMilliseconds);
+        DatabaseManager().insertResult(
+            widget.algType, algName, elapsedMilliseconds,
+            timestamp: timestamp);
         // Keep the selector's weights fresh across a long "again" chain.
         final provider = widget.algProvider;
         if (provider is EqualizingSelector) {
@@ -111,12 +111,7 @@ class _TimerScreenState extends State<TimerScreen> {
       final result = await Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (context) => SessionSummaryScreen(
-                    algTimes: timesCopy,
-                    targetTime: widget.targetTime,
-                    practiceType: widget.practiceType,
-                    totalTimeMs: totalTimeMs,
-                  )));
+              builder: (context) => _buildSummary(timesCopy, totalTimeMs)));
 
       setState(() {
         isReady = false;
@@ -137,6 +132,34 @@ class _TimerScreenState extends State<TimerScreen> {
         }
       }
     }
+  }
+
+  bool get _isRecordingRun => isRecordingRun(
+        practiceType: widget.practiceType,
+        algType: widget.algType,
+        algsShownInAdvance: widget.algsShownInAdvance,
+        recordTimes: widget.recordTimes,
+      );
+
+  // Deletion of recorded rows is wired only for recording runs; a non-recording
+  // summary gets no delete callbacks (swiping there just explains why).
+  SessionSummaryScreen _buildSummary(List<AlgTime> algTimes, int totalTimeMs) {
+    final recording = _isRecordingRun;
+    return SessionSummaryScreen(
+      algTimes: algTimes,
+      targetTime: widget.targetTime,
+      practiceType: widget.practiceType,
+      totalTimeMs: totalTimeMs,
+      onDeleteFromDb: recording
+          ? (t) => DatabaseManager().deleteRecordedResult(
+              widget.algType, t.alg.name, t.timeMs, t.timestamp)
+          : null,
+      onRestoreToDb: recording
+          ? (t) => DatabaseManager().insertResult(
+              widget.algType, t.alg.name, t.timeMs,
+              timestamp: t.timestamp)
+          : null,
+    );
   }
 
   Alg? _fetchNextAlg() {
@@ -166,12 +189,7 @@ class _TimerScreenState extends State<TimerScreen> {
     final result = await Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) => SessionSummaryScreen(
-                  algTimes: timesCopy,
-                  targetTime: widget.targetTime,
-                  practiceType: widget.practiceType,
-                  totalTimeMs: totalTimeMs,
-                )));
+            builder: (context) => _buildSummary(timesCopy, totalTimeMs)));
 
     setState(() {
       isReady = false;

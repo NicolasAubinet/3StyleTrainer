@@ -462,4 +462,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pillSlowest => 'Slowest';
+
+  @override
+  String get undo => 'Undo';
+
+  @override
+  String deletedTime(String alg, String time) {
+    return 'Deleted $alg (${time}s)';
+  }
+
+  @override
+  String get deleteUnavailableNotRecorded =>
+      'This time wasn\'t recorded, nothing to delete';
 }

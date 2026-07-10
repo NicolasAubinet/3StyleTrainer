@@ -25,12 +25,21 @@ class SessionSummaryScreen extends StatefulWidget {
   final PracticeType practiceType;
   final int totalTimeMs;
 
+  // Persistence hooks for recorded runs. When [onDeleteFromDb] is non-null, rows
+  // are swipe-to-delete (recording run); it removes the recorded DB row and
+  // [onRestoreToDb] re-inserts it on undo. Both null on non-recording runs,
+  // where swiping a row just explains there's nothing recorded to delete.
+  final void Function(AlgTime)? onDeleteFromDb;
+  final void Function(AlgTime)? onRestoreToDb;
+
   const SessionSummaryScreen(
       {super.key,
       required this.algTimes,
       required this.targetTime,
       required this.practiceType,
-      required this.totalTimeMs});
+      required this.totalTimeMs,
+      this.onDeleteFromDb,
+      this.onRestoreToDb});
 
   @override
   State<SessionSummaryScreen> createState() => _SessionSummaryScreenState();
@@ -50,6 +59,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   int _hiMs = 0;
   AlgTime? _fastest;
   AlgTime? _slowest;
+
+  final ValueNotifier<Object?> _openRow = ValueNotifier<Object?>(null);
 
   bool get _isTimeRace => widget.practiceType == PracticeType.timeRace;
 
@@ -74,7 +85,49 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   @override
   void dispose() {
     _buttonsActivationTimer.cancel();
+    _openRow.dispose();
     super.dispose();
+  }
+
+  bool get _canDelete => widget.onDeleteFromDb != null;
+
+  void _deleteRow(AlgTime algTime) {
+    final l10n = AppLocalizations.of(context)!;
+    final int index = widget.algTimes.indexOf(algTime);
+    if (index < 0) return;
+
+    setState(() {
+      widget.algTimes.removeAt(index);
+      _openRow.value = null;
+      _computeAnchors();
+    });
+    widget.onDeleteFromDb?.call(algTime);
+
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text(l10n.deletedTime(
+            algTime.alg.name, timeToString(algTime.timeMs, fractionDigits: 2))),
+        action: SnackBarAction(
+          label: l10n.undo,
+          onPressed: () {
+            setState(() {
+              widget.algTimes.add(algTime);
+              _applySort();
+              _computeAnchors();
+            });
+            widget.onRestoreToDb?.call(algTime);
+          },
+        ),
+      ));
+  }
+
+  void _showNotRecordedToast() {
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+          SnackBar(content: Text(l10n.deleteUnavailableNotRecorded)));
   }
 
   void _computeAnchors() {
@@ -426,55 +479,67 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         identical(algTime, _slowest) &&
         !identical(_slowest, _fastest);
 
+    final card = GlassPanel(
+      radius: 10,
+      padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: 18,
+                child: Text(algTime.index.toString(),
+                    style: _mono(12, p.textFaint, weight: FontWeight.w400)),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(algTime.alg.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: _mono(17, p.textPrimary)),
+                    ),
+                    if (isFastest)
+                      _rowPill(
+                          p, AppLocalizations.of(context)!.pillFastest, p.good),
+                    if (isSlowest)
+                      _rowPill(
+                          p, AppLocalizations.of(context)!.pillSlowest, p.bad),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(timeToString(algTime.timeMs, fractionDigits: 2),
+                  style: _mono(17, color)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _bar(
+            p,
+            frac: _isTimeRace
+                ? _speedFrac(algTime.timeMs)
+                : _meterFrac(algTime.timeMs),
+            color: color,
+            tickFrac: _isTimeRace ? null : _TARGET_TICK_FRAC,
+          ),
+        ],
+      ),
+    );
+
     return Padding(
+      key: ValueKey(algTime),
       padding: const EdgeInsets.only(bottom: 7),
-      child: GlassPanel(
+      child: _SwipeableRow(
+        rowId: algTime,
+        openRow: _openRow,
+        enabled: _canDelete,
+        deleteLabel: AppLocalizations.of(context)!.delete,
         radius: 10,
-        padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                SizedBox(
-                  width: 18,
-                  child: Text(algTime.index.toString(),
-                      style: _mono(12, p.textFaint, weight: FontWeight.w400)),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Flexible(
-                        child: Text(algTime.alg.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: _mono(17, p.textPrimary)),
-                      ),
-                      if (isFastest)
-                        _rowPill(p, AppLocalizations.of(context)!.pillFastest,
-                            p.good),
-                      if (isSlowest)
-                        _rowPill(p, AppLocalizations.of(context)!.pillSlowest,
-                            p.bad),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(timeToString(algTime.timeMs, fractionDigits: 2),
-                    style: _mono(17, color)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            _bar(
-              p,
-              frac: _isTimeRace
-                  ? _speedFrac(algTime.timeMs)
-                  : _meterFrac(algTime.timeMs),
-              color: color,
-              tickFrac: _isTimeRace ? null : _TARGET_TICK_FRAC,
-            ),
-          ],
-        ),
+        onDelete: () => _deleteRow(algTime),
+        onDisabledSwipe: _showNotRecordedToast,
+        child: card,
       ),
     );
   }
@@ -545,6 +610,168 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Swipe a row left to reveal a Delete button behind it; the row slides but is
+/// not removed until the button is tapped (swiping back cancels). At most one
+/// row is open at a time, coordinated through [openRow].
+///
+/// When [enabled] is false (non-recording run, nothing to delete) the row
+/// doesn't reveal a button; a left-swipe instead fires [onDisabledSwipe].
+class _SwipeableRow extends StatefulWidget {
+  final Widget child;
+  final bool enabled;
+  final String deleteLabel;
+  final VoidCallback onDelete;
+  final VoidCallback? onDisabledSwipe;
+  final Object rowId;
+  final ValueNotifier<Object?> openRow;
+  final double radius;
+
+  const _SwipeableRow({
+    required this.child,
+    required this.enabled,
+    required this.deleteLabel,
+    required this.onDelete,
+    required this.onDisabledSwipe,
+    required this.rowId,
+    required this.openRow,
+    required this.radius,
+  });
+
+  @override
+  State<_SwipeableRow> createState() => _SwipeableRowState();
+}
+
+class _SwipeableRowState extends State<_SwipeableRow>
+    with SingleTickerProviderStateMixin {
+  static const double _revealWidth = 96;
+
+  // 0 = closed, 1 = fully revealed.
+  late final AnimationController _ctrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 180),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    widget.openRow.addListener(_onOpenRowChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.openRow.removeListener(_onOpenRowChanged);
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onOpenRowChanged() {
+    if (widget.openRow.value != widget.rowId && _ctrl.value > 0) {
+      _ctrl.animateTo(0, curve: Curves.easeOut);
+    }
+  }
+
+  void _open() {
+    widget.openRow.value = widget.rowId;
+    _ctrl.animateTo(1, curve: Curves.easeOut);
+  }
+
+  void _close() {
+    if (widget.openRow.value == widget.rowId) widget.openRow.value = null;
+    _ctrl.animateTo(0, curve: Curves.easeOut);
+  }
+
+  // Accumulated horizontal drag, used only in the disabled case to detect a
+  // deliberate left-swipe.
+  double _disabledDragDx = 0;
+
+  void _onDragUpdate(DragUpdateDetails d) {
+    if (!widget.enabled) {
+      _disabledDragDx += d.primaryDelta ?? 0;
+      return;
+    }
+    _ctrl.value = (_ctrl.value - d.primaryDelta! / _revealWidth).clamp(0.0, 1.0);
+  }
+
+  void _onDragEnd(DragEndDetails d) {
+    final v = d.primaryVelocity ?? 0;
+    if (!widget.enabled) {
+      if (_disabledDragDx < -24 || v < -300) widget.onDisabledSwipe?.call();
+      _disabledDragDx = 0;
+      return;
+    }
+    if (v < -300 || (v <= 300 && _ctrl.value > 0.5)) {
+      _open();
+    } else {
+      _close();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    // Tap the card to cancel (close) while it's open; no-op when closed.
+    final card = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (_ctrl.value > 0) _close();
+      },
+      child: widget.child,
+    );
+    return GestureDetector(
+      onHorizontalDragStart: (_) => _disabledDragDx = 0,
+      onHorizontalDragUpdate: _onDragUpdate,
+      onHorizontalDragEnd: _onDragEnd,
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, child) {
+          return Stack(
+            children: [
+              if (widget.enabled)
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: _deleteButton(p),
+                  ),
+                ),
+              Transform.translate(
+                offset: Offset(-_revealWidth * _ctrl.value, 0),
+                child: child,
+              ),
+            ],
+          );
+        },
+        child: card,
+      ),
+    );
+  }
+
+  Widget _deleteButton(AppPalette p) {
+    return Material(
+      color: p.bad,
+      borderRadius: BorderRadius.circular(widget.radius),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(widget.radius),
+        onTap: widget.onDelete,
+        child: SizedBox(
+          width: _revealWidth,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.delete_outline, color: Colors.white, size: 20),
+              const SizedBox(height: 2),
+              Text(widget.deleteLabel,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
       ),
     );
   }

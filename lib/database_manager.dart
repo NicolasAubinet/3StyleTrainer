@@ -111,7 +111,8 @@ class DatabaseManager {
     onReady?.call();
   }
 
-  void insertResult(AlgType algType, String alg, int resultMs) async {
+  void insertResult(AlgType algType, String alg, int resultMs,
+      {int? timestamp}) async {
     if (!isUsingDatabase()) {
       return;
     }
@@ -120,9 +121,22 @@ class DatabaseManager {
       'algType': algType.name,
       'alg': alg,
       'resultMs': resultMs,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'timestamp': timestamp ?? DateTime.now().millisecondsSinceEpoch,
     };
     await _database.insert(RESULTS, map);
+  }
+
+  void deleteRecordedResult(
+      AlgType algType, String alg, int resultMs, int timestamp) async {
+    if (!isUsingDatabase()) {
+      return;
+    }
+
+    await _database.delete(
+      RESULTS,
+      where: "algType = ? AND alg = ? AND resultMs = ? AND timestamp = ?",
+      whereArgs: [algType.name, alg, resultMs, timestamp],
+    );
   }
 
   Future<List<AlgStats>> getAlgStats(AlgType algType, {int? sinceMs}) async {

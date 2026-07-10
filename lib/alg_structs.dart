@@ -39,8 +39,9 @@ class AlgTime {
   final int index;
   final int timeMs;
   final Alg alg;
+  final int timestamp;
 
-  const AlgTime(this.index, this.timeMs, this.alg);
+  const AlgTime(this.index, this.timeMs, this.alg, {required this.timestamp});
 }
 
 // Aggregated times for a single alg, built from the results history.

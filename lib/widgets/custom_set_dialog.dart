@@ -3,18 +3,40 @@ import 'package:three_style_trainer/alg_structs.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import 'tap_select_all.dart';
 
-class CustomSetDialog extends StatelessWidget {
-  final bool Function(CustomSet) _onSaved;
-  final _nameController = TextEditingController();
-  final _algsController = TextEditingController();
-  final bool _isEditing;
+class CustomSetDialog extends StatefulWidget {
+  final bool Function(CustomSet) onSaved;
+  final bool isEditing;
+  final CustomSet? initialSet;
 
-  CustomSetDialog.create(this._onSaved) : _isEditing = false;
+  const CustomSetDialog.create(this.onSaved)
+      : isEditing = false,
+        initialSet = null;
 
-  CustomSetDialog.edit(this._onSaved, CustomSet set) : _isEditing = true {
-    _nameController.text = set.name;
-    _algsController.text = set.algs.join('\n');
+  const CustomSetDialog.edit(this.onSaved, CustomSet set)
+      : isEditing = true,
+        initialSet = set;
+
+  @override
+  State<CustomSetDialog> createState() => _CustomSetDialogState();
+}
+
+class _CustomSetDialogState extends State<CustomSetDialog> {
+  late final TapSelectAll _name = TapSelectAll(
+      TextEditingController(text: widget.initialSet?.name ?? ''));
+  late final TapSelectAll _algs = TapSelectAll(TextEditingController(
+      text: widget.initialSet == null
+          ? ''
+          : widget.initialSet!.algs.join('\n')));
+
+  @override
+  void dispose() {
+    _name.controller.dispose();
+    _algs.controller.dispose();
+    _name.dispose();
+    _algs.dispose();
+    super.dispose();
   }
 
   InputDecoration _inputDecoration(BuildContext context, String label,
@@ -45,7 +67,7 @@ class CustomSetDialog extends StatelessWidget {
     final textStyle = TextStyle(color: p.textPrimary);
 
     return AlertDialog(
-      title: Text(_isEditing ? l10n.editCustomSet : l10n.createCustomSet),
+      title: Text(widget.isEditing ? l10n.editCustomSet : l10n.createCustomSet),
       content: SizedBox(
         width: 320,
         child: Column(
@@ -56,7 +78,9 @@ class CustomSetDialog extends StatelessWidget {
               decoration: _inputDecoration(context, l10n.customSetName),
               keyboardType: TextInputType.name,
               textCapitalization: TextCapitalization.words,
-              controller: _nameController,
+              controller: _name.controller,
+              focusNode: _name.focusNode,
+              onTap: _name.onTap,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -66,7 +90,9 @@ class CustomSetDialog extends StatelessWidget {
               keyboardType: TextInputType.multiline,
               minLines: 3,
               maxLines: 6,
-              controller: _algsController,
+              controller: _algs.controller,
+              focusNode: _algs.focusNode,
+              onTap: _algs.onTap,
             ),
           ],
         ),
@@ -79,7 +105,7 @@ class CustomSetDialog extends StatelessWidget {
         FilledButton(
           child: Text(l10n.save),
           onPressed: () {
-            List<String> split = _algsController.text.split(RegExp(r'\n|,'));
+            List<String> split = _algs.controller.text.split(RegExp(r'\n|,'));
             List<String> algs = [];
             for (String origAlg in split) {
               String alg = origAlg.trim();
@@ -87,8 +113,8 @@ class CustomSetDialog extends StatelessWidget {
                 algs.add(alg);
               }
             }
-            var customSet = CustomSet(_nameController.text, algs);
-            if (_onSaved(customSet)) {
+            var customSet = CustomSet(_name.controller.text, algs);
+            if (widget.onSaved(customSet)) {
               Navigator.of(context).pop('save');
             }
           },

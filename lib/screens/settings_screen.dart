@@ -18,6 +18,7 @@ import '../widgets/app_scaffold.dart';
 import '../widgets/app_segmented_control.dart';
 import '../widgets/data_category_dialog.dart';
 import '../widgets/glass_panel.dart';
+import '../widgets/tap_select_all.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -29,12 +30,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _edgesSchemeTextController = TextEditingController();
   final _cornersFormKey = GlobalKey<FormState>();
   final _edgesFormKey = GlobalKey<FormState>();
+  late final _cornersSchemeTap = TapSelectAll(_cornersSchemeTextController);
+  late final _edgesSchemeTap = TapSelectAll(_edgesSchemeTextController);
 
   @override
   void initState() {
     super.initState();
     _cornersSchemeTextController.text = Settings().getCornersScheme().join();
     _edgesSchemeTextController.text = Settings().getEdgesScheme().join();
+  }
+
+  @override
+  void dispose() {
+    _cornersSchemeTap.dispose();
+    _edgesSchemeTap.dispose();
+    _cornersSchemeTextController.dispose();
+    _edgesSchemeTextController.dispose();
+    super.dispose();
   }
 
   void _onTapOutsideCornerScheme(PointerDownEvent event) async {
@@ -96,6 +108,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required TextEditingController controller,
     required GlobalKey<FormState> formKey,
     required void Function(PointerDownEvent) onTapOutside,
+    required FocusNode focusNode,
+    required VoidCallback onTap,
     String? hint,
   }) {
     final p = context.palette;
@@ -113,6 +127,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             key: formKey,
             child: TextFormField(
               controller: controller,
+              focusNode: focusNode,
+              onTap: onTap,
               cursorColor: p.accent,
               onTapOutside: onTapOutside,
               onChanged: (_) => formKey.currentState!.validate(),
@@ -463,6 +479,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 controller: _cornersSchemeTextController,
                 formKey: _cornersFormKey,
                 onTapOutside: _onTapOutsideCornerScheme,
+                focusNode: _cornersSchemeTap.focusNode,
+                onTap: _cornersSchemeTap.onTap,
                 hint: l10n.cornersPiecesOrder,
               ),
               const SizedBox(height: 12),
@@ -471,6 +489,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 controller: _edgesSchemeTextController,
                 formKey: _edgesFormKey,
                 onTapOutside: _onTapOutsideEdgesScheme,
+                focusNode: _edgesSchemeTap.focusNode,
+                onTap: _edgesSchemeTap.onTap,
               ),
               const SizedBox(height: 18),
               _sectionLabel(l10n.buffersSection),

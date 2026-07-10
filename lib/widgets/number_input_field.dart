@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'tap_select_all.dart';
+
 class NumberInputField extends StatefulWidget {
   final bool decimal;
   final bool signed;
@@ -24,6 +26,7 @@ class _NumberInputFieldState extends State<NumberInputField> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
   late String _lastCommitted;
+  bool _hadFocus = false;
 
   @override
   void initState() {
@@ -55,7 +58,19 @@ class _NumberInputFieldState extends State<NumberInputField> {
   }
 
   void _onFocusChange() {
-    if (!_focusNode.hasFocus) _commit();
+    if (!_focusNode.hasFocus) {
+      _hadFocus = false;
+      _commit();
+    }
+  }
+
+  // Select all on the tap that focuses the field so it's easy to fully replace;
+  // a further tap (already focused) positions the cursor where tapped.
+  void _onTap() {
+    if (!_hadFocus) {
+      selectAllText(_controller);
+      _hadFocus = true;
+    }
   }
 
   void _commit() {
@@ -85,6 +100,7 @@ class _NumberInputFieldState extends State<NumberInputField> {
         signed: widget.signed,
       ),
       onChanged: widget.onChanged,
+      onTap: _onTap,
       // Tab, Enter and tapping outside all just drop focus; the focus listener
       // does the single commit, so a value can never revert on a rebuild.
       onTapOutside: (_) => _focusNode.unfocus(),

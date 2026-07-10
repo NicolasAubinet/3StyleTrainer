@@ -166,4 +166,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(committed, ["20"]);
   });
+
+  testWidgets('the focusing tap selects the whole value', (tester) async {
+    await tester.pumpWidget(_host(NumberInputField(defaultValue: "12.34")));
+
+    await tester.tap(find.byType(NumberInputField));
+    await tester.pumpAndSettle();
+
+    final selection =
+        tester.widget<EditableText>(find.byType(EditableText)).controller.selection;
+    expect(selection, const TextSelection(baseOffset: 0, extentOffset: 5));
+  });
+
+  testWidgets('re-focusing after a blur selects all again', (tester) async {
+    await tester.pumpWidget(_host(Column(children: [
+      NumberInputField(defaultValue: "12.34"),
+      const TextField(),
+    ])));
+
+    await tester.tap(find.byType(NumberInputField));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(TextField).last); // blur
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(NumberInputField)); // focus again
+    await tester.pumpAndSettle();
+
+    final selection =
+        tester.widget<EditableText>(find.byType(EditableText).first).controller.selection;
+    expect(selection, const TextSelection(baseOffset: 0, extentOffset: 5));
+  });
 }

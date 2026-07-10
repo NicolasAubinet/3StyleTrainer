@@ -283,6 +283,11 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
 
   Widget getAlgSetsItemBuilder(BuildContext context, int index) {
     var theme = Theme.of(context);
+    final p = context.palette;
+    final selected = selectedIndices.contains(index);
+    // Selected rows sit on the accent tile, so use onAccent; unselected rows sit
+    // on the page background, so use textPrimary (white was invisible on light).
+    final fg = selected ? p.onAccent : p.textPrimary;
     return ListTile(
       title: Center(
         child: Row(
@@ -292,10 +297,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
               child: Center(
                 child: Text(
                   selectableAlgSets[index],
-                  style: selectedIndices.contains(index)
-                      ? theme.textTheme.displayMedium
-                          ?.copyWith(color: Colors.black)
-                      : theme.textTheme.displayMedium,
+                  style: theme.textTheme.displayMedium?.copyWith(color: fg),
                 ),
               ),
             ),
@@ -303,25 +305,21 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                 ? IconButton(
                     onPressed: () => {_editCustomSet(context, index)},
                     icon: Icon(Icons.edit),
-                    color: selectedIndices.contains(index)
-                        ? Colors.black
-                        : Colors.white,
+                    color: fg,
                   )
                 : Container(),
             widget.algType == AlgType.Custom
                 ? IconButton(
                     onPressed: () => {_onDeleteCustomSet(context, index)},
                     icon: Icon(Icons.delete),
-                    color: selectedIndices.contains(index)
-                        ? Colors.black
-                        : Colors.white,
+                    color: fg,
                   )
                 : Container(),
           ],
         ),
       ),
       onTap: () => onAlgSetTap(index),
-      selected: selectedIndices.contains(index),
+      selected: selected,
       selectedTileColor: theme.colorScheme.primary,
     );
   }
@@ -435,7 +433,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
                     ? IconButton(
                         onPressed: () => _createCustomSet(context),
                         icon: const Icon(Icons.add_box_outlined),
-                        color: Colors.white,
+                        color: p.accent,
                       )
                     : Container(),
               ],

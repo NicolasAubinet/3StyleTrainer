@@ -93,7 +93,6 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "importSettingsApplied": "Settings applied",
-  "importSettingsNotPresent": "Settings: not present in file",
   "importSkippedCustomSets": "{count, plural, =1{1 custom set skipped (name already exists)} other{{count} custom sets skipped (names already exist)}}",
   "@importSkippedCustomSets": {
     "placeholders": { "count": { "type": "int" } }

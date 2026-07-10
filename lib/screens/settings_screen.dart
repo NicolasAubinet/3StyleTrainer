@@ -365,10 +365,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text(l10n.importRecordedTimesCount(result.recordedTimesImported)),
               const SizedBox(height: 6),
               Text(l10n.importCustomSetsCount(result.customSetsImported)),
-              const SizedBox(height: 6),
-              Text(result.settingsApplied
-                  ? l10n.importSettingsApplied
-                  : l10n.importSettingsNotPresent),
+              if (result.settingsApplied) ...[
+                const SizedBox(height: 6),
+                Text(l10n.importSettingsApplied),
+              ],
               if (result.skippedCustomSets.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(

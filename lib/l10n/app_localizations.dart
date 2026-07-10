@@ -586,12 +586,6 @@ abstract class AppLocalizations {
   /// **'Settings applied'**
   String get importSettingsApplied;
 
-  /// No description provided for @importSettingsNotPresent.
-  ///
-  /// In en, this message translates to:
-  /// **'Settings: not present in file'**
-  String get importSettingsNotPresent;
-
   /// No description provided for @importSkippedCustomSets.
   ///
   /// In en, this message translates to:

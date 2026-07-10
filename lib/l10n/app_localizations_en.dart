@@ -291,9 +291,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importSettingsApplied => 'Settings applied';
 
   @override
-  String get importSettingsNotPresent => 'Settings: not present in file';
-
-  @override
   String importSkippedCustomSets(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

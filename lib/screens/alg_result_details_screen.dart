@@ -7,6 +7,9 @@ import '../l10n/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../utils.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/sort_header.dart';
+
+enum _SortColumn { dateTime, result }
 
 // Lists every recorded attempt for one (algType, alg)
 class AlgResultDetailsScreen extends StatefulWidget {
@@ -31,8 +34,8 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   List<AlgResult> _results = [];
   bool _loading = true;
   // Sort: by solve time or by date/time (default). Not persisted.
-  bool _sortByTime = false;
-  bool _sortAscending = false;
+  final SortState<_SortColumn> _sort = SortState(
+      column: _SortColumn.dateTime, direction: SortDirection.descending);
 
   @override
   void initState() {
@@ -53,21 +56,17 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
 
   void _applySort(List<AlgResult> results) {
     results.sort((a, b) {
-      final cmp = _sortByTime
+      final cmp = _sort.column == _SortColumn.result
           ? a.resultMs.compareTo(b.resultMs)
           : a.timestamp.compareTo(b.timestamp);
-      return _sortAscending ? cmp : -cmp;
+      return _sort.direction.isAscending ? cmp : -cmp;
     });
   }
 
-  void _onSort(bool byTime) {
+  void _onSort(_SortColumn column) {
     setState(() {
-      if (_sortByTime == byTime) {
-        _sortAscending = !_sortAscending;
-      } else {
-        _sortByTime = byTime;
-        _sortAscending = false; // newest first / slowest first
-      }
+      // Both columns start descending: newest first / slowest first.
+      _sort.toggle(column, SortDirection.descending);
       _applySort(_results);
     });
   }
@@ -107,10 +106,12 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   static const double _timeColumnWidth = 90;
   static const double _deleteColumnWidth = 48;
 
-  Widget _sortHeader(ThemeData theme, String label, bool byTime,
+  // Uses the shared [SortState] but keeps its own header layout (fixed-width,
+  // right-aligned time column) rather than the list-style [SortHeader] widget.
+  Widget _sortHeader(ThemeData theme, String label, _SortColumn column,
       {double? width, TextAlign align = TextAlign.left}) {
-    final active = _sortByTime == byTime;
-    final arrow = active ? (_sortAscending ? " ↑" : " ↓") : "";
+    final active = _sort.isActive(column);
+    final arrow = active ? _sort.direction.arrow : "";
     final text = Text(
       "$label$arrow",
       textAlign: align,
@@ -118,7 +119,7 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
           ?.copyWith(color: active ? context.palette.accent : null),
     );
     return InkWell(
-      onTap: () => _onSort(byTime),
+      onTap: () => _onSort(column),
       child: width == null ? text : SizedBox(width: width, child: text),
     );
   }
@@ -129,8 +130,10 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
         children: [
-          Expanded(child: _sortHeader(theme, l10n.columnDateTime, false)),
-          _sortHeader(theme, l10n.columnResult, true,
+          Expanded(
+              child: _sortHeader(
+                  theme, l10n.columnDateTime, _SortColumn.dateTime)),
+          _sortHeader(theme, l10n.columnResult, _SortColumn.result,
               width: _timeColumnWidth, align: TextAlign.right),
           SizedBox(width: _deleteColumnWidth),
         ],

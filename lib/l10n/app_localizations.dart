@@ -831,6 +831,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Options'**
   String get optionsSection;
+
+  /// No description provided for @statCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get statCompleted;
+
+  /// No description provided for @statAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average'**
+  String get statAverage;
+
+  /// No description provided for @statSpread.
+  ///
+  /// In en, this message translates to:
+  /// **'Spread'**
+  String get statSpread;
+
+  /// No description provided for @statUnderTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Under target'**
+  String get statUnderTarget;
+
+  /// No description provided for @summaryTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get summaryTarget;
+
+  /// No description provided for @pillFastest.
+  ///
+  /// In en, this message translates to:
+  /// **'Fastest'**
+  String get pillFastest;
+
+  /// No description provided for @pillSlowest.
+  ///
+  /// In en, this message translates to:
+  /// **'Slowest'**
+  String get pillSlowest;
 }
 
 class _AppLocalizationsDelegate

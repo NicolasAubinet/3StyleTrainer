@@ -142,5 +142,12 @@
   "totalSolves": "Total solves: {count}",
   "globalAvg": "Global avg: {avg}",
   "totalTime": "Total time: {time}",
-  "optionsSection": "Options"
+  "optionsSection": "Options",
+  "statCompleted": "Completed",
+  "statAverage": "Average",
+  "statSpread": "Spread",
+  "statUnderTarget": "Under target",
+  "summaryTarget": "Target",
+  "pillFastest": "Fastest",
+  "pillSlowest": "Slowest"
 }

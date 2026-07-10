@@ -441,4 +441,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get optionsSection => 'Options';
+
+  @override
+  String get statCompleted => 'Completed';
+
+  @override
+  String get statAverage => 'Average';
+
+  @override
+  String get statSpread => 'Spread';
+
+  @override
+  String get statUnderTarget => 'Under target';
+
+  @override
+  String get summaryTarget => 'Target';
+
+  @override
+  String get pillFastest => 'Fastest';
+
+  @override
+  String get pillSlowest => 'Slowest';
 }

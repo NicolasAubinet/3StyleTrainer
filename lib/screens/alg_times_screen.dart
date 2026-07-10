@@ -10,7 +10,10 @@ import '../theme/theme_scope.dart';
 import '../utils.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/glass_panel.dart';
+import '../widgets/sort_header.dart';
 import 'alg_result_details_screen.dart';
+
+enum _SortColumn { alg, avg }
 
 class AlgTimesScreen extends StatefulWidget {
   const AlgTimesScreen({super.key});
@@ -37,8 +40,8 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
   StatsDateRange _range = StatsDateRange.all;
   List<AlgStats> _stats = [];
   // Sort: by average (default, slowest first) or by alg name.
-  bool _sortByAvg = true;
-  bool _sortAscending = false;
+  final SortState<_SortColumn> _sort = SortState(
+      column: _SortColumn.avg, direction: SortDirection.descending);
   // Gradient anchors over the shown averages: median = white (so ~half the
   // cases are green and half red), 10th/90th percentile = full green/red.
   double _loAvgMs = 0;
@@ -55,8 +58,11 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
 
   void _init() async {
     final prefs = await SharedPreferences.getInstance();
-    _sortByAvg = prefs.getBool(_sortByAvgKey) ?? true;
-    _sortAscending = prefs.getBool(_sortAscendingKey) ?? false;
+    _sort.column =
+        (prefs.getBool(_sortByAvgKey) ?? true) ? _SortColumn.avg : _SortColumn.alg;
+    _sort.direction = (prefs.getBool(_sortAscendingKey) ?? false)
+        ? SortDirection.ascending
+        : SortDirection.descending;
     _category = _readEnum(prefs.getString(_categoryKey), _categories, _category);
     _range =
         _readEnum(prefs.getString(_rangeKey), StatsDateRange.values, _range);
@@ -86,20 +92,21 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
 
   void _applySort(List<AlgStats> stats) {
     stats.sort((a, b) {
-      final cmp =
-          _sortByAvg ? a.avgMs.compareTo(b.avgMs) : a.alg.compareTo(b.alg);
-      return _sortAscending ? cmp : -cmp;
+      final cmp = _sort.column == _SortColumn.avg
+          ? a.avgMs.compareTo(b.avgMs)
+          : a.alg.compareTo(b.alg);
+      return _sort.direction.isAscending ? cmp : -cmp;
     });
   }
 
-  void _onSort(bool byAvg) {
+  void _onSort(_SortColumn column) {
     setState(() {
-      if (_sortByAvg == byAvg) {
-        _sortAscending = !_sortAscending;
-      } else {
-        _sortByAvg = byAvg;
-        _sortAscending = !byAvg; // alg -> A→Z, avg -> slowest first
-      }
+      // alg -> A→Z, avg -> slowest first.
+      _sort.toggle(
+          column,
+          column == _SortColumn.avg
+              ? SortDirection.descending
+              : SortDirection.ascending);
       _applySort(_stats);
     });
     _persistSort();
@@ -107,8 +114,8 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
 
   void _persistSort() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setBool(_sortByAvgKey, _sortByAvg);
-    prefs.setBool(_sortAscendingKey, _sortAscending);
+    prefs.setBool(_sortByAvgKey, _sort.column == _SortColumn.avg);
+    prefs.setBool(_sortAscendingKey, _sort.direction.isAscending);
   }
 
   void _persistFilters() async {
@@ -249,24 +256,6 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     );
   }
 
-  Widget _sortHeader(String label, bool byAvg, AppPalette p) {
-    final active = _sortByAvg == byAvg;
-    final arrow = active ? (_sortAscending ? " ↑" : " ↓") : "";
-    return InkWell(
-      onTap: () => _onSort(byAvg),
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        child: Text("$label$arrow",
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-                color: active ? p.accent : p.textMuted)),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -292,9 +281,17 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
             padding: const EdgeInsets.fromLTRB(2, 2, 2, 6),
             child: Row(
               children: [
-                _sortHeader(l10n.columnAlg.toUpperCase(), false, p),
+                SortHeader(
+                    label: l10n.columnAlg.toUpperCase(),
+                    column: _SortColumn.alg,
+                    state: _sort,
+                    onSort: _onSort),
                 const Spacer(),
-                _sortHeader(l10n.columnAvg.toUpperCase(), true, p),
+                SortHeader(
+                    label: l10n.columnAvg.toUpperCase(),
+                    column: _SortColumn.avg,
+                    state: _sort,
+                    onSort: _onSort),
               ],
             ),
           ),

@@ -1,22 +1,23 @@
 import 'dart:async';
 
-import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:three_style_trainer/practice_type.dart';
 
 import '../alg_structs.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_palette.dart';
 import '../theme/theme_scope.dart';
 import '../utils.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/glass_panel.dart';
+import '../widgets/sort_header.dart';
 
 const int BUTTON_PRESS_DELAY_MS = 250;
 
-ButtonStyle summaryButtonStyle(ThemeData theme) => ElevatedButton.styleFrom(
-      backgroundColor: theme.colorScheme.primary,
-      foregroundColor: theme.colorScheme.onPrimary,
-      elevation: 3,
-    );
+// Sets rows fill toward a fixed target tick; under-target fills stop short of it.
+const double _TARGET_TICK_FRAC = 0.65;
+
+enum _SortColumn { order, time }
 
 class SessionSummaryScreen extends StatefulWidget {
   final List<AlgTime> algTimes;
@@ -36,14 +37,32 @@ class SessionSummaryScreen extends StatefulWidget {
 }
 
 class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
-  bool _sortAscending = true;
-  int _sortColumnIndex = 0;
+  // Sort: by occurrence order (default) or by solve time.
+  final SortState<_SortColumn> _sort = SortState(
+      column: _SortColumn.order, direction: SortDirection.ascending);
   bool _canPressButtons = false;
   late Timer _buttonsActivationTimer;
+
+  // Distribution anchors over the session times (min / median / max), used to
+  // color the times and scale the speed bars in Time-race.
+  int _loMs = 0;
+  int _medMs = 0;
+  int _hiMs = 0;
+  AlgTime? _fastest;
+  AlgTime? _slowest;
+
+  bool get _isTimeRace => widget.practiceType == PracticeType.timeRace;
+
+  TextStyle _mono(double size, Color color,
+          {FontWeight weight = FontWeight.w700}) =>
+      TextStyle(
+          fontFamily: MONO_FONT, fontSize: size, fontWeight: weight, color: color);
 
   @override
   void initState() {
     super.initState();
+    _computeAnchors();
+    _applySort();
 
     _buttonsActivationTimer = Timer(
         Duration(milliseconds: BUTTON_PRESS_DELAY_MS),
@@ -54,114 +73,97 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 
   @override
   void dispose() {
-    super.dispose();
     _buttonsActivationTimer.cancel();
+    super.dispose();
   }
 
-  List<DataColumn> getColumns(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-
-    return <DataColumn>[
-      DataColumn(
-        onSort: onSort,
-        label: Text(
-          l10n.columnNumber,
-          style: theme.textTheme.titleMedium,
-        ),
-      ),
-      DataColumn(
-        onSort: onSort,
-        label: Text(
-          l10n.columnAlg,
-          style: theme.textTheme.titleMedium,
-        ),
-      ),
-      DataColumn(
-        onSort: onSort,
-        label: Text(
-          l10n.columnTime,
-          style: theme.textTheme.titleMedium,
-        ),
-      ),
-    ];
+  void _computeAnchors() {
+    if (widget.algTimes.isEmpty) return;
+    final sorted = widget.algTimes.map((a) => a.timeMs).toList()..sort();
+    _loMs = sorted.first;
+    _hiMs = sorted.last;
+    final m = sorted.length ~/ 2;
+    _medMs = sorted.length.isOdd
+        ? sorted[m]
+        : ((sorted[m - 1] + sorted[m]) / 2).round();
+    _fastest =
+        widget.algTimes.reduce((a, b) => a.timeMs <= b.timeMs ? a : b);
+    _slowest =
+        widget.algTimes.reduce((a, b) => a.timeMs >= b.timeMs ? a : b);
   }
 
-  Color getAlgTimeColor(int timeMs, ThemeData theme) {
-    if (widget.practiceType.isSetBased) {
-      return isUnderTargetTime(timeMs, widget.targetTime)
-          ? Colors.green
-          : Colors.red;
-    } else {
-      return theme.colorScheme.onSurface;
-    }
-  }
-
-  DataRow toDataRow(AlgTime algTime, ThemeData theme) {
-    return DataRow(cells: [
-      DataCell(Text(
-        (algTime.index).toString(),
-        style: theme.textTheme.displaySmall,
-      )),
-      DataCell(Text(
-        algTime.alg.name,
-        style: theme.textTheme.displaySmall,
-      )),
-      DataCell(Text(
-        timeToString(algTime.timeMs, fractionDigits: 2),
-        style: theme.textTheme.displaySmall
-            ?.copyWith(color: getAlgTimeColor(algTime.timeMs, theme)),
-      )),
-    ]);
-  }
-
-  int compareInt(bool ascending, int value1, int value2) =>
-      ascending ? value1.compareTo(value2) : value2.compareTo(value1);
-
-  int compareString(bool ascending, String value1, String value2) =>
-      ascending ? value1.compareTo(value2) : value2.compareTo(value1);
-
-  void onSort(int columnIndex, bool ascending) {
-    if (columnIndex == 0) {
-      widget.algTimes
-          .sort((e1, e2) => compareInt(ascending, e1.index, e2.index));
-    } else if (columnIndex == 1) {
-      widget.algTimes
-          .sort((e1, e2) => compareString(ascending, e1.alg.name, e2.alg.name));
-    } else if (columnIndex == 2) {
-      widget.algTimes
-          .sort((e1, e2) => compareInt(ascending, e1.timeMs, e2.timeMs));
-    }
-
-    setState(() {
-      _sortAscending = ascending;
-      _sortColumnIndex = columnIndex;
+  void _applySort() {
+    widget.algTimes.sort((a, b) {
+      final cmp = _sort.column == _SortColumn.time
+          ? a.timeMs.compareTo(b.timeMs)
+          : a.index.compareTo(b.index);
+      return _sort.direction.isAscending ? cmp : -cmp;
     });
   }
 
-  String getFormatedAverage() {
-    if (widget.algTimes.isEmpty) {
-      return "";
-    }
-
-    int totalTime = 0;
-    for (AlgTime algTime in widget.algTimes) {
-      totalTime += algTime.timeMs;
-    }
-    int averageTimeMs = (totalTime / widget.algTimes.length).round();
-    return timeToString(averageTimeMs, fractionDigits: 2);
+  void _onSort(_SortColumn column) {
+    setState(() {
+      // Both columns start ascending: order -> as they occurred, time ->
+      // fastest first.
+      _sort.toggle(column, SortDirection.ascending);
+      _applySort();
+    });
   }
 
-  void _onRepeatTargetTimePressed() {
-    bool allCasesBelowTarget = true;
-    for (AlgTime algTime in widget.algTimes) {
-      if (!isUnderTargetTime(algTime.timeMs, widget.targetTime)) {
-        allCasesBelowTarget = false;
-        break;
-      }
+  // Green (fastest) -> textPrimary (median) -> red (slowest), anchored on the
+  // session min / median / max so the middle case reads neutral.
+  Color _distributionColor(int timeMs, AppPalette p) {
+    if (_hiMs <= _loMs) return p.textPrimary;
+    final v = timeMs.toDouble();
+    double t;
+    if (v <= _medMs) {
+      final span = _medMs - _loMs;
+      t = span <= 0 ? 0.5 : 0.5 * ((v - _loMs) / span).clamp(0.0, 1.0);
+    } else {
+      final span = _hiMs - _medMs;
+      final frac = span <= 0 ? 1.0 : ((v - _medMs) / span).clamp(0.0, 1.0);
+      t = 0.5 + 0.5 * frac;
     }
+    return t <= 0.5
+        ? Color.lerp(p.good, p.textPrimary, t / 0.5)!
+        : Color.lerp(p.textPrimary, p.bad, (t - 0.5) / 0.5)!;
+  }
 
-    if (allCasesBelowTarget) {
+  Color _rowColor(int timeMs, AppPalette p) => _isTimeRace
+      ? _distributionColor(timeMs, p)
+      : (isUnderTargetTime(timeMs, widget.targetTime) ? p.good : p.bad);
+
+  // Time-race speed bar: fraction of track filled, scaled across the session
+  // (fastest gets a small floor so it stays visible).
+  double _speedFrac(int timeMs) {
+    if (_hiMs <= _loMs) return 1.0;
+    final f = (timeMs - _loMs) / (_hiMs - _loMs);
+    return (0.15 + 0.70 * f).clamp(0.0, 1.0);
+  }
+
+  // Sets success meter: fills toward the target tick; over-target overflows it.
+  double _meterFrac(int timeMs) {
+    if (widget.targetTime <= 0) return _TARGET_TICK_FRAC;
+    final f = (timeMs / 1000) / widget.targetTime * _TARGET_TICK_FRAC;
+    return f.clamp(0.05, 1.0);
+  }
+
+  String _formattedAverage() {
+    if (widget.algTimes.isEmpty) return "–";
+    final total =
+        widget.algTimes.fold<int>(0, (sum, a) => sum + a.timeMs);
+    return timeToString((total / widget.algTimes.length).round(),
+        fractionDigits: 2);
+  }
+
+  int get _underTargetCount => widget.algTimes
+      .where((a) => isUnderTargetTime(a.timeMs, widget.targetTime))
+      .length;
+
+  void _onRepeatTargetTimePressed() {
+    final allBelow = widget.algTimes
+        .every((a) => isUnderTargetTime(a.timeMs, widget.targetTime));
+    if (allBelow) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(AppLocalizations.of(context)!
             .allCasesWereSubTarget(widget.targetTime)),
@@ -173,128 +175,377 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final p = context.palette;
+    final l10n = AppLocalizations.of(context)!;
 
     return AppScaffold(
-      title: AppLocalizations.of(context)!.sessionSummary,
+      title: l10n.sessionSummary,
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 16),
           child: Center(
             child: Text(
-              AppLocalizations.of(context)!
-                  .totalTime(totalTimeToString(widget.totalTimeMs)),
+              l10n.totalTime(totalTimeToString(widget.totalTimeMs)),
               style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: p.textMuted),
+                  fontSize: 13, fontWeight: FontWeight.w600, color: p.textMuted),
             ),
           ),
         ),
       ],
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.0),
-          child: Column(
-            children: [
-              widget.practiceType.isSetBased
-                  ? SetsPracticeButtons(widget.targetTime,
-                      () => _onRepeatTargetTimePressed(), _canPressButtons)
-                  : TimeRaceStatsWidget(widget.algTimes.length),
-              Text(AppLocalizations.of(context)!.average(getFormatedAverage()),
-                  style: theme.textTheme.displaySmall),
-              widget.practiceType == PracticeType.timeRace
-                  ? Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: ElevatedButton(
-                          style: summaryButtonStyle(theme),
-                          onPressed: () => _canPressButtons
-                              ? {Navigator.pop(context, 'again')}
-                              : null,
-                          child: Text(AppLocalizations.of(context)!.again)),
-                    )
-                  : Container(),
-              SizedBox(height: 6),
-              Expanded(
-                child: Card(
-                  color: p.panel,
-                  child: DataTable2(
-                      fixedTopRows: 1,
-                      horizontalMargin: 10,
-                      columnSpacing: 5,
-                      sortColumnIndex: _sortColumnIndex,
-                      sortAscending: _sortAscending,
-                      columns: getColumns(context),
-                      rows: widget.algTimes
-                          .map((algTime) => toDataRow(algTime, theme))
-                          .toList()),
-                ),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 6, 14, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _statHeader(p, l10n),
+            const SizedBox(height: 12),
+            _isTimeRace ? _timeRaceActions(p, l10n) : _setsActions(p, l10n),
+            const SizedBox(height: 14),
+            _sortHeaderRow(l10n),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.builder(
+                itemCount: widget.algTimes.length,
+                itemBuilder: (context, i) => _algRow(widget.algTimes[i], p),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statHeader(AppPalette p, AppLocalizations l10n) {
+    // IntrinsicHeight + stretch so all three tiles match the tallest, even
+    // though the Spread value uses a smaller font than the single numbers.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _statTile(p, l10n.statCompleted,
+                value: widget.algTimes.length.toString()),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _statTile(p, l10n.statAverage,
+                value: _formattedAverage(), valueColor: p.accent),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _isTimeRace
+                ? _spreadTile(p, l10n)
+                : _statTile(p, l10n.statUnderTarget,
+                    value: "$_underTargetCount/${widget.algTimes.length}",
+                    valueColor: p.good),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statTile(AppPalette p, String label,
+      {String value = "", Color? valueColor, Widget? valueWidget}) {
+    return GlassPanel(
+      radius: 12,
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label.toUpperCase(),
+              style: TextStyle(
+                  fontSize: 9,
+                  letterSpacing: 0.6,
+                  fontWeight: FontWeight.w700,
+                  color: p.textFaint)),
+          const SizedBox(height: 3),
+          valueWidget ?? Text(value, style: _mono(20, valueColor ?? p.textPrimary)),
+        ],
+      ),
+    );
+  }
+
+  // Spread: min → max on one line (green best, faint arrow, red worst).
+  Widget _spreadTile(AppPalette p, AppLocalizations l10n) {
+    final value = widget.algTimes.isEmpty
+        ? const SizedBox.shrink()
+        : FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                Text(timeToString(_loMs, fractionDigits: 2),
+                    style: _mono(16, p.good)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: Text("→",
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: p.textFaint)),
+                ),
+                Text(timeToString(_hiMs, fractionDigits: 2),
+                    style: _mono(16, p.bad)),
+              ],
+            ),
+          );
+    return _statTile(p, l10n.statSpread, valueWidget: value);
+  }
+
+  Widget _timeRaceActions(AppPalette p, AppLocalizations l10n) {
+    return Center(
+      child: _pillButton(
+        p,
+        label: l10n.again,
+        icon: Icons.refresh,
+        onPressed: () => Navigator.pop(context, 'again'),
+      ),
+    );
+  }
+
+  Widget _setsActions(AppPalette p, AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Target line — hosts the inline edit control later (Feature 7).
+        Center(
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                    text: "${l10n.summaryTarget}  ",
+                    style: TextStyle(fontSize: 13, color: p.textMuted)),
+                TextSpan(
+                  text: widget.targetTime.toStringAsFixed(2),
+                  style: _mono(14, p.textPrimary),
+                ),
+                TextSpan(
+                    text: "s",
+                    style: TextStyle(fontSize: 13, color: p.textMuted)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _blockButton(p,
+            label: l10n.repeatAll,
+            filled: true,
+            onPressed: () => Navigator.pop(context, 'repeat_all')),
+        const SizedBox(height: 8),
+        _blockButton(p,
+            label: l10n.repeatTargetTime(widget.targetTime),
+            filled: false,
+            onPressed: _onRepeatTargetTimePressed),
+      ],
+    );
+  }
+
+  Widget _pillButton(AppPalette p,
+      {required String label,
+      required IconData icon,
+      required VoidCallback onPressed}) {
+    return Material(
+      color: p.accent,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: _canPressButtons ? onPressed : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 17, color: p.onAccent),
+              const SizedBox(width: 6),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: p.onAccent)),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class SetsPracticeButtons extends StatelessWidget {
-  final double _targetTime;
-  final Function _onPressed;
-  final bool _canPress;
-
-  SetsPracticeButtons(this._targetTime, this._onPressed, this._canPress);
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        ElevatedButton(
-            style: summaryButtonStyle(theme),
-            onPressed: () =>
-                _canPress ? {Navigator.pop(context, 'repeat_all')} : null,
-            child: Text(AppLocalizations.of(context)!.repeatAll)),
-        SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-                style: summaryButtonStyle(theme),
-                onPressed: () => _canPress ? _onPressed() : null,
-                child: Text(AppLocalizations.of(context)!
-                    .repeatTargetTime(_targetTime))),
-          ],
+  Widget _blockButton(AppPalette p,
+      {required String label,
+      required bool filled,
+      required VoidCallback onPressed}) {
+    return Material(
+      color: filled ? p.accent : Colors.transparent,
+      borderRadius: BorderRadius.circular(11),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(11),
+        onTap: _canPressButtons ? onPressed : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          decoration: filled
+              ? null
+              : BoxDecoration(
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                      color: p.accent.withValues(alpha: 0.55))),
+          alignment: Alignment.center,
+          child: Text(label,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: filled ? p.onAccent : p.accent)),
         ),
-        SizedBox(height: 6),
-      ],
+      ),
     );
   }
-}
 
-class TimeRaceStatsWidget extends StatelessWidget {
-  final int _completedAlgs;
-
-  TimeRaceStatsWidget(this._completedAlgs);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(children: [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _sortHeaderRow(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
         children: [
-          Text(
-            AppLocalizations.of(context)!.completedAlgs,
-            style: Theme.of(context).textTheme.displaySmall,
-          ),
-          Text(
-            _completedAlgs.toString(),
-            style: Theme.of(context).textTheme.displaySmall,
-          )
+          SortHeader(
+              label: l10n.columnNumber,
+              column: _SortColumn.order,
+              state: _sort,
+              onSort: _onSort),
+          const Spacer(),
+          SortHeader(
+              label: l10n.columnTime.toUpperCase(),
+              column: _SortColumn.time,
+              state: _sort,
+              onSort: _onSort),
         ],
       ),
-      SizedBox(height: 5),
-    ]);
+    );
+  }
+
+  Widget _algRow(AlgTime algTime, AppPalette p) {
+    final color = _rowColor(algTime.timeMs, p);
+    final isFastest = _isTimeRace && identical(algTime, _fastest);
+    final isSlowest = _isTimeRace &&
+        identical(algTime, _slowest) &&
+        !identical(_slowest, _fastest);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: GlassPanel(
+        radius: 10,
+        padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  child: Text(algTime.index.toString(),
+                      style: _mono(12, p.textFaint, weight: FontWeight.w400)),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(algTime.alg.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: _mono(17, p.textPrimary)),
+                      ),
+                      if (isFastest)
+                        _rowPill(p, AppLocalizations.of(context)!.pillFastest,
+                            p.good),
+                      if (isSlowest)
+                        _rowPill(p, AppLocalizations.of(context)!.pillSlowest,
+                            p.bad),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(timeToString(algTime.timeMs, fractionDigits: 2),
+                    style: _mono(17, color)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _bar(
+              p,
+              frac: _isTimeRace
+                  ? _speedFrac(algTime.timeMs)
+                  : _meterFrac(algTime.timeMs),
+              color: color,
+              tickFrac: _isTimeRace ? null : _TARGET_TICK_FRAC,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _rowPill(AppPalette p, String label, Color bg) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        decoration: BoxDecoration(
+            color: bg, borderRadius: BorderRadius.circular(5)),
+        child: Text(label.toUpperCase(),
+            style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+                color: p.brightness == Brightness.dark
+                    ? const Color(0xFF10201A)
+                    : Colors.white)),
+      ),
+    );
+  }
+
+  Widget _bar(AppPalette p,
+      {required double frac, required Color color, double? tickFrac}) {
+    final track = color.withValues(alpha: 0.10);
+    return SizedBox(
+      height: 10,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Center(
+              child: Container(
+                height: 6,
+                decoration: BoxDecoration(
+                    color: track, borderRadius: BorderRadius.circular(4)),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: frac.clamp(0.0, 1.0),
+                heightFactor: 1,
+                child: Center(
+                  child: Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                        color: color, borderRadius: BorderRadius.circular(4)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (tickFrac != null)
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: tickFrac,
+                  heightFactor: 1,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(width: 2, height: 10, color: p.textMuted),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

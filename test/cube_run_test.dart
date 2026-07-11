@@ -14,10 +14,12 @@ void main() {
 
   setUp(() => clock = DateTime(2026, 1, 1, 12, 0, 0));
 
-  test('supports only Corner and Edge', () {
+  test('supports every 3-style type but not Custom', () {
     expect(CubeRunController.supports(AlgType.Corner), isTrue);
     expect(CubeRunController.supports(AlgType.Edge), isTrue);
-    expect(CubeRunController.supports(AlgType.TwoFlip), isFalse);
+    expect(CubeRunController.supports(AlgType.TwoFlip), isTrue);
+    expect(CubeRunController.supports(AlgType.TwoTwist), isTrue);
+    expect(CubeRunController.supports(AlgType.Parity), isTrue);
     expect(CubeRunController.supports(AlgType.Custom), isFalse);
   });
 
@@ -122,8 +124,8 @@ void main() {
   });
 
   test('startCase returns false when the pair has no geometry', () {
-    final c = make(AlgType.TwoFlip);
-    expect(c.startCase('UF-DR', solved), isFalse);
+    final c = make(AlgType.Custom);
+    expect(c.startCase('AD', solved), isFalse);
     expect(c.expectedFacelets, isNull);
   });
 }

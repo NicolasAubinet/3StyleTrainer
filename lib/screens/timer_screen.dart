@@ -220,14 +220,21 @@ class _TimerScreenState extends State<TimerScreen> {
   // ---- Cube-driven mode ----------------------------------------------------
 
   // The alg type whose geometry drives cube-completion, or null if the cube
-  // can't drive this run. Supported non-custom types use their own type; a
-  // custom set is matched against the known schemes (corners, then edges).
+  // can't drive this run. A custom set is matched against the known schemes; a
+  // supported type drives itself only if its pairs actually map (parity needs
+  // the edge buffer adjacent to the corner buffer, else it's unmappable).
   AlgType? _resolveCubeAlgType(SmartCubeManager mgr) {
     if (!mgr.isConnected) return null;
     if (widget.algType == AlgType.Custom) {
       return ThreeStyleGeometry.detectAlgType(_customPairs);
     }
-    return CubeRunController.supports(widget.algType) ? widget.algType : null;
+    if (!CubeRunController.supports(widget.algType)) return null;
+    final pool = enumerateAlgs(widget.algType);
+    final mappable = pool.isNotEmpty &&
+        pool.every((p) => ThreeStyleGeometry.expectedAfterPair(
+                CubeState.solvedFacelets, p, widget.algType) !=
+            null);
+    return mappable ? widget.algType : null;
   }
 
   List<String> get _customPairs {
@@ -484,7 +491,9 @@ class _TimerScreenState extends State<TimerScreen> {
       _stateSub = cube.states.listen(_onCubeState);
       _moveSub = cube.moves.listen((_) => _onCubeMove());
       mgr.connection.addListener(_onConnectionChanged);
-    } else if (mgr.isConnected && widget.algType == AlgType.Custom) {
+    } else if (mgr.isConnected) {
+      // Cube connected but this run isn't cube-drivable (unrecognized custom
+      // scheme, or an unmappable type like parity with non-adjacent buffers).
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(

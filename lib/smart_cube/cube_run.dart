@@ -34,8 +34,8 @@ class CaseSplit {
 /// is done only when the cube reaches `Δ_pair ∘ startState` (see
 /// [ThreeStyleGeometry]). Because the check is relative, a run can begin from any
 /// state (no forced solve between runs). A wrong alg never reaches that state, so
-/// it can never auto-advance. Only Corner/Edge pairs are supported ([supports]);
-/// other alg types have no expected-state geometry yet.
+/// it can never auto-advance. Corner, edge, 2-flip, 2-twist and parity pairs are
+/// supported ([supports]); Custom resolves to one of those by scheme detection.
 class CubeRunController {
   final AlgType algType;
   final DateTime Function() _now;
@@ -51,9 +51,15 @@ class CubeRunController {
   DateTime? _firstMoveAt;
   Duration? _recognition;
 
-  /// Whether cube-driven completion is available for [type] (Corner/Edge only).
+  /// Whether cube-driven completion geometry exists for [type]. A supported type
+  /// may still be unmappable at runtime (e.g. parity with non-adjacent buffers),
+  /// which surfaces as a null expected state.
   static bool supports(AlgType type) =>
-      type == AlgType.Corner || type == AlgType.Edge;
+      type == AlgType.Corner ||
+      type == AlgType.Edge ||
+      type == AlgType.TwoFlip ||
+      type == AlgType.TwoTwist ||
+      type == AlgType.Parity;
 
   /// Begin a new case for [pair], baselined on [currentFacelets] (the cube's
   /// present physical state — the prior case's end state, or whatever the cube

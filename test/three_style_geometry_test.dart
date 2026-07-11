@@ -170,9 +170,131 @@ void main() {
     }, skip: USE_EDGE_AUDIO_SYLLABLES ? false : 'audio scheme disabled');
   });
 
-  test('unsupported alg types return null (for now)', () {
-    expect(
-        ThreeStyleGeometry.expectedAfterPair(solved, 'UF-DR', AlgType.TwoFlip),
-        isNull);
+  group('2-flips', () {
+    const pair = 'UF-DR'; // flip edges UF (piece 1) and DR (piece 4) in place.
+    final involved = _edgeFacelets([1, 4]);
+
+    test('expected state is a valid cube', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.TwoFlip)!;
+      expect(exp.length, 54);
+      expect(CubieCube().fromFacelet(exp), isTrue);
+    });
+
+    test('only the two flipped edges change', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.TwoFlip)!;
+      for (var i = 0; i < 54; i++) {
+        if (!involved.contains(i)) {
+          expect(exp[i], solved[i], reason: 'facelet $i outside the flips moved');
+        }
+      }
+    });
+
+    test('a 2-flip is its own inverse (order 2)', () {
+      final once = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.TwoFlip)!;
+      expect(once == solved, isFalse);
+      final twice = ThreeStyleGeometry.expectedAfterPair(once, pair, AlgType.TwoFlip)!;
+      expect(twice, solved);
+    });
+
+    test('completion detection', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.TwoFlip)!;
+      expect(
+          ThreeStyleGeometry.isPairComplete(exp, solved, pair, AlgType.TwoFlip),
+          isTrue);
+      expect(
+          ThreeStyleGeometry.isPairComplete(solved, solved, pair, AlgType.TwoFlip),
+          isFalse);
+    });
+  });
+
+  group('2-twists', () {
+    const pair = 'E-F'; // twist corners at E (ULB, piece 2) and F (UFL, piece 1).
+    final involved = _cornerFacelets([1, 2]);
+
+    test('expected state is a valid cube', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.TwoTwist)!;
+      expect(CubieCube().fromFacelet(exp), isTrue);
+    });
+
+    test('only the two twisted corners change', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.TwoTwist)!;
+      for (var i = 0; i < 54; i++) {
+        if (!involved.contains(i)) {
+          expect(exp[i], solved[i], reason: 'facelet $i outside the twists moved');
+        }
+      }
+    });
+
+    test('a 2-twist has order 3', () {
+      var s = solved;
+      for (var i = 0; i < 3; i++) {
+        s = ThreeStyleGeometry.expectedAfterPair(s, pair, AlgType.TwoTwist)!;
+        if (i < 2) expect(s == solved, isFalse);
+      }
+      expect(s, solved, reason: 'applying the case three times returns to solved');
+    });
+
+    test('completion detection', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.TwoTwist)!;
+      expect(
+          ThreeStyleGeometry.isPairComplete(exp, solved, pair, AlgType.TwoTwist),
+          isTrue);
+    });
+  });
+
+  group('parity (UFR corner buffer, UF edge buffer)', () {
+    // "A" = target corner ULB (piece 2); swaps buffer URF (0) with it, and the
+    // edge buffer UF (1) with the corner buffer's other edge UR (0).
+    const pair = 'A';
+    final involved = {..._cornerFacelets([0, 2]), ..._edgeFacelets([1, 0])};
+
+    test('expected state is a valid cube', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.Parity)!;
+      expect(CubieCube().fromFacelet(exp), isTrue,
+          reason: 'a corner + edge double swap must be a legal cube state');
+    });
+
+    test('only the two corners and two edges change', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.Parity)!;
+      for (var i = 0; i < 54; i++) {
+        if (!involved.contains(i)) {
+          expect(exp[i], solved[i], reason: 'facelet $i outside the parity moved');
+        }
+      }
+    });
+
+    test('parity is its own inverse (order 2)', () {
+      final once = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.Parity)!;
+      expect(once == solved, isFalse);
+      final twice = ThreeStyleGeometry.expectedAfterPair(once, pair, AlgType.Parity)!;
+      expect(twice, solved);
+    });
+
+    test('completion detection', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.Parity)!;
+      expect(
+          ThreeStyleGeometry.isPairComplete(exp, solved, pair, AlgType.Parity),
+          isTrue);
+    });
+  });
+
+  group('detectAlgType for the new types', () {
+    test('dash-separated flip names resolve to 2-flips', () {
+      expect(ThreeStyleGeometry.detectAlgType(['UF-DR', 'UL-BR']),
+          AlgType.TwoFlip);
+    });
+
+    test('dash-separated single-letter pairs resolve to 2-twists', () {
+      expect(ThreeStyleGeometry.detectAlgType(['E-F']), AlgType.TwoTwist);
+    });
+
+    test('single letters resolve to parity', () {
+      expect(ThreeStyleGeometry.detectAlgType(['A', 'B']), AlgType.Parity);
+    });
   });
 }
+
+// Which facelets belong to the given edge pieces.
+Set<int> _edgeFacelets(List<int> pieces) => {
+      for (final p in pieces) ...CubieCube.eFacelet[p],
+    };

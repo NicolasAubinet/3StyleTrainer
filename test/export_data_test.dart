@@ -9,7 +9,8 @@ void main() {
         dbVersion: 5,
         exportedAt: 1730000000000,
         recordedTimes: [
-          RecordedTime('Corner', 'AB', 1234, 1730000000001),
+          RecordedTime('Corner', 'AB', 1234, 1730000000001,
+              recognitionMs: 500),
           RecordedTime('Edge', 'CD', 5678, 1730000000002),
         ],
         customSets: [
@@ -35,6 +36,9 @@ void main() {
     expect(parsed.recordedTimes![0].alg, 'AB');
     expect(parsed.recordedTimes![0].resultMs, 1234);
     expect(parsed.recordedTimes![0].timestamp, 1730000000001);
+    expect(parsed.recordedTimes![0].recognitionMs, 500);
+    // The unsplit press-timed row carries no recognition.
+    expect(parsed.recordedTimes![1].recognitionMs, isNull);
 
     expect(parsed.customSets, hasLength(1));
     expect(parsed.customSets![0].name, 'My set');
@@ -60,6 +64,27 @@ void main() {
     expect(parsed.recordedTimes, isNull);
     expect(parsed.settings, isNull);
     expect(parsed.customSets, hasLength(1));
+  });
+
+  test('recognitionMs is omitted from JSON when null', () {
+    final json = RecordedTime('Corner', 'AB', 1234, 5).toJson();
+    expect(json.containsKey('recognitionMs'), isFalse);
+  });
+
+  test('a v1 file (no recognitionMs) parses the split as null', () {
+    final raw = jsonEncode({
+      'format': ExportData.kFormat,
+      'formatVersion': 1,
+      'dbVersion': 5,
+      'exportedAt': 1,
+      'sections': {
+        'recordedTimes': [
+          {'algType': 'Corner', 'alg': 'AB', 'resultMs': 1234, 'timestamp': 2}
+        ],
+      },
+    });
+    final parsed = ExportData.parse(raw);
+    expect(parsed.recordedTimes![0].recognitionMs, isNull);
   });
 
   test('non-JSON is rejected as invalidFile', () {

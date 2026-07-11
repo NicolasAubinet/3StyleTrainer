@@ -11,7 +11,7 @@ import 'alg_structs.dart';
 import 'export_data.dart';
 import 'slowest.dart';
 
-const int DB_VERSION = 6;
+const int DB_VERSION = 7;
 
 const String RESULTS = "results";
 const String CUSTOM_SETS = "custom_sets";
@@ -35,7 +35,9 @@ class DatabaseManager {
         )''');
   }
 
-  // History of every recorded time: one row per timed solve.
+  // History of every recorded time: one row per timed solve. recognitionMs is
+  // the recognition part of a smart-cube split (execution = resultMs − it);
+  // NULL for press-timed and pre-v7 rows.
   Future<void> _createResultsTable(Database db) async {
     await db.execute('''
           CREATE TABLE $RESULTS(
@@ -43,6 +45,7 @@ class DatabaseManager {
             algType TEXT,
             alg TEXT,
             resultMs INTEGER,
+            recognitionMs INTEGER,
             timestamp INTEGER
           )''');
     await db.execute(
@@ -70,6 +73,12 @@ class DatabaseManager {
     if (oldVersion < 6) {
       // Time race no longer tracks a cycle; results now drive selection.
       await db.execute('DROP TABLE IF EXISTS executed_time_race_algs');
+    }
+    if (oldVersion < 7) {
+      // Carry the smart-cube recognition split; existing rows keep their totals
+      // and get a NULL recognition (no split detail).
+      await db
+          .execute('ALTER TABLE $RESULTS ADD COLUMN recognitionMs INTEGER');
     }
   }
 
@@ -112,7 +121,7 @@ class DatabaseManager {
   }
 
   void insertResult(AlgType algType, String alg, int resultMs,
-      {int? timestamp}) async {
+      {int? timestamp, int? recognitionMs}) async {
     if (!isUsingDatabase()) {
       return;
     }
@@ -121,6 +130,7 @@ class DatabaseManager {
       'algType': algType.name,
       'alg': alg,
       'resultMs': resultMs,
+      'recognitionMs': recognitionMs,
       'timestamp': timestamp ?? DateTime.now().millisecondsSinceEpoch,
     };
     await _database.insert(RESULTS, map);
@@ -151,9 +161,14 @@ class DatabaseManager {
       whereArgs.add(sinceMs);
     }
 
+    // AVG/COUNT ignore NULLs, so the split averages cover only smart-cube rows;
+    // splitCount says how many rows carry a recognition/execution split.
     final List<Map<String, Object?>> rows = await _database.rawQuery(
       'SELECT alg, COUNT(*) AS count, MIN(resultMs) AS minMs, '
-      'MAX(resultMs) AS maxMs, AVG(resultMs) AS avgMs '
+      'MAX(resultMs) AS maxMs, AVG(resultMs) AS avgMs, '
+      'AVG(recognitionMs) AS avgRecognitionMs, '
+      'AVG(resultMs - recognitionMs) AS avgExecutionMs, '
+      'COUNT(recognitionMs) AS splitCount '
       'FROM $RESULTS WHERE $where GROUP BY alg',
       whereArgs,
     );
@@ -179,7 +194,7 @@ class DatabaseManager {
 
     final List<Map<String, Object?>> rows = await _database.query(
       RESULTS,
-      columns: ['id', 'resultMs', 'timestamp'],
+      columns: ['id', 'resultMs', 'recognitionMs', 'timestamp'],
       where: where,
       whereArgs: whereArgs,
       orderBy: "timestamp DESC, id DESC",
@@ -322,7 +337,7 @@ class DatabaseManager {
 
     final List<Map<String, Object?>> rows = await _database.query(
       RESULTS,
-      columns: ['algType', 'alg', 'resultMs', 'timestamp'],
+      columns: ['algType', 'alg', 'resultMs', 'recognitionMs', 'timestamp'],
     );
 
     return [
@@ -332,6 +347,7 @@ class DatabaseManager {
           row['alg'] as String,
           (row['resultMs'] as num).toInt(),
           (row['timestamp'] as num).toInt(),
+          recognitionMs: (row['recognitionMs'] as num?)?.toInt(),
         ),
     ];
   }
@@ -367,6 +383,7 @@ class DatabaseManager {
           'algType': t.algType,
           'alg': t.alg,
           'resultMs': t.resultMs,
+          'recognitionMs': t.recognitionMs,
           'timestamp': t.timestamp,
         });
         inserted++;

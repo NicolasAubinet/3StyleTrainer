@@ -9,7 +9,7 @@ import '../utils.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/sort_header.dart';
 
-enum _SortColumn { dateTime, result }
+enum _SortColumn { dateTime, recognition, execution, total }
 
 // Lists every recorded attempt for one (algType, alg)
 class AlgResultDetailsScreen extends StatefulWidget {
@@ -37,6 +37,19 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   final SortState<_SortColumn> _sort = SortState(
       column: _SortColumn.dateTime, direction: SortDirection.descending);
 
+  int? _sortValue(AlgResult r) {
+    switch (_sort.column) {
+      case _SortColumn.recognition:
+        return r.recognitionMs;
+      case _SortColumn.execution:
+        return r.executionMs;
+      case _SortColumn.total:
+        return r.resultMs;
+      case _SortColumn.dateTime:
+        return r.timestamp;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -56,9 +69,13 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
 
   void _applySort(List<AlgResult> results) {
     results.sort((a, b) {
-      final cmp = _sort.column == _SortColumn.result
-          ? a.resultMs.compareTo(b.resultMs)
-          : a.timestamp.compareTo(b.timestamp);
+      // Attempts with no split (null) always sort last, either direction.
+      final va = _sortValue(a), vb = _sortValue(b);
+      if (va == null || vb == null) {
+        if (va == vb) return 0;
+        return va == null ? 1 : -1;
+      }
+      final cmp = va.compareTo(vb);
       return _sort.direction.isAscending ? cmp : -cmp;
     });
   }
@@ -133,11 +150,28 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
           Expanded(
               child: _sortHeader(
                   theme, l10n.columnDateTime, _SortColumn.dateTime)),
-          _sortHeader(theme, l10n.columnResult, _SortColumn.result,
+          _sortHeader(theme, l10n.columnRecognition, _SortColumn.recognition),
+          const SizedBox(width: 10),
+          _sortHeader(theme, l10n.columnExecution, _SortColumn.execution),
+          _sortHeader(theme, l10n.columnTotal, _SortColumn.total,
               width: _timeColumnWidth, align: TextAlign.right),
           SizedBox(width: _deleteColumnWidth),
         ],
       ),
+    );
+  }
+
+  // Recognition/execution split, or an em dash when this attempt wasn't split.
+  Widget _splitLabel(ThemeData theme, AlgResult result) {
+    final p = context.palette;
+    if (result.recognitionMs == null) {
+      return Text("—",
+          style: theme.textTheme.bodySmall?.copyWith(color: p.textFaint));
+    }
+    return Text(
+      "R ${timeToString(result.recognitionMs!, fractionDigits: 2)}   "
+      "E ${timeToString(result.executionMs!, fractionDigits: 2)}",
+      style: theme.textTheme.bodySmall?.copyWith(color: p.textFaint),
     );
   }
 
@@ -148,7 +182,15 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Row(
         children: [
-          Expanded(child: Text(_dateFormat.format(date), style: cellStyle)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_dateFormat.format(date), style: cellStyle),
+                _splitLabel(theme, result),
+              ],
+            ),
+          ),
           SizedBox(
             width: _timeColumnWidth,
             child: Text(timeToString(result.resultMs, fractionDigits: 2),

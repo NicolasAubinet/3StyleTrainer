@@ -760,6 +760,24 @@ abstract class AppLocalizations {
   /// **'Avg'**
   String get columnAvg;
 
+  /// No description provided for @columnRecognition.
+  ///
+  /// In en, this message translates to:
+  /// **'Recog'**
+  String get columnRecognition;
+
+  /// No description provided for @columnExecution.
+  ///
+  /// In en, this message translates to:
+  /// **'Exec'**
+  String get columnExecution;
+
+  /// No description provided for @columnTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get columnTotal;
+
   /// No description provided for @columnDateTime.
   ///
   /// In en, this message translates to:

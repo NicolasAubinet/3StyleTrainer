@@ -13,7 +13,7 @@ import '../widgets/glass_panel.dart';
 import '../widgets/sort_header.dart';
 import 'alg_result_details_screen.dart';
 
-enum _SortColumn { alg, avg }
+enum _SortColumn { alg, recognition, execution, total }
 
 class AlgTimesScreen extends StatefulWidget {
   const AlgTimesScreen({super.key});
@@ -31,7 +31,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     AlgType.Parity,
   ];
 
-  static const String _sortByAvgKey = "alg_times_sort_by_avg";
+  static const String _sortColumnKey = "alg_times_sort_column";
   static const String _sortAscendingKey = "alg_times_sort_ascending";
   static const String _categoryKey = "alg_times_category";
   static const String _rangeKey = "alg_times_range";
@@ -39,9 +39,9 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
   AlgType _category = AlgType.Corner;
   StatsDateRange _range = StatsDateRange.all;
   List<AlgStats> _stats = [];
-  // Sort: by average (default, slowest first) or by alg name.
+  // Sort: by total (default, slowest first), recognition/execution split, or alg name.
   final SortState<_SortColumn> _sort = SortState(
-      column: _SortColumn.avg, direction: SortDirection.descending);
+      column: _SortColumn.total, direction: SortDirection.descending);
   // Gradient anchors over the shown averages: median = white (so ~half the
   // cases are green and half red), 10th/90th percentile = full green/red.
   double _loAvgMs = 0;
@@ -58,8 +58,8 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
 
   void _init() async {
     final prefs = await SharedPreferences.getInstance();
-    _sort.column =
-        (prefs.getBool(_sortByAvgKey) ?? true) ? _SortColumn.avg : _SortColumn.alg;
+    _sort.column = _readEnum(
+        prefs.getString(_sortColumnKey), _SortColumn.values, _SortColumn.total);
     _sort.direction = (prefs.getBool(_sortAscendingKey) ?? false)
         ? SortDirection.ascending
         : SortDirection.descending;
@@ -92,21 +92,40 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
 
   void _applySort(List<AlgStats> stats) {
     stats.sort((a, b) {
-      final cmp = _sort.column == _SortColumn.avg
-          ? a.avgMs.compareTo(b.avgMs)
-          : a.alg.compareTo(b.alg);
+      if (_sort.column == _SortColumn.alg) {
+        final cmp = a.alg.compareTo(b.alg);
+        return _sort.direction.isAscending ? cmp : -cmp;
+      }
+      // Cases with no split data (null) always sort last, either direction.
+      final va = _sortValue(a), vb = _sortValue(b);
+      if (va == null || vb == null) {
+        if (va == vb) return 0;
+        return va == null ? 1 : -1;
+      }
+      final cmp = va.compareTo(vb);
       return _sort.direction.isAscending ? cmp : -cmp;
     });
   }
 
+  double? _sortValue(AlgStats s) {
+    switch (_sort.column) {
+      case _SortColumn.recognition:
+        return s.avgRecognitionMs;
+      case _SortColumn.execution:
+        return s.avgExecutionMs;
+      default:
+        return s.avgMs;
+    }
+  }
+
   void _onSort(_SortColumn column) {
     setState(() {
-      // alg -> A→Z, avg -> slowest first.
+      // alg -> A→Z, time columns -> slowest first.
       _sort.toggle(
           column,
-          column == _SortColumn.avg
-              ? SortDirection.descending
-              : SortDirection.ascending);
+          column == _SortColumn.alg
+              ? SortDirection.ascending
+              : SortDirection.descending);
       _applySort(_stats);
     });
     _persistSort();
@@ -114,7 +133,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
 
   void _persistSort() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setBool(_sortByAvgKey, _sort.column == _SortColumn.avg);
+    prefs.setString(_sortColumnKey, _sort.column.name);
     prefs.setBool(_sortAscendingKey, _sort.direction.isAscending);
   }
 
@@ -215,6 +234,29 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     );
   }
 
+  // Recognition/execution split subtitle, or an em dash when the case has no
+  // smart-cube solves to split.
+  Widget _splitLabel(AlgStats stats, AppPalette p) {
+    final recog = stats.avgRecognitionMs, exec = stats.avgExecutionMs;
+    if (recog == null || exec == null) {
+      return Text("—", style: TextStyle(fontSize: 13, color: p.textFaint));
+    }
+    TextSpan part(String label, double ms) => TextSpan(children: [
+          TextSpan(
+              text: "$label ",
+              style: TextStyle(fontSize: 11, color: p.textFaint)),
+          TextSpan(
+              text: timeToString(ms.round(), fractionDigits: 2),
+              style: TextStyle(
+                  fontFamily: MONO_FONT, fontSize: 13, color: p.textMuted)),
+        ]);
+    return Text.rich(TextSpan(children: [
+      part("R", recog),
+      const TextSpan(text: "   "),
+      part("E", exec),
+    ]));
+  }
+
   Widget _statCard(AlgStats stats, AppPalette p, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -232,16 +274,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
                       fontWeight: FontWeight.w700,
                       color: p.textPrimary)),
             ),
-            Expanded(
-              child: Text(
-                l10n.statsSolvesRange(
-                  stats.count,
-                  timeToString(stats.maxMs, fractionDigits: 1),
-                  timeToString(stats.minMs, fractionDigits: 1),
-                ),
-                style: TextStyle(fontSize: 12, color: p.textFaint),
-              ),
-            ),
+            Expanded(child: _splitLabel(stats, p)),
             Text(
               timeToString(stats.avgMs.round(), fractionDigits: 2),
               style: TextStyle(
@@ -288,8 +321,18 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
                     onSort: _onSort),
                 const Spacer(),
                 SortHeader(
-                    label: l10n.columnAvg.toUpperCase(),
-                    column: _SortColumn.avg,
+                    label: l10n.columnRecognition.toUpperCase(),
+                    column: _SortColumn.recognition,
+                    state: _sort,
+                    onSort: _onSort),
+                SortHeader(
+                    label: l10n.columnExecution.toUpperCase(),
+                    column: _SortColumn.execution,
+                    state: _sort,
+                    onSort: _onSort),
+                SortHeader(
+                    label: l10n.columnTotal.toUpperCase(),
+                    column: _SortColumn.total,
                     state: _sort,
                     onSort: _onSort),
               ],

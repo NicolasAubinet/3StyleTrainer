@@ -14,19 +14,24 @@ class ImportException implements Exception {
   ImportException(this.type);
 }
 
-// A single recorded solve, as carried in an export file.
+// A single recorded solve, as carried in an export file. recognitionMs is the
+// smart-cube recognition split (format v2+); null/absent for press-timed solves
+// and v1 files.
 class RecordedTime {
   final String algType;
   final String alg;
   final int resultMs;
   final int timestamp;
+  final int? recognitionMs;
 
-  const RecordedTime(this.algType, this.alg, this.resultMs, this.timestamp);
+  const RecordedTime(this.algType, this.alg, this.resultMs, this.timestamp,
+      {this.recognitionMs});
 
   Map<String, Object?> toJson() => {
         'algType': algType,
         'alg': alg,
         'resultMs': resultMs,
+        if (recognitionMs != null) 'recognitionMs': recognitionMs,
         'timestamp': timestamp,
       };
 
@@ -34,7 +39,8 @@ class RecordedTime {
       : algType = json['algType'] as String,
         alg = json['alg'] as String,
         resultMs = (json['resultMs'] as num).toInt(),
-        timestamp = (json['timestamp'] as num).toInt();
+        timestamp = (json['timestamp'] as num).toInt(),
+        recognitionMs = (json['recognitionMs'] as num?)?.toInt();
 }
 
 /// A portable, versioned snapshot of the user's data. Serializes to the
@@ -43,7 +49,8 @@ class RecordedTime {
 /// three are present.
 class ExportData {
   static const String kFormat = "three-style-trainer-export";
-  static const int kCurrentFormatVersion = 1;
+  // v2 adds the optional recognitionMs split to recordedTimes.
+  static const int kCurrentFormatVersion = 2;
 
   final int formatVersion;
   final int dbVersion;

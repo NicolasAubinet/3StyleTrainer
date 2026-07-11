@@ -73,16 +73,16 @@ class _TimerScreenState extends State<TimerScreen> {
 
   // Records one solved case: appends to the session list and, for recording
   // runs, writes the DB row and nudges the selector. Shared by both timing modes.
-  void _recordSolve(Alg solved, int elapsedMilliseconds) {
+  void _recordSolve(Alg solved, int elapsedMilliseconds, {int? recognitionMs}) {
     // The solve's timestamp; for recorded runs the same value is written to the
     // DB row, so the summary can delete that exact row.
     final int timestamp = DateTime.now().millisecondsSinceEpoch;
     times.add(AlgTime(times.length + 1, elapsedMilliseconds, solved,
-        timestamp: timestamp));
+        timestamp: timestamp, recognitionMs: recognitionMs));
     if (_isRecordingRun) {
       DatabaseManager().insertResult(
           widget.algType, solved.name, elapsedMilliseconds,
-          timestamp: timestamp);
+          timestamp: timestamp, recognitionMs: recognitionMs);
       // Keep the selector's weights fresh across a long "again" chain.
       final provider = widget.algProvider;
       if (provider is EqualizingSelector) {
@@ -188,7 +188,7 @@ class _TimerScreenState extends State<TimerScreen> {
       onRestoreToDb: recording
           ? (t) => DatabaseManager().insertResult(
               widget.algType, t.alg.name, t.timeMs,
-              timestamp: t.timestamp)
+              timestamp: t.timestamp, recognitionMs: t.recognitionMs)
           : null,
     );
   }
@@ -311,7 +311,10 @@ class _TimerScreenState extends State<TimerScreen> {
     setState(() {
       _orientationConfirmed = true; // a clean solve proves the orientation
       _feedback = null;
-      if (!_caseSpoiled) _recordSolve(finished, split.total.inMilliseconds);
+      if (!_caseSpoiled) {
+        _recordSolve(finished, split.total.inMilliseconds,
+            recognitionMs: split.recognition.inMilliseconds);
+      }
     });
     _advanceCubeCase(_cubeRun!.expectedFacelets ?? _currentFacelets);
   }

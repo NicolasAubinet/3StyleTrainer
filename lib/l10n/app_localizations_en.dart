@@ -394,6 +394,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get columnAvg => 'Avg';
 
   @override
+  String get columnRecognition => 'Recog';
+
+  @override
+  String get columnExecution => 'Exec';
+
+  @override
+  String get columnTotal => 'Total';
+
+  @override
   String get columnDateTime => 'Date - time';
 
   @override

@@ -126,6 +126,7 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   // Keep these widths in sync between the header and the rows so columns align.
   static const double _timeColumnWidth = 90;
   static const double _deleteColumnWidth = 48;
+  static const double _splitColumnWidth = 56;
 
   // Uses the shared [SortState] but keeps its own header layout (fixed-width,
   // right-aligned time column) rather than the list-style [SortHeader] widget.
@@ -155,9 +156,10 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
               child: _sortHeader(
                   theme, l10n.columnDateTime, _SortColumn.dateTime)),
           if (_hasSplits) ...[
-            _sortHeader(theme, l10n.columnRecognition, _SortColumn.recognition),
-            const SizedBox(width: 10),
-            _sortHeader(theme, l10n.columnExecution, _SortColumn.execution),
+            _sortHeader(theme, l10n.columnRecognition, _SortColumn.recognition,
+                width: _splitColumnWidth, align: TextAlign.right),
+            _sortHeader(theme, l10n.columnExecution, _SortColumn.execution,
+                width: _splitColumnWidth, align: TextAlign.right),
           ],
           _sortHeader(
               theme,
@@ -171,14 +173,19 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
     );
   }
 
-  // Recognition/execution split under a cube-timed attempt; nothing for
-  // press-timed attempts so their row stays a single line.
-  Widget _splitLabel(ThemeData theme, AlgResult result) {
-    if (result.recognitionMs == null) return const SizedBox.shrink();
-    return Text(
-      "R ${timeToString(result.recognitionMs!, fractionDigits: 2)}   "
-      "E ${timeToString(result.executionMs!, fractionDigits: 2)}",
-      style: theme.textTheme.bodySmall?.copyWith(color: context.palette.textFaint),
+  // A right-aligned recognition/execution value beside the total; a faint dash
+  // for a press-timed attempt within a split view.
+  Widget _splitCell(ThemeData theme, int? ms) {
+    return SizedBox(
+      width: _splitColumnWidth,
+      child: Text(
+        ms == null ? "–" : timeToString(ms, fractionDigits: 2),
+        textAlign: TextAlign.right,
+        style: theme.textTheme.labelLarge?.copyWith(
+            color: ms == null
+                ? context.palette.textFaint
+                : context.palette.textMuted),
+      ),
     );
   }
 
@@ -189,15 +196,11 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Row(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_dateFormat.format(date), style: cellStyle),
-                _splitLabel(theme, result),
-              ],
-            ),
-          ),
+          Expanded(child: Text(_dateFormat.format(date), style: cellStyle)),
+          if (_hasSplits) ...[
+            _splitCell(theme, result.recognitionMs),
+            _splitCell(theme, result.executionMs),
+          ],
           SizedBox(
             width: _timeColumnWidth,
             child: Text(timeToString(result.resultMs, fractionDigits: 2),

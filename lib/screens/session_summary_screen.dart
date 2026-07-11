@@ -799,7 +799,7 @@ class _SwipeableRowState extends State<_SwipeableRow>
         builder: (context, child) {
           return Stack(
             children: [
-              if (widget.enabled)
+              if (widget.enabled && _ctrl.value > 0)
                 Positioned.fill(
                   child: Align(
                     alignment: Alignment.centerRight,

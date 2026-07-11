@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_style_trainer/alg_structs.dart';
+import 'package:three_style_trainer/smart_cube/cube_orientation.dart';
 
 const String SPEFFZ = "ABCDEFGHIJKLMNOPQRSTUVWX";
 
@@ -10,6 +11,9 @@ class Settings {
   CornerBuffer _cornerBuffer = CornerBuffer.UFR;
   EdgeBuffer _edgeBuffer = EdgeBuffer.UF;
   bool _showRecordingDot = true;
+  // Physical holding orientation for smart-cube completion detection.
+  CubeColour _cubeTopColour = CubeColour.white;
+  CubeColour _cubeFrontColour = CubeColour.green;
 
   static final Settings _singleton = Settings._internal();
 
@@ -52,7 +56,20 @@ class Settings {
     if (showRecordingDot != null) {
       _showRecordingDot = showRecordingDot;
     }
+
+    _cubeTopColour =
+        _parseColour(prefs.getString("cube_top_colour"), CubeColour.white);
+    _cubeFrontColour =
+        _parseColour(prefs.getString("cube_front_colour"), CubeColour.green);
+    // Guard against an invalid persisted pair (e.g. after an enum change).
+    if (!CubeOrientation.isValid(_cubeTopColour, _cubeFrontColour)) {
+      _cubeTopColour = CubeColour.white;
+      _cubeFrontColour = CubeColour.green;
+    }
   }
+
+  static CubeColour _parseColour(String? name, CubeColour fallback) =>
+      CubeColour.values.firstWhere((c) => c.name == name, orElse: () => fallback);
 
   List<String> getCornersScheme() {
     List<String> cornersScheme = [];
@@ -125,6 +142,24 @@ class Settings {
     prefs.setBool("show_recording_dot", value);
   }
 
+  CubeColour getCubeTopColour() => _cubeTopColour;
+
+  CubeColour getCubeFrontColour() => _cubeFrontColour;
+
+  // Set the holding orientation. Front falls back to the first valid face for
+  // the chosen top when the requested pair isn't a valid (adjacent) orientation.
+  void setCubeOrientation(CubeColour top, CubeColour front) async {
+    if (!CubeOrientation.isValid(top, front)) {
+      front = CubeOrientation.frontsFor(top).first;
+    }
+    _cubeTopColour = top;
+    _cubeFrontColour = front;
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString("cube_top_colour", top.name);
+    prefs.setString("cube_front_colour", front.name);
+  }
+
   // Preference keys carried in an export's settings section. Spans schemes and
   // buffers (this class) plus theme and the menu/alg-times choices owned by
   // other widgets.
@@ -142,6 +177,8 @@ class Settings {
     "alg_times_sort_by_avg",
     "alg_times_sort_ascending",
     "show_recording_dot",
+    "cube_top_colour",
+    "cube_front_colour",
   ];
 
   // Snapshot of the persisted settings, for export. Only keys that are actually

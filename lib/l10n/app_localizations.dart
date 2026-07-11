@@ -802,6 +802,66 @@ abstract class AppLocalizations {
   /// **'Buffers'**
   String get buffersSection;
 
+  /// No description provided for @cubeOrientationSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart cube orientation'**
+  String get cubeOrientationSection;
+
+  /// No description provided for @cubeTopColour.
+  ///
+  /// In en, this message translates to:
+  /// **'Top'**
+  String get cubeTopColour;
+
+  /// No description provided for @cubeFrontColour.
+  ///
+  /// In en, this message translates to:
+  /// **'Front'**
+  String get cubeFrontColour;
+
+  /// No description provided for @cubeOrientationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'How you hold the cube when solving. Used to detect completed cases from a connected smart cube.'**
+  String get cubeOrientationHint;
+
+  /// No description provided for @colourWhite.
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get colourWhite;
+
+  /// No description provided for @colourYellow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get colourYellow;
+
+  /// No description provided for @colourGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get colourGreen;
+
+  /// No description provided for @colourBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get colourBlue;
+
+  /// No description provided for @colourRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get colourRed;
+
+  /// No description provided for @colourOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get colourOrange;
+
   /// No description provided for @showRecordingDot.
   ///
   /// In en, this message translates to:

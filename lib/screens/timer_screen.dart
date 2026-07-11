@@ -13,6 +13,7 @@ import '../equalizing_selector.dart';
 import '../l10n/app_localizations.dart';
 import '../practice_type.dart';
 import '../settings.dart';
+import '../smart_cube/cube_orientation.dart';
 import '../smart_cube/cube_run.dart';
 import '../smart_cube_manager.dart';
 import '../theme/app_palette.dart';
@@ -196,13 +197,20 @@ class _TimerScreenState extends State<TimerScreen> {
 
   // ---- Cube-driven mode ----------------------------------------------------
 
-  String get _currentFacelets =>
+  String get _currentFacelets => _normalise(
       SmartCubeManager().cube?.currentState.facelets ??
-      CubeState.solvedFacelets;
+          CubeState.solvedFacelets);
+
+  // Rotate the cube's reported state into the standard frame the geometry
+  String _normalise(String facelets) => CubeOrientation.normaliseFacelets(
+        facelets,
+        top: Settings().getCubeTopColour(),
+        front: Settings().getCubeFrontColour(),
+      );
 
   void _onCubeState(CubeState state) {
     if (!mounted || !isReady) return;
-    final split = _cubeRun?.onState(state.facelets);
+    final split = _cubeRun?.onState(_normalise(state.facelets));
     if (split != null) _onCubeComplete(split);
   }
 

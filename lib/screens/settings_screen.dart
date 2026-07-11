@@ -9,6 +9,7 @@ import 'package:three_style_trainer/database_manager.dart';
 import 'package:three_style_trainer/export_data.dart';
 import 'package:three_style_trainer/import_service.dart';
 import 'package:three_style_trainer/settings.dart';
+import 'package:three_style_trainer/smart_cube/cube_orientation.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_palette.dart';
@@ -166,6 +167,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  String _colourName(AppLocalizations l10n, CubeColour c) {
+    switch (c) {
+      case CubeColour.white:
+        return l10n.colourWhite;
+      case CubeColour.yellow:
+        return l10n.colourYellow;
+      case CubeColour.green:
+        return l10n.colourGreen;
+      case CubeColour.blue:
+        return l10n.colourBlue;
+      case CubeColour.red:
+        return l10n.colourRed;
+      case CubeColour.orange:
+        return l10n.colourOrange;
+    }
   }
 
   Widget _bufferDropdown<T>({
@@ -527,6 +545,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                   ),
                 ],
+              ),
+              const SizedBox(height: 18),
+              _sectionLabel(l10n.cubeOrientationSection),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _bufferDropdown<CubeColour>(
+                    label: l10n.cubeTopColour,
+                    value: Settings().getCubeTopColour(),
+                    items: CubeColour.values
+                        .map((c) => DropdownMenuItem(
+                            value: c, child: Text(_colourName(l10n, c))))
+                        .toList(),
+                    onChanged: (c) {
+                      if (c != null) {
+                        Settings().setCubeOrientation(
+                            c, Settings().getCubeFrontColour());
+                        setState(() {});
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 12),
+                  _bufferDropdown<CubeColour>(
+                    label: l10n.cubeFrontColour,
+                    value: Settings().getCubeFrontColour(),
+                    items: CubeOrientation.frontsFor(Settings().getCubeTopColour())
+                        .map((c) => DropdownMenuItem(
+                            value: c, child: Text(_colourName(l10n, c))))
+                        .toList(),
+                    onChanged: (c) {
+                      if (c != null) {
+                        Settings().setCubeOrientation(
+                            Settings().getCubeTopColour(), c);
+                        setState(() {});
+                      }
+                    },
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                child: Text(l10n.cubeOrientationHint,
+                    style: TextStyle(fontSize: 10, color: p.textFaint)),
               ),
               const SizedBox(height: 18),
               _sectionLabel(l10n.optionsSection),

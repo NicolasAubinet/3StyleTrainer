@@ -409,6 +409,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get buffersSection => 'Buffers';
 
   @override
+  String get cubeOrientationSection => 'Smart cube orientation';
+
+  @override
+  String get cubeTopColour => 'Top';
+
+  @override
+  String get cubeFrontColour => 'Front';
+
+  @override
+  String get cubeOrientationHint =>
+      'How you hold the cube when solving. Used to detect completed cases from a connected smart cube.';
+
+  @override
+  String get colourWhite => 'White';
+
+  @override
+  String get colourYellow => 'Yellow';
+
+  @override
+  String get colourGreen => 'Green';
+
+  @override
+  String get colourBlue => 'Blue';
+
+  @override
+  String get colourRed => 'Red';
+
+  @override
+  String get colourOrange => 'Orange';
+
+  @override
   String get showRecordingDot => 'Show recording dot';
 
   @override

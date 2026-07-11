@@ -544,45 +544,53 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     );
   }
 
-  // Column widths shared by the split header cells and value cells so the R / E
-  // numbers line up under their labels, right beside the total.
+  // Column widths shared by the header cells and the value cells so the numbers
+  // line up under their labels. The header row is inset to match the card's
+  // content box (GlassPanel: 12px padding + 1px border).
   static const double _splitCellWidth = 52;
+  static const double _timeCellWidth = 58;
+  static const double _cardContentInset = 13;
 
-  Widget _splitHeader(String label, _SortColumn column) {
-    return SizedBox(
-      width: _splitCellWidth,
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: SortHeader(
-            label: label.toUpperCase(),
-            column: column,
-            state: _sort,
-            onSort: _onSort),
-      ),
+  // A tappable, right-aligned sort-header cell with no internal padding, so it
+  // lines up exactly with a same-width value cell below it.
+  Widget _headerCell(String label, _SortColumn column,
+      {double? width, TextAlign align = TextAlign.right}) {
+    final p = context.palette;
+    final active = _sort.isActive(column);
+    final text = Text(
+      active ? "$label${_sort.direction.arrow}" : label,
+      textAlign: align,
+      maxLines: 1,
+      overflow: TextOverflow.clip,
+      style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+          color: active ? p.accent : p.textMuted),
+    );
+    return InkWell(
+      onTap: () => _onSort(column),
+      child: width == null ? text : SizedBox(width: width, child: text),
     );
   }
 
   Widget _sortHeaderRow(AppLocalizations l10n) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: _cardContentInset),
       child: Row(
         children: [
-          SortHeader(
-              label: l10n.columnNumber,
-              column: _SortColumn.order,
-              state: _sort,
-              onSort: _onSort),
+          _headerCell(l10n.columnNumber, _SortColumn.order, align: TextAlign.left),
           const Spacer(),
           if (_hasSplits) ...[
-            _splitHeader(l10n.columnRecognition, _SortColumn.recognition),
-            _splitHeader(l10n.columnExecution, _SortColumn.execution),
+            _headerCell(l10n.columnRecognition.toUpperCase(),
+                _SortColumn.recognition,
+                width: _splitCellWidth),
+            _headerCell(l10n.columnExecution.toUpperCase(), _SortColumn.execution,
+                width: _splitCellWidth),
             const SizedBox(width: 8),
           ],
-          SortHeader(
-              label: l10n.columnTime.toUpperCase(),
-              column: _SortColumn.time,
-              state: _sort,
-              onSort: _onSort),
+          _headerCell(l10n.columnTime.toUpperCase(), _SortColumn.time,
+              width: _timeCellWidth),
         ],
       ),
     );
@@ -596,25 +604,35 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
       padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
       child: Column(
         children: [
-          Row(
-            children: [
-              SizedBox(
-                width: 18,
-                child: Text(algTime.index.toString(),
-                    style: _mono(12, p.textFaint, weight: FontWeight.w400)),
-              ),
-              const SizedBox(width: 6),
-              _nameCell(algTime, p),
-              if (_hasSplits) ...[
-                _splitCell(algTime.recognitionMs, p),
-                _splitCell(algTime.executionMs, p),
-                const SizedBox(width: 8),
-              ] else
-                const SizedBox(width: 8),
-              Text(timeToString(algTime.timeMs, fractionDigits: 2),
-                  style: _mono(17, color)),
-            ],
-          ),
+          LayoutBuilder(builder: (context, constraints) {
+            final showPills =
+                !_hasSplits || constraints.maxWidth >= _pillsMinRowWidth;
+            return Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  child: Text(algTime.index.toString(),
+                      style: _mono(12, p.textFaint, weight: FontWeight.w400)),
+                ),
+                const SizedBox(width: 6),
+                _nameCell(algTime, p, showPills),
+                if (_hasSplits) ...[
+                  _splitCell(algTime.recognitionMs, p),
+                  _splitCell(algTime.executionMs, p),
+                  const SizedBox(width: 8),
+                ] else
+                  const SizedBox(width: 8),
+                SizedBox(
+                  width: _timeCellWidth,
+                  child: Text(timeToString(algTime.timeMs, fractionDigits: 2),
+                      textAlign: TextAlign.right,
+                      maxLines: 1,
+                      overflow: TextOverflow.clip,
+                      style: _mono(17, color)),
+                ),
+              ],
+            );
+          }),
           const SizedBox(height: 8),
           _bar(
             p,
@@ -644,12 +662,14 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     );
   }
 
-  // The alg name plus its fastest/slowest pill, taking the row's free width. In
-  // a split session the pills are dropped (the split columns need the width, and
-  // the colour of the total already flags the fastest/slowest).
-  Widget _nameCell(AlgTime algTime, AppPalette p) {
+  // Below this row width a split row can't fit the name, a pill and all three
+  // columns, so the pills are dropped there (the total's colour still flags the
+  // fastest/slowest). Wider rows — including every desktop — keep the pills.
+  static const double _pillsMinRowWidth = 280;
+
+  // The alg name plus its fastest/slowest pill, taking the row's free width.
+  Widget _nameCell(AlgTime algTime, AppPalette p, bool showPills) {
     final l10n = AppLocalizations.of(context)!;
-    final showPills = !_hasSplits;
     final isFastest = showPills && identical(algTime, _fastest);
     final isSlowest = showPills &&
         identical(algTime, _slowest) &&
@@ -678,6 +698,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
       child: Text(
         ms == null ? "–" : timeToString(ms, fractionDigits: 2),
         textAlign: TextAlign.right,
+        maxLines: 1,
+        overflow: TextOverflow.clip,
         style: ms == null
             ? _mono(13, p.textFaint, weight: FontWeight.w400)
             : _mono(13, p.textMuted, weight: FontWeight.w400),

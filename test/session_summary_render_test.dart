@@ -98,6 +98,28 @@ void main() {
     expect(find.text('RECOG'), findsOneWidget);
     expect(find.text('EXEC'), findsOneWidget);
     expect(find.text('VU'), findsOneWidget);
+    // Too narrow for the pills alongside the columns, so they're dropped.
+    expect(find.text('SLOWEST'), findsNothing);
+  });
+
+  testWidgets('split columns keep the pills on a wide screen', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 700));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _splitTimes(),
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.timeRace,
+        totalTimeMs: 4080,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    // Both the split columns and the fastest/slowest pills fit here.
+    expect(find.text('RECOG'), findsOneWidget);
+    expect(find.text('SLOWEST'), findsOneWidget);
+    expect(find.text('FASTEST'), findsOneWidget);
   });
 
   testWidgets('defaults to occurrence order, not fastest time', (tester) async {

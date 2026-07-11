@@ -15,6 +15,8 @@ import '../practice_type.dart';
 import '../settings.dart';
 import '../smart_cube/cube_orientation.dart';
 import '../smart_cube/cube_run.dart';
+import '../smart_cube/orientation_diagnostics.dart';
+import '../smart_cube/three_style_geometry.dart';
 import '../smart_cube_manager.dart';
 import '../theme/app_palette.dart';
 import '../theme/theme_scope.dart';
@@ -60,6 +62,14 @@ class _TimerScreenState extends State<TimerScreen> {
   CubeRunController? _cubeRun;
   async.StreamSubscription<CubeState>? _stateSub;
   async.StreamSubscription<CubeMove>? _moveSub;
+
+  _CubeFeedback? _feedback;
+  // Un-normalised cube state at case start, for the orientation sweep.
+  String? _caseRawStart;
+  bool _orientationConfirmed = false;
+  // A wrong case was executed and re-baselined; its time won't be recorded.
+  bool _caseSpoiled = false;
+  List<String> _pairPool = const [];
 
   // Records one solved case: appends to the session list and, for recording
   // runs, writes the DB row and nudges the selector. Shared by both timing modes.
@@ -197,11 +207,13 @@ class _TimerScreenState extends State<TimerScreen> {
 
   // ---- Cube-driven mode ----------------------------------------------------
 
-  String get _currentFacelets => _normalise(
+  String get _rawFacelets =>
       SmartCubeManager().cube?.currentState.facelets ??
-          CubeState.solvedFacelets);
+      CubeState.solvedFacelets;
 
-  // Rotate the cube's reported state into the standard frame the geometry
+  String get _currentFacelets => _normalise(_rawFacelets);
+
+  // Into the standard frame the geometry assumes, per the orientation setting.
   String _normalise(String facelets) => CubeOrientation.normaliseFacelets(
         facelets,
         top: Settings().getCubeTopColour(),
@@ -210,8 +222,52 @@ class _TimerScreenState extends State<TimerScreen> {
 
   void _onCubeState(CubeState state) {
     if (!mounted || !isReady) return;
-    final split = _cubeRun?.onState(_normalise(state.facelets));
-    if (split != null) _onCubeComplete(split);
+    final norm = _normalise(state.facelets);
+    final split = _cubeRun?.onState(norm);
+    if (split != null) {
+      _onCubeComplete(split);
+      return;
+    }
+    _updateFeedback(state.facelets, norm);
+  }
+
+  // Hint whether a non-completing state means a different case (wrong pair) or
+  // the right case in the wrong orientation. Orientation is checked only until
+  // the first correct completion, and takes priority over the wrong-pair guess.
+  // Hints are sticky (kept until the case completes or a new one starts).
+  void _updateFeedback(String rawFacelets, String normFacelets) {
+    final shown = alg?.name;
+    final start = _cubeRun?.startFacelets;
+    if (shown == null || start == null) return;
+
+    if (!_orientationConfirmed && _caseRawStart != null) {
+      final o = detectExecutedOrientation(
+        rawStart: _caseRawStart!,
+        rawEnd: rawFacelets,
+        pair: shown,
+        algType: widget.algType,
+      );
+      final current =
+          (Settings().getCubeTopColour(), Settings().getCubeFrontColour());
+      if (o != null && o != current) {
+        _setFeedback(_CubeFeedback.orientation(shown, o.$1, o.$2));
+        return;
+      }
+    }
+
+    final wrong = ThreeStyleGeometry.matchingPair(
+        normFacelets, start, widget.algType, _pairPool);
+    if (wrong != null && wrong != shown) {
+      // Re-baseline so the shown pair can be executed from the current state;
+      // the botched attempt is flagged so its (inflated) time isn't recorded.
+      _cubeRun!.rebaseline(shown, normFacelets);
+      _caseSpoiled = true;
+      _setFeedback(_CubeFeedback.wrongCase(wrong));
+    }
+  }
+
+  void _setFeedback(_CubeFeedback fb) {
+    if (fb != _feedback) setState(() => _feedback = fb);
   }
 
   void _onCubeMove() {
@@ -229,6 +285,7 @@ class _TimerScreenState extends State<TimerScreen> {
       timerStartTime = DateTime.now();
       times.clear();
       nextAlgs.clear();
+      _orientationConfirmed = false;
       _startCubeCase(_currentFacelets);
     });
   }
@@ -236,6 +293,9 @@ class _TimerScreenState extends State<TimerScreen> {
   // Show the next case and baseline its completion check on [fromFacelets]
   // (solved for the first case, the prior case's end state afterward).
   void _startCubeCase(String fromFacelets) {
+    _feedback = null;
+    _caseSpoiled = false;
+    _caseRawStart = _rawFacelets;
     alg = _fetchNextAlg();
     if (alg == null) return;
     _cubeRun!.startCase(alg!.name, fromFacelets);
@@ -249,14 +309,23 @@ class _TimerScreenState extends State<TimerScreen> {
     if (finished == null) return;
     stopwatch.stop();
     setState(() {
-      _recordSolve(finished, split.total.inMilliseconds);
+      _orientationConfirmed = true; // a clean solve proves the orientation
+      _feedback = null;
+      if (!_caseSpoiled) _recordSolve(finished, split.total.inMilliseconds);
     });
     _advanceCubeCase(_cubeRun!.expectedFacelets ?? _currentFacelets);
   }
 
-  void _skipCubeCase() {
+  // Put the current case back in the pool to reappear later in the same run.
+  void _requeueCubeCase() {
     if (!isReady || alg == null) return;
-    // Skip records nothing; rebaseline on the cube's current physical state.
+    widget.algProvider.requeue(alg!.name);
+    _advanceCubeCase(_currentFacelets);
+  }
+
+  void _applyDetectedOrientation(CubeColour top, CubeColour front) {
+    Settings().setCubeOrientation(top, front);
+    if (alg != null) widget.algProvider.requeue(alg!.name);
     _advanceCubeCase(_currentFacelets);
   }
 
@@ -359,6 +428,7 @@ class _TimerScreenState extends State<TimerScreen> {
     _cubeMode = mgr.isConnected && CubeRunController.supports(widget.algType);
     if (_cubeMode) {
       _cubeRun = CubeRunController(widget.algType);
+      _pairPool = enumerateAlgs(widget.algType);
       final cube = mgr.cube!;
       _stateSub = cube.states.listen(_onCubeState);
       _moveSub = cube.moves.listen((_) => _onCubeMove());
@@ -467,8 +537,8 @@ class _TimerScreenState extends State<TimerScreen> {
     );
   }
 
-  // In-run panel: the cube drives timing and advance, so screen taps are inert;
-  // a Skip button is the only manual control.
+  // In-run panel: the cube drives timing/advance; taps are inert and a "Redo
+  // later" button plus wrong-case/orientation hints are the only manual controls.
   Widget _buildCubeRun(
       ThemeData theme, AppPalette p, double progress, String timerText) {
     final l10n = AppLocalizations.of(context)!;
@@ -526,18 +596,56 @@ class _TimerScreenState extends State<TimerScreen> {
                 timerText,
                 style: theme.textTheme.displayMedium?.copyWith(color: p.pop),
               ),
+              _buildCubeFeedback(l10n, p),
             ],
           ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           child: OutlinedButton.icon(
-            onPressed: _skipCubeCase,
-            icon: const Icon(Icons.skip_next),
-            label: Text(l10n.smartCubeSkip),
+            onPressed: _requeueCubeCase,
+            icon: const Icon(Icons.replay),
+            label: Text(l10n.smartCubeRequeue),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCubeFeedback(AppLocalizations l10n, AppPalette p) {
+    final fb = _feedback;
+    if (fb == null) return const SizedBox.shrink();
+    final textStyle = TextStyle(
+        color: p.bad, fontSize: 22, fontWeight: FontWeight.w400, height: 1.15);
+    if (fb.isOrientation) {
+      final top = cubeColourName(l10n, fb.top!);
+      final front = cubeColourName(l10n, fb.front!);
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+        child: Column(
+          children: [
+            Text(
+              l10n.smartCubeWrongOrientation(fb.pair, top, front),
+              textAlign: TextAlign.center,
+              style: textStyle,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.tonalIcon(
+              onPressed: () => _applyDetectedOrientation(fb.top!, fb.front!),
+              icon: const Icon(Icons.screen_rotation_alt, size: 18),
+              label: Text(l10n.smartCubeSwitchOrientation(top, front)),
+            ),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+      child: Text(
+        l10n.smartCubeWrongCase(fb.pair),
+        textAlign: TextAlign.center,
+        style: textStyle,
+      ),
     );
   }
 
@@ -663,4 +771,27 @@ class _TimerScreenState extends State<TimerScreen> {
       body: content,
     );
   }
+}
+
+class _CubeFeedback {
+  final String pair;
+  final CubeColour? top;
+  final CubeColour? front;
+
+  const _CubeFeedback.wrongCase(this.pair)
+      : top = null,
+        front = null;
+  const _CubeFeedback.orientation(this.pair, this.top, this.front);
+
+  bool get isOrientation => top != null;
+
+  @override
+  bool operator ==(Object o) =>
+      o is _CubeFeedback &&
+      o.pair == pair &&
+      o.top == top &&
+      o.front == front;
+
+  @override
+  int get hashCode => Object.hash(pair, top, front);
 }

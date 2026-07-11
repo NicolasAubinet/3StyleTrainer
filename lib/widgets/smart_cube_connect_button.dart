@@ -128,7 +128,12 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
     await _stopScan();
     try {
       await _mgr.connect(d, macAddress: mac);
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
+        final msg = AppLocalizations.of(context)!.smartCubeConnectedToast;
+        Navigator.pop(context);
+        messenger.showSnackBar(SnackBar(content: Text(msg)));
+      }
     } catch (e) {
       if (mounted) {
         setState(() {

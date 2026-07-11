@@ -134,10 +134,8 @@ class ThreeStyleGeometry {
     return moves;
   }
 
-  /// Resolve a pair name into SpeFFz *position* indices `(buffer, X, Y)`. The
-  /// audio edge scheme relabels/reorders positions, so it routes through
-  /// [AudioEdgeScheme] (which translates into SpeFFz space); every other scheme
-  /// already speaks SpeFFz directly. Returns `null` for an unparseable name.
+  // Pair name -> SpeFFz position indices (buffer, X, Y). Audio edges route
+  // through AudioEdgeScheme; everything else already speaks SpeFFz.
   static (int, int, int)? _resolvePositions(
       String pair, AlgType algType, bool isEdge) {
     if (isEdge && USE_EDGE_AUDIO_SYLLABLES) {

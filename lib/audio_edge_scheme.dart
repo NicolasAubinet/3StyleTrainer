@@ -1,18 +1,9 @@
-/// The owner's personal French audio-syllable **edge** lettering — a scheme
-/// entirely separate from the standard SpeFFz path, kept isolated here.
-///
-/// Each edge sticker gets a *consonant* (used when it is the FIRST sticker of a
-/// pair) and a *vowel* (used when it is the SECOND). A pair name is
-/// `consonant + vowel` with no separator; syllables can be multiple characters
-/// (`pr`, `gn`, `ch`, `AN`, …), so parsing splits by the longest valid consonant
-/// prefix whose remainder is a valid vowel. `?` entries are the (unlettered)
-/// buffer gaps.
-///
-/// Crucially, this scheme also *reorders physical sticker positions* relative to
-/// SpeFFz (its edges group differently — see [collisionGroups]). [toSpeffz] maps
-/// each audio sticker index onto the SpeFFz position index of the SAME physical
-/// facelet, so completion geometry can run entirely in SpeFFz space (see
-/// `ThreeStyleGeometry`) rather than duplicating the facelet model.
+/// The owner's personal French audio-syllable edge lettering, kept isolated from
+/// the standard SpeFFz path. A pair name is `consonant + vowel` (each possibly
+/// multi-character, so parsing uses longest-valid-prefix; `?` = buffer gap). The
+/// scheme reorders physical positions vs SpeFFz, so [toSpeffz] maps each audio
+/// index onto the SpeFFz position of the same facelet — letting completion
+/// geometry run in SpeFFz space instead of duplicating the facelet model.
 class AudioEdgeScheme {
   static const List<String> consonants = [
     'b',
@@ -68,8 +59,7 @@ class AudioEdgeScheme {
     'ou',
   ];
 
-  // The two sticker indices forming each physical edge (same-edge stickers can't
-  // pair). A different ordering from SpeFFz on purpose — it drives enumeration.
+  // The two sticker indices forming each physical edge (same-edge can't pair).
   static const List<List<int>> collisionGroups = [
     [0, 4],
     [1, 5],
@@ -85,14 +75,11 @@ class AudioEdgeScheme {
     [19, 23],
   ];
 
-  // The buffer edge's two sticker indices (physically UF); index 3 is the U-face
-  // primary, matching SpeFFz's UF buffer reference.
+  // Buffer edge UF; index 3 is the U-face primary (matches SpeFFz's UF buffer).
   static const List<int> bufferIndices = [3, 7];
 
-  // audio sticker index -> SpeFFz position index of the SAME physical facelet.
-  // Derived from the owner's physical lettering and validated against
-  // [collisionGroups] (every group maps to one SpeFFz edge). See
-  // docs/smart-cube-integration-plan.md §15.
+  // audio sticker index -> SpeFFz position of the same facelet (validated in
+  // tests: every collisionGroup maps to one SpeFFz edge).
   static const List<int> toSpeffz = [
     3, 0, 1, 2, 4, 16, 12, 8, 11, 5, 7, 17, //
     19, 13, 15, 9, 10, 6, 18, 14, 20, 23, 22, 21,
@@ -101,10 +88,8 @@ class AudioEdgeScheme {
   /// SpeFFz position index of the buffer's primary (U-face) sticker.
   static int get bufferSpeffz => toSpeffz[bufferIndices.first];
 
-  /// The (consonant, vowel) sticker indices a pair name denotes, or null if the
-  /// name isn't a valid audio pair. Splits by longest valid consonant prefix
-  /// whose remainder is exactly a vowel — unambiguous because no vowel starts
-  /// with a consonant continuation (`r`, `n`, `h`, …).
+  /// The (consonant, vowel) indices a pair name denotes, or null. Longest-prefix
+  /// consonant split; unambiguous since no vowel starts a consonant continuation.
   static (int, int)? parse(String pair) {
     for (int ci = 0; ci < consonants.length; ci++) {
       final c = consonants[ci];

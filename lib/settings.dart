@@ -146,8 +146,7 @@ class Settings {
 
   CubeColour getCubeFrontColour() => _cubeFrontColour;
 
-  // Set the holding orientation. Front falls back to the first valid face for
-  // the chosen top when the requested pair isn't a valid (adjacent) orientation.
+  // Front falls back to a valid adjacent face if the pair isn't a valid orientation.
   void setCubeOrientation(CubeColour top, CubeColour front) async {
     if (!CubeOrientation.isValid(top, front)) {
       front = CubeOrientation.frontsFor(top).first;

@@ -1,23 +1,15 @@
 import 'package:smartcube/smartcube.dart';
 
-/// Cube face colours in the driver's solved reference frame — the standard
-/// Western scheme: U=white, R=red, F=green, D=yellow, L=orange, B=blue.
+/// Cube face colours in the driver's solved frame: U=white, R=red, F=green,
+/// D=yellow, L=orange, B=blue.
 enum CubeColour { white, yellow, green, blue, red, orange }
 
-/// Normalises the cube's reported facelets into the standard holding frame
-/// (white top / green front) that [ThreeStyleGeometry] assumes, given the user's
-/// actual holding orientation (top + front colour). Completion detection lives in
-/// the standard frame, so a user who holds e.g. white-top/red-front only needs
-/// this one rotation applied to every incoming state — moves are already
-/// orientation-agnostic (first-move detection doesn't care about faces).
-///
-/// It's a pure whole-cube rotation: it permutes facelet positions AND relabels
-/// the face letters, so a solved cube stays solved and the standard 3-cycle
-/// geometry becomes correct after normalisation. White/green is the identity.
+/// Rotates the cube's reported facelets from the user's holding orientation into
+/// the standard white-top/green-front frame the geometry assumes. A pure
+/// whole-cube rotation (positions + face relabelling); white/green is identity.
 class CubeOrientation {
   static const List<String> _faces = ['U', 'R', 'F', 'D', 'L', 'B'];
 
-  // Face letter → its solved colour (the driver's frame).
   static const Map<String, CubeColour> faceColour = {
     'U': CubeColour.white,
     'R': CubeColour.red,
@@ -43,8 +35,7 @@ class CubeOrientation {
     for (final e in _faceCentre.entries) e.value: e.key,
   };
 
-  // Per-facelet position + face normal, derived from the CubieCube facelet
-  // tables so it matches the reported string's indexing exactly.
+  // Per-facelet position + normal, from the CubieCube tables so indexing matches.
   static final List<_Vec> _pos = _buildPositions();
   static final List<_Vec> _normal =
       [for (var i = 0; i < 54; i++) _faceCentre[_faces[i ~/ 9]]!];
@@ -113,6 +104,12 @@ class CubeOrientation {
   static List<CubeColour> frontsFor(CubeColour top) =>
       [for (final c in CubeColour.values) if (isValid(top, c)) c];
 
+  /// All 24 valid (top, front) holding orientations.
+  static List<(CubeColour, CubeColour)> allOrientations() => [
+        for (final top in CubeColour.values)
+          for (final front in frontsFor(top)) (top, front),
+      ];
+
   /// Rotate [facelets] from the user's (top, front) holding frame into the
   /// standard frame. Identity for white/green; returns the input unchanged if
   /// the pair is invalid.
@@ -147,8 +144,7 @@ class CubeOrientation {
 
 typedef _Vec = (int, int, int);
 
-// A cube rotation as the images of the x/y/z unit vectors (a signed permutation
-// matrix). Composition and application are plain integer arithmetic.
+// A cube rotation as the images of the x/y/z unit vectors (signed perm matrix).
 class _Rot {
   final _Vec ex, ey, ez;
   const _Rot(this.ex, this.ey, this.ez);

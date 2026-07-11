@@ -14,6 +14,9 @@ abstract class AlgProvider {
 
   double getProgression({int preFetchedAlgsCount = 0});
 
+  /// Put an already-served alg back into the pool to reappear later in the run.
+  void requeue(String algName);
+
   /// Total algs this provider would serve (ignoring skipped algs).
   int get totalAlgs;
 }
@@ -317,6 +320,13 @@ class LetterPairProvider implements AlgProvider {
   }
 
   @override
+  void requeue(String algName) {
+    if (!letterPairsToExecute.any((alg) => alg.name == algName)) {
+      letterPairsToExecute.add(Alg(algName));
+    }
+  }
+
+  @override
   int get totalAlgs => originalLetterPairs.length;
 }
 
@@ -358,6 +368,13 @@ class CustomProvider implements AlgProvider {
   double getProgression({int preFetchedAlgsCount = 0}) {
     return _getProgression(originalPairsToExecute,
         letterPairsToExecute.length + preFetchedAlgsCount);
+  }
+
+  @override
+  void requeue(String algName) {
+    if (!letterPairsToExecute.contains(algName)) {
+      letterPairsToExecute.add(algName);
+    }
   }
 
   @override
@@ -438,6 +455,13 @@ class ParityAlgProvider implements AlgProvider {
   double getProgression({int preFetchedAlgsCount = 0}) {
     return _getProgression(
         originalToExecute, algsToExecute.length + preFetchedAlgsCount);
+  }
+
+  @override
+  void requeue(String algName) {
+    if (!algsToExecute.any((alg) => alg.name == algName)) {
+      algsToExecute.add(Alg(algName));
+    }
   }
 
   @override

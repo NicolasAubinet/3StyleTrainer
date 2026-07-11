@@ -31,6 +31,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartCubeConnected => 'Connected';
 
   @override
+  String get smartCubeConnectedToast => 'Smart cube connected!';
+
+  @override
   String get smartCubeDisconnect => 'Disconnect';
 
   @override
@@ -52,7 +55,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartCubeExecution => 'Execution';
 
   @override
-  String get smartCubeSkip => 'Skip';
+  String get smartCubeRequeue => 'Requeue case';
+
+  @override
+  String smartCubeWrongCase(String pair) {
+    return 'You executed $pair';
+  }
+
+  @override
+  String smartCubeWrongOrientation(String pair, String top, String front) {
+    return 'Looks like $pair, but held $top top / $front front';
+  }
+
+  @override
+  String smartCubeSwitchOrientation(String top, String front) {
+    return 'Switch to $top / $front & requeue';
+  }
 
   @override
   String get sessionSummary => 'Session summary';

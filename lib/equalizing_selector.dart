@@ -124,6 +124,14 @@ class EqualizingSelector implements AlgProvider {
   @override
   double getProgression({int preFetchedAlgsCount = 0}) => 0;
 
+  // Sampling is with-replacement; just drop the cooldown so it can recur sooner.
+  @override
+  void requeue(String algName) {
+    if (_inCooldown.remove(algName)) {
+      _cooldownQueue.remove(algName);
+    }
+  }
+
   @override
   int get totalAlgs => _algs.length;
 }

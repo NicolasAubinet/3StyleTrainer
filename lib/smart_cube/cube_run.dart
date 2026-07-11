@@ -70,6 +70,14 @@ class CubeRunController {
     return _expected != null;
   }
 
+  // Move the baseline onto [currentFacelets] (after a wrong case) so the shown
+  // pair can be executed from here; timing and phase are left untouched.
+  void rebaseline(String pair, String currentFacelets) {
+    _startFacelets = currentFacelets;
+    _expected =
+        ThreeStyleGeometry.expectedAfterPair(currentFacelets, pair, algType);
+  }
+
   /// Feed a move. Returns the recognition split the instant the *first* move of
   /// the case lands (recognition ends there); `null` otherwise.
   Duration? onMove() {

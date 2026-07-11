@@ -6,6 +6,7 @@
   "smartCubeConnect": "Connect",
   "smartCubeConnecting": "Connecting…",
   "smartCubeConnected": "Connected",
+  "smartCubeConnectedToast": "Smart cube connected!",
   "smartCubeDisconnect": "Disconnect",
   "smartCubeBattery": "Battery",
   "smartCubeConnectFailed": "Connection failed",
@@ -13,7 +14,26 @@
   "smartCubeMacHint": "AA:BB:CC:DD:EE:FF",
   "smartCubeRecognition": "Recognition",
   "smartCubeExecution": "Execution",
-  "smartCubeSkip": "Skip",
+  "smartCubeRequeue": "Requeue case",
+  "smartCubeWrongCase": "You executed {pair}",
+  "@smartCubeWrongCase": {
+    "placeholders": { "pair": { "type": "String" } }
+  },
+  "smartCubeWrongOrientation": "Looks like {pair}, but held {top} top / {front} front",
+  "@smartCubeWrongOrientation": {
+    "placeholders": {
+      "pair": { "type": "String" },
+      "top": { "type": "String" },
+      "front": { "type": "String" }
+    }
+  },
+  "smartCubeSwitchOrientation": "Switch to {top} / {front} & requeue",
+  "@smartCubeSwitchOrientation": {
+    "placeholders": {
+      "top": { "type": "String" },
+      "front": { "type": "String" }
+    }
+  },
   "sessionSummary": "Session summary",
   "timer": "Timer",
   "repeatAll": "Repeat all",

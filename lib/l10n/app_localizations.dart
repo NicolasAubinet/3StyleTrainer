@@ -136,6 +136,12 @@ abstract class AppLocalizations {
   /// **'Connected'**
   String get smartCubeConnected;
 
+  /// No description provided for @smartCubeConnectedToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart cube connected!'**
+  String get smartCubeConnectedToast;
+
   /// No description provided for @smartCubeDisconnect.
   ///
   /// In en, this message translates to:
@@ -178,11 +184,29 @@ abstract class AppLocalizations {
   /// **'Execution'**
   String get smartCubeExecution;
 
-  /// No description provided for @smartCubeSkip.
+  /// No description provided for @smartCubeRequeue.
   ///
   /// In en, this message translates to:
-  /// **'Skip'**
-  String get smartCubeSkip;
+  /// **'Requeue case'**
+  String get smartCubeRequeue;
+
+  /// No description provided for @smartCubeWrongCase.
+  ///
+  /// In en, this message translates to:
+  /// **'You executed {pair}'**
+  String smartCubeWrongCase(String pair);
+
+  /// No description provided for @smartCubeWrongOrientation.
+  ///
+  /// In en, this message translates to:
+  /// **'Looks like {pair}, but held {top} top / {front} front'**
+  String smartCubeWrongOrientation(String pair, String top, String front);
+
+  /// No description provided for @smartCubeSwitchOrientation.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to {top} / {front} & requeue'**
+  String smartCubeSwitchOrientation(String top, String front);
 
   /// No description provided for @sessionSummary.
   ///

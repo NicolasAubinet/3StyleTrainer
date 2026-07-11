@@ -86,6 +86,24 @@ void main() {
     expect(c.phase, CubePhase.execution);
   });
 
+  test('rebaseline lets the shown pair complete from the botched state', () {
+    final c = make(AlgType.Corner);
+    c.startCase('AD', solved);
+    c.onMove();
+    // Executed a different case (AB) — AD does not complete.
+    final afterWrong =
+        ThreeStyleGeometry.expectedAfterPair(solved, 'AB', AlgType.Corner)!;
+    expect(c.onState(afterWrong), isNull);
+
+    // Re-baseline onto it; now AD from here reaches the (new) expected state.
+    c.rebaseline('AD', afterWrong);
+    final target =
+        ThreeStyleGeometry.expectedAfterPair(afterWrong, 'AD', AlgType.Corner)!;
+    expect(c.expectedFacelets, target);
+    expect(c.onState(target), isNotNull);
+    expect(c.phase, CubePhase.complete);
+  });
+
   test('second case baselines on the prior end state', () {
     final c = make(AlgType.Corner);
     final e1 =

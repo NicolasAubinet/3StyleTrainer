@@ -10,6 +10,7 @@ import 'package:three_style_trainer/export_data.dart';
 import 'package:three_style_trainer/import_service.dart';
 import 'package:three_style_trainer/settings.dart';
 import 'package:three_style_trainer/smart_cube/cube_orientation.dart';
+import 'package:three_style_trainer/utils.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_palette.dart';
@@ -167,23 +168,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
-  }
-
-  String _colourName(AppLocalizations l10n, CubeColour c) {
-    switch (c) {
-      case CubeColour.white:
-        return l10n.colourWhite;
-      case CubeColour.yellow:
-        return l10n.colourYellow;
-      case CubeColour.green:
-        return l10n.colourGreen;
-      case CubeColour.blue:
-        return l10n.colourBlue;
-      case CubeColour.red:
-        return l10n.colourRed;
-      case CubeColour.orange:
-        return l10n.colourOrange;
-    }
   }
 
   Widget _bufferDropdown<T>({
@@ -556,7 +540,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: Settings().getCubeTopColour(),
                     items: CubeColour.values
                         .map((c) => DropdownMenuItem(
-                            value: c, child: Text(_colourName(l10n, c))))
+                            value: c, child: Text(cubeColourName(l10n, c))))
                         .toList(),
                     onChanged: (c) {
                       if (c != null) {
@@ -572,7 +556,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: Settings().getCubeFrontColour(),
                     items: CubeOrientation.frontsFor(Settings().getCubeTopColour())
                         .map((c) => DropdownMenuItem(
-                            value: c, child: Text(_colourName(l10n, c))))
+                            value: c, child: Text(cubeColourName(l10n, c))))
                         .toList(),
                     onChanged: (c) {
                       if (c != null) {

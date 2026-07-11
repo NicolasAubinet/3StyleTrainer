@@ -59,6 +59,10 @@ class _TimerScreenState extends State<TimerScreen> {
   // Cube-driven mode: a connected smart cube drives arming/advance instead of
   // press-and-release. Active only for alg types the geometry supports.
   late final bool _cubeMode;
+  // The alg type driving cube geometry: the run's own type when supported, or —
+  // for a custom set — the scheme its pairs were detected as. Null when the cube
+  // can't drive this run (geometry paths use this, not widget.algType).
+  AlgType? _cubeAlgType;
   CubeRunController? _cubeRun;
   async.StreamSubscription<CubeState>? _stateSub;
   async.StreamSubscription<CubeMove>? _moveSub;
@@ -215,6 +219,22 @@ class _TimerScreenState extends State<TimerScreen> {
 
   // ---- Cube-driven mode ----------------------------------------------------
 
+  // The alg type whose geometry drives cube-completion, or null if the cube
+  // can't drive this run. Supported non-custom types use their own type; a
+  // custom set is matched against the known schemes (corners, then edges).
+  AlgType? _resolveCubeAlgType(SmartCubeManager mgr) {
+    if (!mgr.isConnected) return null;
+    if (widget.algType == AlgType.Custom) {
+      return ThreeStyleGeometry.detectAlgType(_customPairs);
+    }
+    return CubeRunController.supports(widget.algType) ? widget.algType : null;
+  }
+
+  List<String> get _customPairs {
+    final p = widget.algProvider;
+    return p is CustomProvider ? p.letterPairs : const [];
+  }
+
   String get _rawFacelets =>
       SmartCubeManager().cube?.currentState.facelets ??
       CubeState.solvedFacelets;
@@ -253,7 +273,7 @@ class _TimerScreenState extends State<TimerScreen> {
         rawStart: _caseRawStart!,
         rawEnd: rawFacelets,
         pair: shown,
-        algType: widget.algType,
+        algType: _cubeAlgType!,
       );
       final current =
           (Settings().getCubeTopColour(), Settings().getCubeFrontColour());
@@ -264,7 +284,7 @@ class _TimerScreenState extends State<TimerScreen> {
     }
 
     final wrong = ThreeStyleGeometry.matchingPair(
-        normFacelets, start, widget.algType, _pairPool);
+        normFacelets, start, _cubeAlgType!, _pairPool);
     if (wrong != null && wrong != shown) {
       // Re-baseline so the shown pair can be executed from the current state;
       // the botched attempt is flagged so its (inflated) time isn't recorded.
@@ -455,14 +475,24 @@ class _TimerScreenState extends State<TimerScreen> {
     skippedAlgs = List.of(widget.skippedAlgs);
 
     final mgr = SmartCubeManager();
-    _cubeMode = mgr.isConnected && CubeRunController.supports(widget.algType);
+    _cubeAlgType = _resolveCubeAlgType(mgr);
+    _cubeMode = _cubeAlgType != null;
     if (_cubeMode) {
-      _cubeRun = CubeRunController(widget.algType);
-      _pairPool = enumerateAlgs(widget.algType);
+      _cubeRun = CubeRunController(_cubeAlgType!);
+      _pairPool = enumerateAlgs(_cubeAlgType!);
       final cube = mgr.cube!;
       _stateSub = cube.states.listen(_onCubeState);
       _moveSub = cube.moves.listen((_) => _onCubeMove());
       mgr.connection.addListener(_onConnectionChanged);
+    } else if (mgr.isConnected && widget.algType == AlgType.Custom) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text(AppLocalizations.of(context)!.smartCubeSchemeUnrecognized),
+          duration: const Duration(seconds: 5),
+        ));
+      });
     }
 
     refreshTimer = async.Timer.periodic(

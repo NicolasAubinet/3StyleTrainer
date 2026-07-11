@@ -90,6 +90,21 @@ class ThreeStyleGeometry {
     return expected != null && expected == currentFacelets;
   }
 
+  /// The alg type whose geometry maps *every* pair in [pairs] — used to drive a
+  /// custom set cube-side when its pairs are actually corners or edges. Tries
+  /// corners first, then edges (a two-letter SpeFFz pair can be valid as both).
+  /// Returns `null` for an empty set or when no single type maps all pairs.
+  static AlgType? detectAlgType(Iterable<String> pairs) {
+    final list = pairs.toList();
+    if (list.isEmpty) return null;
+    for (final type in const [AlgType.Corner, AlgType.Edge]) {
+      final ok = list.every(
+          (p) => expectedAfterPair(CubeState.solvedFacelets, p, type) != null);
+      if (ok) return type;
+    }
+    return null;
+  }
+
   /// If the settled cube matches a *different* pair than the one shown, return
   /// that pair (for "you executed BA instead of AB" feedback); else `null`.
   static String? matchingPair(String currentFacelets, String startFacelets,

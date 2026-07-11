@@ -190,6 +190,12 @@ abstract class AppLocalizations {
   /// **'Requeue case'**
   String get smartCubeRequeue;
 
+  /// No description provided for @smartCubeSchemeUnrecognized.
+  ///
+  /// In en, this message translates to:
+  /// **'Letter-pair scheme not recognized — using press timing'**
+  String get smartCubeSchemeUnrecognized;
+
   /// No description provided for @smartCubeWrongCase.
   ///
   /// In en, this message translates to:

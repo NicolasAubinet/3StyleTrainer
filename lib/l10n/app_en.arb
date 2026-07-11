@@ -15,6 +15,7 @@
   "smartCubeRecognition": "Recognition",
   "smartCubeExecution": "Execution",
   "smartCubeRequeue": "Requeue case",
+  "smartCubeSchemeUnrecognized": "Letter-pair scheme not recognized — using press timing",
   "smartCubeWrongCase": "You executed {pair}",
   "@smartCubeWrongCase": {
     "placeholders": { "pair": { "type": "String" } }

@@ -147,6 +147,29 @@ void main() {
     });
   }, skip: USE_EDGE_AUDIO_SYLLABLES ? false : 'audio scheme disabled');
 
+  group('detectAlgType (custom-set scheme detection)', () {
+    test('empty set → null', () {
+      expect(ThreeStyleGeometry.detectAlgType(const []), isNull);
+    });
+
+    test('unrecognized pairs → null', () {
+      expect(ThreeStyleGeometry.detectAlgType(['YZ', '12']), isNull);
+    });
+
+    test('a set that only partly maps → null (one type must map all)', () {
+      expect(ThreeStyleGeometry.detectAlgType(['AD', 'YZ']), isNull);
+    });
+
+    test('SpeFFz two-letter pairs resolve to corners (tie-break)', () {
+      // A two-letter SpeFFz pair maps as both corner and edge; corners win.
+      expect(ThreeStyleGeometry.detectAlgType(['AD', 'DA']), AlgType.Corner);
+    });
+
+    test('audio-syllable pairs resolve to edges', () {
+      expect(ThreeStyleGeometry.detectAlgType(['be', 'pré']), AlgType.Edge);
+    }, skip: USE_EDGE_AUDIO_SYLLABLES ? false : 'audio scheme disabled');
+  });
+
   test('unsupported alg types return null (for now)', () {
     expect(
         ThreeStyleGeometry.expectedAfterPair(solved, 'UF-DR', AlgType.TwoFlip),

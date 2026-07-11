@@ -58,6 +58,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartCubeRequeue => 'Requeue case';
 
   @override
+  String get smartCubeSchemeUnrecognized =>
+      'Letter-pair scheme not recognized — using press timing';
+
+  @override
   String smartCubeWrongCase(String pair) {
     return 'You executed $pair';
   }

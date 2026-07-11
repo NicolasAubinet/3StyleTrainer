@@ -543,9 +543,6 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 
   Widget _algRow(AlgTime algTime, AppPalette p) {
     final color = _rowColor(algTime.timeMs, p);
-    final isFastest = identical(algTime, _fastest);
-    final isSlowest =
-        identical(algTime, _slowest) && !identical(_slowest, _fastest);
 
     final card = GlassPanel(
       radius: 10,
@@ -560,37 +557,12 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                     style: _mono(12, p.textFaint, weight: FontWeight.w400)),
               ),
               const SizedBox(width: 6),
-              Expanded(
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Text(algTime.alg.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: _mono(17, p.textPrimary)),
-                    ),
-                    if (isFastest)
-                      _rowPill(
-                          p, AppLocalizations.of(context)!.pillFastest, p.good),
-                    if (isSlowest)
-                      _rowPill(
-                          p, AppLocalizations.of(context)!.pillSlowest, p.bad),
-                  ],
-                ),
-              ),
+              ..._nameAndSplit(algTime, p),
               const SizedBox(width: 8),
               Text(timeToString(algTime.timeMs, fractionDigits: 2),
                   style: _mono(17, color)),
             ],
           ),
-          if (algTime.recognitionMs != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 24, top: 3),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: _splitLine(algTime, p),
-              ),
-            ),
           const SizedBox(height: 8),
           _bar(
             p,
@@ -618,6 +590,45 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         child: card,
       ),
     );
+  }
+
+  // The alg name (+ fastest/slowest pill) and, for cube solves, the centered
+  // recognition/execution split filling the gap to the total. Split rows use a
+  // fixed-width name (Corner/Edge pairs are short) so the split centres; press-
+  // timed rows keep the name expanded, exactly as before.
+  List<Widget> _nameAndSplit(AlgTime algTime, AppPalette p) {
+    final l10n = AppLocalizations.of(context)!;
+    final isFastest = identical(algTime, _fastest);
+    final isSlowest =
+        identical(algTime, _slowest) && !identical(_slowest, _fastest);
+    final pills = <Widget>[
+      if (isFastest) _rowPill(p, l10n.pillFastest, p.good),
+      if (isSlowest) _rowPill(p, l10n.pillSlowest, p.bad),
+    ];
+
+    if (algTime.recognitionMs == null) {
+      return [
+        Expanded(
+          child: Row(
+            children: [
+              Flexible(
+                child: Text(algTime.alg.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _mono(17, p.textPrimary)),
+              ),
+              ...pills,
+            ],
+          ),
+        ),
+      ];
+    }
+
+    return [
+      Text(algTime.alg.name, style: _mono(17, p.textPrimary)),
+      ...pills,
+      Expanded(child: Center(child: _splitLine(algTime, p))),
+    ];
   }
 
   // Recognition/execution split under a cube-timed solve (only present then).

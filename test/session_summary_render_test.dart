@@ -26,7 +26,8 @@ Widget _host(Widget child, AppPalette palette) => ThemeScope(
 List<AlgTime> _sampleTimes() => [
       const AlgTime(1, 770, Alg("BA"), timestamp: 1),
       const AlgTime(2, 790, Alg("XT"), timestamp: 2),
-      const AlgTime(3, 800, Alg("AG"), timestamp: 3),
+      // Cube-timed solve: carries a recognition/execution split.
+      const AlgTime(3, 800, Alg("AG"), timestamp: 3, recognitionMs: 320),
       const AlgTime(4, 810, Alg("UF-DR"), timestamp: 4), // long 2-flip name
       const AlgTime(5, 820, Alg("BL"), timestamp: 5),
       const AlgTime(6, 910, Alg("VU"), timestamp: 6),

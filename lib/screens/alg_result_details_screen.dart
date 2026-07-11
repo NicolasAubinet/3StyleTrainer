@@ -37,12 +37,15 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   final SortState<_SortColumn> _sort = SortState(
       column: _SortColumn.dateTime, direction: SortDirection.descending);
 
-  int? _sortValue(AlgResult r) {
+  // The split columns only appear once this case has smart-cube attempts.
+  bool get _hasSplits => _results.any((r) => r.recognitionMs != null);
+
+  int? _sortValue(AlgResult r, bool hasSplits) {
     switch (_sort.column) {
       case _SortColumn.recognition:
-        return r.recognitionMs;
+        return hasSplits ? r.recognitionMs : r.resultMs;
       case _SortColumn.execution:
-        return r.executionMs;
+        return hasSplits ? r.executionMs : r.resultMs;
       case _SortColumn.total:
         return r.resultMs;
       case _SortColumn.dateTime:
@@ -68,9 +71,10 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   }
 
   void _applySort(List<AlgResult> results) {
+    final hasSplits = results.any((r) => r.recognitionMs != null);
     results.sort((a, b) {
       // Attempts with no split (null) always sort last, either direction.
-      final va = _sortValue(a), vb = _sortValue(b);
+      final va = _sortValue(a, hasSplits), vb = _sortValue(b, hasSplits);
       if (va == null || vb == null) {
         if (va == vb) return 0;
         return va == null ? 1 : -1;
@@ -150,28 +154,31 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
           Expanded(
               child: _sortHeader(
                   theme, l10n.columnDateTime, _SortColumn.dateTime)),
-          _sortHeader(theme, l10n.columnRecognition, _SortColumn.recognition),
-          const SizedBox(width: 10),
-          _sortHeader(theme, l10n.columnExecution, _SortColumn.execution),
-          _sortHeader(theme, l10n.columnTotal, _SortColumn.total,
-              width: _timeColumnWidth, align: TextAlign.right),
+          if (_hasSplits) ...[
+            _sortHeader(theme, l10n.columnRecognition, _SortColumn.recognition),
+            const SizedBox(width: 10),
+            _sortHeader(theme, l10n.columnExecution, _SortColumn.execution),
+          ],
+          _sortHeader(
+              theme,
+              _hasSplits ? l10n.columnTotal : l10n.columnResult,
+              _SortColumn.total,
+              width: _timeColumnWidth,
+              align: TextAlign.right),
           SizedBox(width: _deleteColumnWidth),
         ],
       ),
     );
   }
 
-  // Recognition/execution split, or an em dash when this attempt wasn't split.
+  // Recognition/execution split under a cube-timed attempt; nothing for
+  // press-timed attempts so their row stays a single line.
   Widget _splitLabel(ThemeData theme, AlgResult result) {
-    final p = context.palette;
-    if (result.recognitionMs == null) {
-      return Text("—",
-          style: theme.textTheme.bodySmall?.copyWith(color: p.textFaint));
-    }
+    if (result.recognitionMs == null) return const SizedBox.shrink();
     return Text(
       "R ${timeToString(result.recognitionMs!, fractionDigits: 2)}   "
       "E ${timeToString(result.executionMs!, fractionDigits: 2)}",
-      style: theme.textTheme.bodySmall?.copyWith(color: p.textFaint),
+      style: theme.textTheme.bodySmall?.copyWith(color: context.palette.textFaint),
     );
   }
 

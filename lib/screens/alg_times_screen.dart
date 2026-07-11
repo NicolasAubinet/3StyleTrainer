@@ -92,14 +92,19 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     });
   }
 
+  // The split columns only appear once the current view has smart-cube solves;
+  // without them the screen looks exactly as it did before the split existed.
+  bool get _hasSplits => _stats.any((s) => s.splitCount > 0);
+
   void _applySort(List<AlgStats> stats) {
+    final hasSplits = stats.any((s) => s.splitCount > 0);
     stats.sort((a, b) {
       if (_sort.column == _SortColumn.alg) {
         final cmp = a.alg.compareTo(b.alg);
         return _sort.direction.isAscending ? cmp : -cmp;
       }
       // Cases with no split data (null) always sort last, either direction.
-      final va = _sortValue(a), vb = _sortValue(b);
+      final va = _sortValue(a, hasSplits), vb = _sortValue(b, hasSplits);
       if (va == null || vb == null) {
         if (va == vb) return 0;
         return va == null ? 1 : -1;
@@ -109,12 +114,12 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     });
   }
 
-  double? _sortValue(AlgStats s) {
+  double? _sortValue(AlgStats s, bool hasSplits) {
     switch (_sort.column) {
       case _SortColumn.recognition:
-        return s.avgRecognitionMs;
+        return hasSplits ? s.avgRecognitionMs : s.avgMs;
       case _SortColumn.execution:
-        return s.avgExecutionMs;
+        return hasSplits ? s.avgExecutionMs : s.avgMs;
       default:
         return s.avgMs;
     }
@@ -236,12 +241,20 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     );
   }
 
-  // Recognition/execution split subtitle, or an em dash when the case has no
-  // smart-cube solves to split.
-  Widget _splitLabel(AlgStats stats, AppPalette p) {
+  // Recognition/execution split subtitle for cube-timed cases; falls back to
+  // the solve count/range for cases with no split (so non-cube users just see
+  // the original subtitle, no empty slot).
+  Widget _splitLabel(AlgStats stats, AppPalette p, AppLocalizations l10n) {
     final recog = stats.avgRecognitionMs, exec = stats.avgExecutionMs;
     if (recog == null || exec == null) {
-      return Text("—", style: TextStyle(fontSize: 13, color: p.textFaint));
+      return Text(
+        l10n.statsSolvesRange(
+          stats.count,
+          timeToString(stats.maxMs, fractionDigits: 1),
+          timeToString(stats.minMs, fractionDigits: 1),
+        ),
+        style: TextStyle(fontSize: 12, color: p.textFaint),
+      );
     }
     TextSpan part(String label, double ms) => TextSpan(children: [
           TextSpan(
@@ -276,7 +289,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
                       fontWeight: FontWeight.w700,
                       color: p.textPrimary)),
             ),
-            Expanded(child: _splitLabel(stats, p)),
+            Expanded(child: _splitLabel(stats, p, l10n)),
             Text(
               timeToString(stats.avgMs.round(), fractionDigits: 2),
               style: TextStyle(
@@ -322,18 +335,21 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
                     state: _sort,
                     onSort: _onSort),
                 const Spacer(),
+                if (_hasSplits) ...[
+                  SortHeader(
+                      label: l10n.columnRecognition.toUpperCase(),
+                      column: _SortColumn.recognition,
+                      state: _sort,
+                      onSort: _onSort),
+                  SortHeader(
+                      label: l10n.columnExecution.toUpperCase(),
+                      column: _SortColumn.execution,
+                      state: _sort,
+                      onSort: _onSort),
+                ],
                 SortHeader(
-                    label: l10n.columnRecognition.toUpperCase(),
-                    column: _SortColumn.recognition,
-                    state: _sort,
-                    onSort: _onSort),
-                SortHeader(
-                    label: l10n.columnExecution.toUpperCase(),
-                    column: _SortColumn.execution,
-                    state: _sort,
-                    onSort: _onSort),
-                SortHeader(
-                    label: l10n.columnTotal.toUpperCase(),
+                    label: (_hasSplits ? l10n.columnTotal : l10n.columnAvg)
+                        .toUpperCase(),
                     column: _SortColumn.total,
                     state: _sort,
                     onSort: _onSort),

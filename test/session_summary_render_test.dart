@@ -154,6 +154,101 @@ void main() {
     expect(restored, hasLength(1));
   });
 
+  testWidgets('recording: a short swipe still opens (no fold-back)',
+      (tester) async {
+    final times = [const AlgTime(1, 800, Alg('BL'), timestamp: 111)];
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: times,
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.timeRace,
+        totalTimeMs: 800,
+        onDeleteFromDb: (_) {},
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+
+    // A quick flick that doesn't travel the full reveal width should still open
+    // the row rather than fold back.
+    await tester.fling(find.text('BL'), const Offset(-60, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsOneWidget);
+  });
+
+  testWidgets('recording: swiping a second row collapses the first',
+      (tester) async {
+    final deleted = <AlgTime>[];
+    final times = [
+      const AlgTime(1, 800, Alg('AA'), timestamp: 1),
+      const AlgTime(2, 900, Alg('BB'), timestamp: 2),
+    ];
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: times,
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.timeRace,
+        totalTimeMs: 1700,
+        onDeleteFromDb: deleted.add,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+
+    // Open the first row.
+    await tester.drag(find.text('AA'), const Offset(-150, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsOneWidget);
+
+    // Swiping the second row must leave exactly one Delete button (the first
+    // row collapses), and the open one must be the second row.
+    await tester.drag(find.text('BB'), const Offset(-150, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsOneWidget);
+
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(deleted, hasLength(1));
+    expect(deleted.single.alg.name, 'BB');
+  });
+
+  testWidgets('recording: dragging a second row never shows two Delete buttons',
+      (tester) async {
+    final times = [
+      const AlgTime(1, 800, Alg('AA'), timestamp: 1),
+      const AlgTime(2, 900, Alg('BB'), timestamp: 2),
+    ];
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: times,
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.timeRace,
+        totalTimeMs: 1700,
+        onDeleteFromDb: (_) {},
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+
+    // Open the first row, then slowly drag the second one open frame by frame.
+    // At no point during the hand-off may both Delete buttons be on screen.
+    await tester.drag(find.text('AA'), const Offset(-150, 0));
+    await tester.pumpAndSettle();
+
+    final g = await tester.startGesture(tester.getCenter(find.text('BB')));
+    for (var i = 0; i < 6; i++) {
+      await g.moveBy(const Offset(-20, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(find.text('Delete').evaluate().length, lessThanOrEqualTo(1));
+    }
+    await g.up();
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsOneWidget);
+  });
+
   testWidgets('sets: editing the target updates the summary', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final times = [const AlgTime(1, 800, Alg('BA'), timestamp: 1)];

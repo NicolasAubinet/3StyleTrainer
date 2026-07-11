@@ -753,30 +753,42 @@ class _SwipeableRowState extends State<_SwipeableRow>
     _ctrl.animateTo(0, curve: Curves.easeOut);
   }
 
-  // Accumulated horizontal drag, used only in the disabled case to detect a
+  // Accumulated horizontal drag over the current gesture, used to detect a
   // deliberate left-swipe.
-  double _disabledDragDx = 0;
+  double _dragDx = 0;
+
+  void _onDragStart(DragStartDetails d) {
+    _dragDx = 0;
+    // Claim the open slot up front so any other open row collapses before this
+    // one reveals its button, rather than both showing at once.
+    if (widget.enabled && widget.openRow.value != widget.rowId) {
+      widget.openRow.value = widget.rowId;
+    }
+  }
 
   void _onDragUpdate(DragUpdateDetails d) {
-    if (!widget.enabled) {
-      _disabledDragDx += d.primaryDelta ?? 0;
-      return;
-    }
+    _dragDx += d.primaryDelta ?? 0;
+    if (!widget.enabled) return;
     _ctrl.value = (_ctrl.value - d.primaryDelta! / _revealWidth).clamp(0.0, 1.0);
   }
 
   void _onDragEnd(DragEndDetails d) {
     final v = d.primaryVelocity ?? 0;
     if (!widget.enabled) {
-      if (_disabledDragDx < -24 || v < -300) widget.onDisabledSwipe?.call();
-      _disabledDragDx = 0;
+      if (_dragDx < -24 || v < -300) widget.onDisabledSwipe?.call();
+      _dragDx = 0;
       return;
     }
-    if (v < -300 || (v <= 300 && _ctrl.value > 0.5)) {
+    // Open on any deliberate left swipe (velocity, position, or distance) so a
+    // quick swipe doesn't fold back.
+    final openIt =
+        v < -300 || (v <= 300 && (_ctrl.value > 0.5 || _dragDx < -24));
+    if (openIt) {
       _open();
     } else {
       _close();
     }
+    _dragDx = 0;
   }
 
   @override
@@ -791,19 +803,29 @@ class _SwipeableRowState extends State<_SwipeableRow>
       child: widget.child,
     );
     return GestureDetector(
-      onHorizontalDragStart: (_) => _disabledDragDx = 0,
+      onHorizontalDragStart: _onDragStart,
       onHorizontalDragUpdate: _onDragUpdate,
       onHorizontalDragEnd: _onDragEnd,
       child: AnimatedBuilder(
-        animation: _ctrl,
+        animation: Listenable.merge([_ctrl, widget.openRow]),
         builder: (context, child) {
+          // Only the row that owns the open slot shows its button, so a
+          // superseded row hides it at once instead of during its slide-back.
+          final showButton = widget.enabled &&
+              _ctrl.value > 0 &&
+              widget.openRow.value == widget.rowId;
           return Stack(
             children: [
-              if (widget.enabled && _ctrl.value > 0)
+              if (showButton)
                 Positioned.fill(
                   child: Align(
                     alignment: Alignment.centerRight,
-                    child: _deleteButton(p),
+                    // Slide the button in from the right in step with the panel,
+                    // so it's revealed progressively (Stack clips the rest).
+                    child: Transform.translate(
+                      offset: Offset(_revealWidth * (1 - _ctrl.value), 0),
+                      child: _deleteButton(p),
+                    ),
                   ),
                 ),
               Transform.translate(

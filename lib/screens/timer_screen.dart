@@ -71,6 +71,14 @@ class _TimerScreenState extends State<TimerScreen> {
   bool _caseSpoiled = false;
   List<String> _pairPool = const [];
 
+  // Brief green flash on smartcube auto alg completion
+  bool _advanceFlash = false;
+  async.Timer? _advanceFlashTimer;
+  // Ignore the requeue button briefly after an auto-advance so a reflexive
+  // press can't requeue the freshly-shown next case.
+  bool _requeueBlocked = false;
+  async.Timer? _requeueDebounce;
+
   // Records one solved case: appends to the session list and, for recording
   // runs, writes the DB row and nudges the selector. Shared by both timing modes.
   void _recordSolve(Alg solved, int elapsedMilliseconds, {int? recognitionMs}) {
@@ -317,11 +325,30 @@ class _TimerScreenState extends State<TimerScreen> {
       }
     });
     _advanceCubeCase(_cubeRun!.expectedFacelets ?? _currentFacelets);
+    _flashAdvance();
+    _blockRequeueBriefly();
+  }
+
+  // Quick, faint green validation blip confirming smartcube alg completion
+  void _flashAdvance() {
+    _advanceFlashTimer?.cancel();
+    setState(() => _advanceFlash = true);
+    _advanceFlashTimer = async.Timer(const Duration(milliseconds: 70), () {
+      if (mounted) setState(() => _advanceFlash = false);
+    });
+  }
+
+  void _blockRequeueBriefly() {
+    _requeueDebounce?.cancel();
+    setState(() => _requeueBlocked = true);
+    _requeueDebounce = async.Timer(const Duration(milliseconds: 400), () {
+      if (mounted) setState(() => _requeueBlocked = false);
+    });
   }
 
   // Put the current case back in the pool to reappear later in the same run.
   void _requeueCubeCase() {
-    if (!isReady || alg == null) return;
+    if (!isReady || alg == null || _requeueBlocked) return;
     widget.algProvider.requeue(alg!.name);
     _advanceCubeCase(_currentFacelets);
   }
@@ -454,6 +481,8 @@ class _TimerScreenState extends State<TimerScreen> {
   void dispose() {
     super.dispose();
     refreshTimer.cancel();
+    _advanceFlashTimer?.cancel();
+    _requeueDebounce?.cancel();
     _stateSub?.cancel();
     _moveSub?.cancel();
     SmartCubeManager().connection.removeListener(_onConnectionChanged);
@@ -549,7 +578,7 @@ class _TimerScreenState extends State<TimerScreen> {
     final phaseLabel = phase == CubePhase.execution
         ? l10n.smartCubeExecution
         : l10n.smartCubeRecognition;
-    return Column(
+    final Widget run = Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
@@ -606,11 +635,22 @@ class _TimerScreenState extends State<TimerScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           child: OutlinedButton.icon(
-            onPressed: _requeueCubeCase,
+            onPressed: _requeueBlocked ? null : _requeueCubeCase,
             icon: const Icon(Icons.replay),
             label: Text(l10n.smartCubeRequeue),
           ),
         ),
+      ],
+    );
+    return Stack(
+      children: [
+        run,
+        if (_advanceFlash)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Container(color: p.good.withValues(alpha: 0.09)),
+            ),
+          ),
       ],
     );
   }

@@ -583,6 +583,14 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                   style: _mono(17, color)),
             ],
           ),
+          if (algTime.recognitionMs != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 24, top: 3),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _splitLine(algTime, p),
+              ),
+            ),
           const SizedBox(height: 8),
           _bar(
             p,
@@ -610,6 +618,25 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         child: card,
       ),
     );
+  }
+
+  // Recognition/execution split under a cube-timed solve (only present then).
+  Widget _splitLine(AlgTime algTime, AppPalette p) {
+    final recog = algTime.recognitionMs!;
+    final exec = algTime.timeMs - recog;
+    TextSpan part(String label, int ms) => TextSpan(children: [
+          TextSpan(
+              text: "$label ",
+              style: TextStyle(fontSize: 10, color: p.textFaint)),
+          TextSpan(
+              text: timeToString(ms, fractionDigits: 2),
+              style: _mono(12, p.textMuted, weight: FontWeight.w400)),
+        ]);
+    return Text.rich(TextSpan(children: [
+      part("R", recog),
+      const TextSpan(text: "   "),
+      part("E", exec),
+    ]));
   }
 
   Widget _rowPill(AppPalette p, String label, Color bg) {

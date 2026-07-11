@@ -58,8 +58,10 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
 
   void _init() async {
     final prefs = await SharedPreferences.getInstance();
-    _sort.column = _readEnum(
-        prefs.getString(_sortColumnKey), _SortColumn.values, _SortColumn.total);
+    // Read raw: an older build stored this key as an int, so getString would throw.
+    final storedColumn = prefs.get(_sortColumnKey);
+    _sort.column = _readEnum(storedColumn is String ? storedColumn : null,
+        _SortColumn.values, _SortColumn.total);
     _sort.direction = (prefs.getBool(_sortAscendingKey) ?? false)
         ? SortDirection.ascending
         : SortDirection.descending;

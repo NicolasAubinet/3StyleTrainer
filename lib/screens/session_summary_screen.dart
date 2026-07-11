@@ -592,10 +592,10 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     );
   }
 
-  // The alg name (+ fastest/slowest pill) and, for cube solves, the centered
-  // recognition/execution split filling the gap to the total. Split rows use a
-  // fixed-width name (Corner/Edge pairs are short) so the split centres; press-
-  // timed rows keep the name expanded, exactly as before.
+  // The alg name (+ fastest/slowest pill) and, for cube solves, the
+  // recognition/execution split right-aligned against the total. Split rows use
+  // a fixed-width name (Corner/Edge pairs are short); press-timed rows keep the
+  // name expanded, exactly as before.
   List<Widget> _nameAndSplit(AlgTime algTime, AppPalette p) {
     final l10n = AppLocalizations.of(context)!;
     final isFastest = identical(algTime, _fastest);
@@ -627,7 +627,15 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     return [
       Text(algTime.alg.name, style: _mono(17, p.textPrimary)),
       ...pills,
-      Expanded(child: Center(child: _splitLine(algTime, p))),
+      Expanded(
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: _splitLine(algTime, p),
+          ),
+        ),
+      ),
     ];
   }
 

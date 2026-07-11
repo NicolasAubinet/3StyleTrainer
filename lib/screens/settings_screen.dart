@@ -541,39 +541,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-              GlassPanel(
-                onTap: () => _exportData(context),
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.ios_share_rounded, color: p.accent, size: 20),
-                    const SizedBox(width: 8),
-                    Text(l10n.exportData,
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: p.accent)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              GlassPanel(
-                onTap: () => _importData(context),
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.file_download_rounded,
-                        color: p.accent, size: 20),
-                    const SizedBox(width: 8),
-                    Text(l10n.importData,
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: p.accent)),
-                  ],
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: GlassPanel(
+                      onTap: () => _exportData(context),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.ios_share_rounded,
+                              color: p.accent, size: 20),
+                          const SizedBox(width: 8),
+                          Text(l10n.exportData,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: p.accent)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GlassPanel(
+                      onTap: () => _importData(context),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.file_download_rounded,
+                              color: p.accent, size: 20),
+                          const SizedBox(width: 8),
+                          Text(l10n.importData,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: p.accent)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               GlassPanel(

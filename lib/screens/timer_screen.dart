@@ -326,12 +326,19 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   // Show the next case and baseline its completion check on [fromFacelets]
-  // (solved for the first case, the prior case's end state afterward).
-  void _startCubeCase(String fromFacelets) {
+  // (solved for the first case, the prior case's end state afterward). When
+  // [requeueAfter] is set, that case is re-inserted only *after* the next one is
+  // drawn, so a requeued case never comes straight back — unless it was the last
+  // remaining case, in which case there's nothing else and it returns now.
+  void _startCubeCase(String fromFacelets, {String? requeueAfter}) {
     _feedback = null;
     _caseSpoiled = false;
     _caseRawStart = _rawFacelets;
     alg = _fetchNextAlg();
+    if (requeueAfter != null) {
+      widget.algProvider.requeue(requeueAfter);
+      alg ??= _fetchNextAlg();
+    }
     if (alg == null) return;
     _cubeRun!.startCase(alg!.name, fromFacelets);
     stopwatch
@@ -376,22 +383,20 @@ class _TimerScreenState extends State<TimerScreen> {
   // Put the current case back in the pool to reappear later in the same run.
   void _requeueCubeCase() {
     if (!isReady || alg == null || _requeueBlocked) return;
-    widget.algProvider.requeue(alg!.name);
-    _advanceCubeCase(_currentFacelets);
+    _advanceCubeCase(_currentFacelets, requeueAfter: alg!.name);
   }
 
   void _applyDetectedOrientation(CubeColour top, CubeColour front) {
     Settings().setCubeOrientation(top, front);
-    if (alg != null) widget.algProvider.requeue(alg!.name);
-    _advanceCubeCase(_currentFacelets);
+    _advanceCubeCase(_currentFacelets, requeueAfter: alg?.name);
   }
 
-  void _advanceCubeCase(String fromFacelets) {
+  void _advanceCubeCase(String fromFacelets, {String? requeueAfter}) {
     setState(() {
       stopwatch
         ..stop()
         ..reset();
-      _startCubeCase(fromFacelets);
+      _startCubeCase(fromFacelets, requeueAfter: requeueAfter);
     });
     // Sets/slowest end when the pool is exhausted; time race ends on the timer.
     if (alg == null && widget.practiceType.isSetBased) {
@@ -492,13 +497,16 @@ class _TimerScreenState extends State<TimerScreen> {
       _moveSub = cube.moves.listen((_) => _onCubeMove());
       mgr.connection.addListener(_onConnectionChanged);
     } else if (mgr.isConnected) {
-      // Cube connected but this run isn't cube-drivable (unrecognized custom
-      // scheme, or an unmappable type like parity with non-adjacent buffers).
+      // Cube connected but this run isn't cube-drivable. Parity is unmappable
+      // only when the edge buffer isn't adjacent to the corner buffer — say so
+      // precisely; anything else is an unrecognized letter-pair scheme.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:
-              Text(AppLocalizations.of(context)!.smartCubeSchemeUnrecognized),
+          content: Text(widget.algType == AlgType.Parity
+              ? l10n.smartCubeParityBuffersNotAdjacent
+              : l10n.smartCubeSchemeUnrecognized),
           duration: const Duration(seconds: 5),
         ));
       });

@@ -16,6 +16,7 @@
   "smartCubeExecution": "Execution",
   "smartCubeRequeue": "Requeue case",
   "smartCubeSchemeUnrecognized": "Letter-pair scheme not recognized — using press timing",
+  "smartCubeParityBuffersNotAdjacent": "Smart-cube parity works only when your edge buffer is adjacent to your corner buffer — using press timing",
   "smartCubeWrongCase": "You executed {pair}",
   "@smartCubeWrongCase": {
     "placeholders": { "pair": { "type": "String" } }

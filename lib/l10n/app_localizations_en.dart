@@ -62,6 +62,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Letter-pair scheme not recognized — using press timing';
 
   @override
+  String get smartCubeParityBuffersNotAdjacent =>
+      'Smart-cube parity works only when your edge buffer is adjacent to your corner buffer — using press timing';
+
+  @override
   String smartCubeWrongCase(String pair) {
     return 'You executed $pair';
   }

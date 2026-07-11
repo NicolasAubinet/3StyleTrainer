@@ -196,6 +196,12 @@ abstract class AppLocalizations {
   /// **'Letter-pair scheme not recognized — using press timing'**
   String get smartCubeSchemeUnrecognized;
 
+  /// No description provided for @smartCubeParityBuffersNotAdjacent.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart-cube parity works only when your edge buffer is adjacent to your corner buffer — using press timing'**
+  String get smartCubeParityBuffersNotAdjacent;
+
   /// No description provided for @smartCubeWrongCase.
   ///
   /// In en, this message translates to:

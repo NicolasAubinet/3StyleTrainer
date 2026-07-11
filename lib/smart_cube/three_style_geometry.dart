@@ -2,6 +2,7 @@ import 'package:smartcube/smartcube.dart';
 
 import '../alg_provider.dart';
 import '../alg_structs.dart';
+import '../audio_edge_scheme.dart';
 
 /// Bridges the app's SpeFFz sticker lettering to physical cube facelets (the
 /// [CubieCube] 54-facelet model the smart cube reports in), and computes, for a
@@ -106,16 +107,14 @@ class ThreeStyleGeometry {
     final isEdge = algType == AlgType.Edge;
     if (!isCorner && !isEdge) return null;
 
-    final scheme = getAlgSets(algType);
+    final resolved = _resolvePositions(pair, algType, isEdge);
+    if (resolved == null) return null;
+    final (bufferPrimary, xi, yi) = resolved;
+
     final stickers = isCorner ? _cornerStickers : _edgeStickers;
     final pieceFacelets = isCorner ? CubieCube.cFacelet : CubieCube.eFacelet;
     final perPiece = isCorner ? 3 : 2;
 
-    final letters = pair.split('');
-    if (letters.length != 2) return null;
-    final xi = scheme.indexOf(letters[0]);
-    final yi = scheme.indexOf(letters[1]);
-    final bufferPrimary = getBufferIndices(algType).first;
     final b = stickers[bufferPrimary];
     final x = stickers[xi];
     final y = stickers[yi];
@@ -133,6 +132,26 @@ class ThreeStyleGeometry {
       moves.add((fy, fb)); // Y sticker → buffer slot
     }
     return moves;
+  }
+
+  /// Resolve a pair name into SpeFFz *position* indices `(buffer, X, Y)`. The
+  /// audio edge scheme relabels/reorders positions, so it routes through
+  /// [AudioEdgeScheme] (which translates into SpeFFz space); every other scheme
+  /// already speaks SpeFFz directly. Returns `null` for an unparseable name.
+  static (int, int, int)? _resolvePositions(
+      String pair, AlgType algType, bool isEdge) {
+    if (isEdge && USE_EDGE_AUDIO_SYLLABLES) {
+      final xy = AudioEdgeScheme.parseToSpeffz(pair);
+      if (xy == null) return null;
+      return (AudioEdgeScheme.bufferSpeffz, xy.$1, xy.$2);
+    }
+    final scheme = getAlgSets(algType);
+    final letters = pair.split('');
+    if (letters.length != 2) return null;
+    final xi = scheme.indexOf(letters[0]);
+    final yi = scheme.indexOf(letters[1]);
+    if (xi < 0 || yi < 0) return null;
+    return (getBufferIndices(algType).first, xi, yi);
   }
 }
 

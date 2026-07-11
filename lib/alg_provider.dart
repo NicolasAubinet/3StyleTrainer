@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:three_style_trainer/settings.dart';
 
 import 'alg_structs.dart';
+import 'audio_edge_scheme.dart';
 
 const bool USE_EDGE_AUDIO_SYLLABLES = false;
 
@@ -24,7 +25,7 @@ double _getProgression(int originalLength, int currentLength) {
 List<String> getAlgSets(AlgType algType) {
   if (algType == AlgType.Edge) {
     if (USE_EDGE_AUDIO_SYLLABLES) {
-      return LetterPairScheme.AudioEdgeConsonants;
+      return AudioEdgeScheme.consonants;
     } else {
       return Settings().getEdgesScheme();
     }
@@ -58,60 +59,6 @@ bool _isValidTwoTwistPair(int i, int j) {
 }
 
 class LetterPairScheme {
-  static const AudioEdgeConsonants = [
-    'b',
-    'c',
-    'd',
-    '?',
-    'f',
-    'g',
-    'h',
-    '?',
-    'j',
-    'l',
-    'm',
-    'n',
-    'p',
-    'r',
-    's',
-    't',
-    'v',
-    'w',
-    'x',
-    'z',
-    'pr',
-    'y',
-    'gn',
-    'ch',
-  ];
-
-  static const AudioEdgeVowels = [
-    'a',
-    'e',
-    'i',
-    '?',
-    'A',
-    'E',
-    'I',
-    '?',
-    'o',
-    'O',
-    'U',
-    'u',
-    'è',
-    'È',
-    'é',
-    'É',
-    'AN',
-    'IN',
-    'ON',
-    'OU',
-    'an',
-    'in',
-    'on',
-    'ou',
-  ];
-
   static const Flips = [
     'UF',
     'UL',
@@ -157,21 +104,6 @@ class CollidingIndices {
     [14, 21],
   ];
 
-  // use a different list to allow to control the order in the list
-  static const List<List<int>> edgeAudioSyllables = [
-    [0, 4],
-    [1, 5],
-    [2, 6],
-    [3, 7],
-    [8, 9],
-    [10, 11],
-    [12, 13],
-    [14, 15],
-    [16, 20],
-    [17, 21],
-    [18, 22],
-    [19, 23],
-  ];
 }
 
 List<int> _getCollidingIndices(AlgType algType, int index) {
@@ -180,7 +112,7 @@ List<int> _getCollidingIndices(AlgType algType, int index) {
     collidingIndicesList = CollidingIndices.cornerSpeffz;
   } else if (algType == AlgType.Edge) {
     if (USE_EDGE_AUDIO_SYLLABLES) {
-      collidingIndicesList = CollidingIndices.edgeAudioSyllables;
+      collidingIndicesList = AudioEdgeScheme.collisionGroups;
     } else {
       collidingIndicesList = CollidingIndices.edgeSpeffz;
     }
@@ -215,7 +147,7 @@ List<int> getCornerBufferIndices(CornerBuffer buffer) {
 
 List<int> getEdgeBufferIndices(EdgeBuffer buffer) {
   if (USE_EDGE_AUDIO_SYLLABLES) {
-    return [3, 7];
+    return AudioEdgeScheme.bufferIndices;
   }
 
   switch (buffer) {
@@ -278,7 +210,7 @@ List<String> _enumerateLetterPairAlgs(
   List<String>?
       secondLetterScheme; // for custom schemes where the second letter is from a different set than the first
   if (algType == AlgType.Edge && USE_EDGE_AUDIO_SYLLABLES) {
-    secondLetterScheme = LetterPairScheme.AudioEdgeVowels;
+    secondLetterScheme = AudioEdgeScheme.vowels;
     assert(scheme.length == secondLetterScheme.length);
   }
 

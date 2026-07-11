@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcube/smartcube.dart';
+import 'package:three_style_trainer/alg_provider.dart';
 import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/smart_cube/three_style_geometry.dart';
 
@@ -98,7 +99,53 @@ void main() {
       expect(ThreeStyleGeometry.isPairComplete(exp, solved, pair, AlgType.Edge),
           isTrue);
     });
-  });
+  }, skip: USE_EDGE_AUDIO_SYLLABLES ? 'SpeFFz edges: audio flag is on' : false);
+
+  // Only meaningful when the audio-syllable edge scheme is active; the geometry
+  // routes audio pairs through AudioEdgeScheme into SpeFFz space.
+  group('edges (audio syllable scheme)', () {
+    const pair = 'be'; // consonant b (UL) + vowel e (UB); buffer UF.
+
+    test('expected state is a valid cube and a genuine 3-cycle', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.Edge)!;
+      expect(CubieCube().fromFacelet(exp), isTrue);
+      var s = solved;
+      for (var i = 0; i < 3; i++) {
+        s = ThreeStyleGeometry.expectedAfterPair(s, pair, AlgType.Edge)!;
+      }
+      expect(s, solved, reason: 'applying the case three times returns to solved');
+    });
+
+    test('a pair and its reverse are inverses', () {
+      // "be" = buffer->UL->UB; its reverse is "ca" = buffer->UB->UL.
+      final be = ThreeStyleGeometry.expectedAfterPair(solved, 'be', AlgType.Edge)!;
+      final back = ThreeStyleGeometry.expectedAfterPair(be, 'ca', AlgType.Edge)!;
+      expect(back, solved);
+    });
+
+    test('completion detection', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.Edge)!;
+      expect(ThreeStyleGeometry.isPairComplete(exp, solved, pair, AlgType.Edge),
+          isTrue);
+    });
+
+    test('multi-character syllables map and complete', () {
+      // "pré" = consonant pr (DF) + vowel é (FR); exercises multi-char parsing.
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, 'pré', AlgType.Edge);
+      expect(exp, isNotNull);
+      expect(CubieCube().fromFacelet(exp!), isTrue);
+      expect(
+          ThreeStyleGeometry.isPairComplete(exp, solved, 'pré', AlgType.Edge),
+          isTrue);
+    });
+
+    test('matchingPair detects the wrong case', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, 'be', AlgType.Edge)!;
+      final match = ThreeStyleGeometry.matchingPair(
+          exp, solved, AlgType.Edge, ['ca', 'bi', 'be', 'de']);
+      expect(match, 'be');
+    });
+  }, skip: USE_EDGE_AUDIO_SYLLABLES ? false : 'audio scheme disabled');
 
   test('unsupported alg types return null (for now)', () {
     expect(

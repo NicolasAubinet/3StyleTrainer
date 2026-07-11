@@ -21,7 +21,7 @@ const int BUTTON_PRESS_DELAY_MS = 250;
 // Sets rows fill toward a fixed target tick; under-target fills stop short of it.
 const double _TARGET_TICK_FRAC = 0.65;
 
-enum _SortColumn { order, time }
+enum _SortColumn { order, recognition, execution, time }
 
 class SessionSummaryScreen extends StatefulWidget {
   final List<AlgTime> algTimes;
@@ -154,18 +154,42 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         widget.algTimes.reduce((a, b) => a.timeMs >= b.timeMs ? a : b);
   }
 
+  // The split columns only appear once the session has smart-cube solves; like
+  // the stats screen, the summary is otherwise exactly as it was.
+  bool get _hasSplits => widget.algTimes.any((a) => a.recognitionMs != null);
+
   void _applySort() {
+    final hasSplits = _hasSplits;
     widget.algTimes.sort((a, b) {
-      final cmp = _sort.column == _SortColumn.time
-          ? a.timeMs.compareTo(b.timeMs)
-          : a.index.compareTo(b.index);
+      if (_sort.column == _SortColumn.order) {
+        final cmp = a.index.compareTo(b.index);
+        return _sort.direction.isAscending ? cmp : -cmp;
+      }
+      // Solves with no split (null) always sort last, either direction.
+      final va = _sortValue(a, hasSplits), vb = _sortValue(b, hasSplits);
+      if (va == null || vb == null) {
+        if (va == vb) return 0;
+        return va == null ? 1 : -1;
+      }
+      final cmp = va.compareTo(vb);
       return _sort.direction.isAscending ? cmp : -cmp;
     });
   }
 
+  int? _sortValue(AlgTime a, bool hasSplits) {
+    switch (_sort.column) {
+      case _SortColumn.recognition:
+        return hasSplits ? a.recognitionMs : a.timeMs;
+      case _SortColumn.execution:
+        return hasSplits ? a.executionMs : a.timeMs;
+      default:
+        return a.timeMs;
+    }
+  }
+
   void _onSort(_SortColumn column) {
     setState(() {
-      // Both columns start ascending: order -> as they occurred, time ->
+      // All columns start ascending: order -> as they occurred, times ->
       // fastest first.
       _sort.toggle(column, SortDirection.ascending);
       _applySort();
@@ -520,6 +544,24 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     );
   }
 
+  // Column widths shared by the split header cells and value cells so the R / E
+  // numbers line up under their labels, right beside the total.
+  static const double _splitCellWidth = 52;
+
+  Widget _splitHeader(String label, _SortColumn column) {
+    return SizedBox(
+      width: _splitCellWidth,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: SortHeader(
+            label: label.toUpperCase(),
+            column: column,
+            state: _sort,
+            onSort: _onSort),
+      ),
+    );
+  }
+
   Widget _sortHeaderRow(AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -531,6 +573,11 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
               state: _sort,
               onSort: _onSort),
           const Spacer(),
+          if (_hasSplits) ...[
+            _splitHeader(l10n.columnRecognition, _SortColumn.recognition),
+            _splitHeader(l10n.columnExecution, _SortColumn.execution),
+            const SizedBox(width: 8),
+          ],
           SortHeader(
               label: l10n.columnTime.toUpperCase(),
               column: _SortColumn.time,
@@ -557,8 +604,13 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                     style: _mono(12, p.textFaint, weight: FontWeight.w400)),
               ),
               const SizedBox(width: 6),
-              ..._nameAndSplit(algTime, p),
-              const SizedBox(width: 8),
+              _nameCell(algTime, p),
+              if (_hasSplits) ...[
+                _splitCell(algTime.recognitionMs, p),
+                _splitCell(algTime.executionMs, p),
+                const SizedBox(width: 8),
+              ] else
+                const SizedBox(width: 8),
               Text(timeToString(algTime.timeMs, fractionDigits: 2),
                   style: _mono(17, color)),
             ],
@@ -592,70 +644,45 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     );
   }
 
-  // The alg name (+ fastest/slowest pill) and, for cube solves, the
-  // recognition/execution split right-aligned against the total. Split rows use
-  // a fixed-width name (Corner/Edge pairs are short); press-timed rows keep the
-  // name expanded, exactly as before.
-  List<Widget> _nameAndSplit(AlgTime algTime, AppPalette p) {
+  // The alg name plus its fastest/slowest pill, taking the row's free width. In
+  // a split session the pills are dropped (the split columns need the width, and
+  // the colour of the total already flags the fastest/slowest).
+  Widget _nameCell(AlgTime algTime, AppPalette p) {
     final l10n = AppLocalizations.of(context)!;
-    final isFastest = identical(algTime, _fastest);
-    final isSlowest =
-        identical(algTime, _slowest) && !identical(_slowest, _fastest);
-    final pills = <Widget>[
-      if (isFastest) _rowPill(p, l10n.pillFastest, p.good),
-      if (isSlowest) _rowPill(p, l10n.pillSlowest, p.bad),
-    ];
-
-    if (algTime.recognitionMs == null) {
-      return [
-        Expanded(
-          child: Row(
-            children: [
-              Flexible(
-                child: Text(algTime.alg.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _mono(17, p.textPrimary)),
-              ),
-              ...pills,
-            ],
+    final showPills = !_hasSplits;
+    final isFastest = showPills && identical(algTime, _fastest);
+    final isSlowest = showPills &&
+        identical(algTime, _slowest) &&
+        !identical(_slowest, _fastest);
+    return Expanded(
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(algTime.alg.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: _mono(17, p.textPrimary)),
           ),
-        ),
-      ];
-    }
-
-    return [
-      Text(algTime.alg.name, style: _mono(17, p.textPrimary)),
-      ...pills,
-      Expanded(
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: _splitLine(algTime, p),
-          ),
-        ),
+          if (isFastest) _rowPill(p, l10n.pillFastest, p.good),
+          if (isSlowest) _rowPill(p, l10n.pillSlowest, p.bad),
+        ],
       ),
-    ];
+    );
   }
 
-  // Recognition/execution split under a cube-timed solve (only present then).
-  Widget _splitLine(AlgTime algTime, AppPalette p) {
-    final recog = algTime.recognitionMs!;
-    final exec = algTime.timeMs - recog;
-    TextSpan part(String label, int ms) => TextSpan(children: [
-          TextSpan(
-              text: "$label ",
-              style: TextStyle(fontSize: 10, color: p.textFaint)),
-          TextSpan(
-              text: timeToString(ms, fractionDigits: 2),
-              style: _mono(12, p.textMuted, weight: FontWeight.w400)),
-        ]);
-    return Text.rich(TextSpan(children: [
-      part("R", recog),
-      const TextSpan(text: "   "),
-      part("E", exec),
-    ]));
+  // A right-aligned recognition/execution value under its header; a faint dash
+  // for a press-timed solve within a split session.
+  Widget _splitCell(int? ms, AppPalette p) {
+    return SizedBox(
+      width: _splitCellWidth,
+      child: Text(
+        ms == null ? "–" : timeToString(ms, fractionDigits: 2),
+        textAlign: TextAlign.right,
+        style: ms == null
+            ? _mono(13, p.textFaint, weight: FontWeight.w400)
+            : _mono(13, p.textMuted, weight: FontWeight.w400),
+      ),
+    );
   }
 
   Widget _rowPill(AppPalette p, String label, Color bg) {

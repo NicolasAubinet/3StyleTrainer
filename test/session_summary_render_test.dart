@@ -26,11 +26,20 @@ Widget _host(Widget child, AppPalette palette) => ThemeScope(
 List<AlgTime> _sampleTimes() => [
       const AlgTime(1, 770, Alg("BA"), timestamp: 1),
       const AlgTime(2, 790, Alg("XT"), timestamp: 2),
-      // Cube-timed solve: carries a recognition/execution split.
-      const AlgTime(3, 800, Alg("AG"), timestamp: 3, recognitionMs: 320),
+      const AlgTime(3, 800, Alg("AG"), timestamp: 3),
       const AlgTime(4, 810, Alg("UF-DR"), timestamp: 4), // long 2-flip name
       const AlgTime(5, 820, Alg("BL"), timestamp: 5),
       const AlgTime(6, 910, Alg("VU"), timestamp: 6),
+    ];
+
+// Same cases but every solve carries a recognition/execution split, as a
+// smart-cube session would.
+List<AlgTime> _splitTimes() => [
+      const AlgTime(1, 770, Alg("BA"), timestamp: 1, recognitionMs: 300),
+      const AlgTime(2, 790, Alg("XT"), timestamp: 2, recognitionMs: 260),
+      const AlgTime(3, 800, Alg("AG"), timestamp: 3, recognitionMs: 410),
+      const AlgTime(4, 810, Alg("BL"), timestamp: 4, recognitionMs: 350),
+      const AlgTime(5, 910, Alg("VU"), timestamp: 5, recognitionMs: 500),
     ];
 
 void main() {
@@ -69,6 +78,27 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('renders recognition/execution split columns cleanly',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 640));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _splitTimes(),
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.timeRace,
+        totalTimeMs: 4080,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    // The split header labels and every alg render.
+    expect(find.text('RECOG'), findsOneWidget);
+    expect(find.text('EXEC'), findsOneWidget);
+    expect(find.text('VU'), findsOneWidget);
+  });
 
   testWidgets('defaults to occurrence order, not fastest time', (tester) async {
     // Occurrence order AA, BB, CC; fastest is CC (0.50).

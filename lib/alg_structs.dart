@@ -45,6 +45,10 @@ class AlgTime {
 
   const AlgTime(this.index, this.timeMs, this.alg,
       {required this.timestamp, this.recognitionMs});
+
+  // Execution part of the split (total − recognition); null when unsplit.
+  int? get executionMs =>
+      recognitionMs == null ? null : timeMs - recognitionMs!;
 }
 
 // Aggregated times for a single alg, built from the results history. The split

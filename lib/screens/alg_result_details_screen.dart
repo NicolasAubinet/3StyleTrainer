@@ -124,49 +124,39 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   }
 
   // Keep these widths in sync between the header and the rows so columns align.
-  static const double _timeColumnWidth = 90;
-  static const double _deleteColumnWidth = 48;
-  static const double _splitColumnWidth = 56;
+  // They stay tight so the date column keeps enough room to fit on one line.
+  static const double _timeColumnWidth = 62;
+  static const double _deleteColumnWidth = 40;
+  static const double _splitColumnWidth = 52;
 
-  // Uses the shared [SortState] but keeps its own header layout (fixed-width,
-  // right-aligned time column) rather than the list-style [SortHeader] widget.
-  Widget _sortHeader(ThemeData theme, String label, _SortColumn column,
-      {double? width, TextAlign align = TextAlign.left}) {
-    final active = _sort.isActive(column);
-    final arrow = active ? _sort.direction.arrow : "";
-    final text = Text(
-      "$label$arrow",
-      textAlign: align,
-      style: theme.textTheme.titleSmall
-          ?.copyWith(color: active ? context.palette.accent : null),
-    );
-    return InkWell(
-      onTap: () => _onSort(column),
-      child: width == null ? text : SizedBox(width: width, child: text),
-    );
-  }
+  Widget _sortHeader(String label, _SortColumn column,
+          {double? width, TextAlign align = TextAlign.left}) =>
+      SortHeader(
+          label: label.toUpperCase(),
+          column: column,
+          state: _sort,
+          onSort: _onSort,
+          width: width,
+          align: align);
 
-  Widget _buildHeader(ThemeData theme) {
+  Widget _buildHeader() {
     final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      // Card margin (4) + row padding (16), so headers sit over their values.
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Row(
         children: [
-          Expanded(
-              child: _sortHeader(
-                  theme, l10n.columnDateTime, _SortColumn.dateTime)),
+          Expanded(child: _sortHeader(l10n.columnDateTime, _SortColumn.dateTime)),
           if (_hasSplits) ...[
-            _sortHeader(theme, l10n.columnRecognition, _SortColumn.recognition,
+            _sortHeader(l10n.columnRecognition, _SortColumn.recognition,
                 width: _splitColumnWidth, align: TextAlign.right),
-            _sortHeader(theme, l10n.columnExecution, _SortColumn.execution,
+            _sortHeader(l10n.columnExecution, _SortColumn.execution,
                 width: _splitColumnWidth, align: TextAlign.right),
+            const SizedBox(width: 8),
           ],
-          _sortHeader(
-              theme,
-              _hasSplits ? l10n.columnTotal : l10n.columnResult,
+          _sortHeader(_hasSplits ? l10n.columnTotal : l10n.columnResult,
               _SortColumn.total,
-              width: _timeColumnWidth,
-              align: TextAlign.right),
+              width: _timeColumnWidth, align: TextAlign.right),
           SizedBox(width: _deleteColumnWidth),
         ],
       ),
@@ -181,6 +171,7 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
       child: Text(
         ms == null ? "–" : timeToString(ms, fractionDigits: 2),
         textAlign: TextAlign.right,
+        maxLines: 1,
         style: theme.textTheme.labelLarge?.copyWith(
             color: ms == null
                 ? context.palette.textFaint
@@ -196,15 +187,22 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Row(
         children: [
-          Expanded(child: Text(_dateFormat.format(date), style: cellStyle)),
+          Expanded(
+              child: Text(_dateFormat.format(date),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: cellStyle)),
           if (_hasSplits) ...[
             _splitCell(theme, result.recognitionMs),
             _splitCell(theme, result.executionMs),
+            const SizedBox(width: 8),
           ],
           SizedBox(
             width: _timeColumnWidth,
             child: Text(timeToString(result.resultMs, fractionDigits: 2),
-                style: cellStyle, textAlign: TextAlign.right),
+                maxLines: 1,
+                style: cellStyle,
+                textAlign: TextAlign.right),
           ),
           SizedBox(
             width: _deleteColumnWidth,
@@ -236,7 +234,7 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
     } else {
       content = Column(
         children: [
-          _buildHeader(theme),
+          _buildHeader(),
           Expanded(
             child: Card(
               color: p.panel,

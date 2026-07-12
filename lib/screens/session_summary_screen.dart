@@ -334,9 +334,10 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
             _statHeader(p, l10n),
             const SizedBox(height: 8),
             _isTimeRace ? _timeRaceActions(p, l10n) : _setsActions(p, l10n),
-            const SizedBox(height: 8),
+            // Keeps the taller header tap targets clear of the action buttons.
+            const SizedBox(height: 14),
             _sortHeaderRow(l10n),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Expanded(
               child: ListView.builder(
                 itemCount: widget.algTimes.length,
@@ -551,35 +552,23 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   static const double _timeCellWidth = 58;
   static const double _cardContentInset = 13;
 
-  // A tappable, right-aligned sort-header cell with no internal padding, so it
-  // lines up exactly with a same-width value cell below it.
   Widget _headerCell(String label, _SortColumn column,
-      {double? width, TextAlign align = TextAlign.right}) {
-    final p = context.palette;
-    final active = _sort.isActive(column);
-    final text = Text(
-      active ? "$label${_sort.direction.arrow}" : label,
-      textAlign: align,
-      maxLines: 1,
-      overflow: TextOverflow.clip,
-      style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-          color: active ? p.accent : p.textMuted),
-    );
-    return InkWell(
-      onTap: () => _onSort(column),
-      child: width == null ? text : SizedBox(width: width, child: text),
-    );
-  }
+          {double? width, TextAlign align = TextAlign.right}) =>
+      SortHeader(
+          label: label,
+          column: column,
+          state: _sort,
+          onSort: _onSort,
+          width: width,
+          align: align);
 
   Widget _sortHeaderRow(AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: _cardContentInset),
       child: Row(
         children: [
-          _headerCell(l10n.columnNumber, _SortColumn.order, align: TextAlign.left),
+          _headerCell(l10n.columnNumber, _SortColumn.order,
+              width: 24, align: TextAlign.left),
           const Spacer(),
           if (_hasSplits) ...[
             _headerCell(l10n.columnRecognition.toUpperCase(),

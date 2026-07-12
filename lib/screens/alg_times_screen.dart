@@ -241,9 +241,13 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     );
   }
 
-  // Column widths shared by the split header cells and value cells so the R / E
-  // numbers line up under their labels, right beside the total.
-  static const double _splitCellWidth = 48;
+  // Column widths shared by the header cells and the value cells so the numbers
+  // line up under their labels. The header row is inset to match the card's
+  // content box (GlassPanel: 14px padding + 1px border).
+  static const double _algCellWidth = 46;
+  static const double _splitCellWidth = 52;
+  static const double _totalCellWidth = 62;
+  static const double _cardContentInset = 15;
 
   // A right-aligned recognition/execution value under its header; a faint dash
   // when this case has no cube solves (only reachable in a split view).
@@ -253,25 +257,12 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
       child: Text(
         ms == null ? "–" : timeToString(ms.round(), fractionDigits: 2),
         textAlign: TextAlign.right,
+        maxLines: 1,
+        overflow: TextOverflow.clip,
         style: TextStyle(
             fontFamily: MONO_FONT,
             fontSize: 13,
             color: ms == null ? p.textFaint : p.textMuted),
-      ),
-    );
-  }
-
-  // Right-aligned, fixed-width sort header sitting above a [_splitCell].
-  Widget _splitHeader(String label, _SortColumn column) {
-    return SizedBox(
-      width: _splitCellWidth,
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: SortHeader(
-            label: label.toUpperCase(),
-            column: column,
-            state: _sort,
-            onSort: _onSort),
       ),
     );
   }
@@ -285,8 +276,9 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
         child: Row(
           children: [
             SizedBox(
-              width: 46,
+              width: _algCellWidth,
               child: Text(stats.alg,
+                  maxLines: 1,
                   style: TextStyle(
                       fontFamily: MONO_FONT,
                       fontSize: 18,
@@ -308,15 +300,21 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
             if (_hasSplits) ...[
               _splitCell(stats.avgRecognitionMs, p),
               _splitCell(stats.avgExecutionMs, p),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
             ],
-            Text(
-              timeToString(stats.avgMs.round(), fractionDigits: 2),
-              style: TextStyle(
-                  fontFamily: MONO_FONT,
-                  fontSize: 19,
-                  fontWeight: FontWeight.w700,
-                  color: _avgColor(stats.avgMs, p)),
+            SizedBox(
+              width: _totalCellWidth,
+              child: Text(
+                timeToString(stats.avgMs.round(), fractionDigits: 2),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.clip,
+                style: TextStyle(
+                    fontFamily: MONO_FONT,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                    color: _avgColor(stats.avgMs, p)),
+              ),
             ),
           ],
         ),
@@ -346,26 +344,42 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(2, 2, 2, 6),
+            padding: const EdgeInsets.fromLTRB(
+                _cardContentInset, 0, _cardContentInset, 2),
             child: Row(
               children: [
                 SortHeader(
                     label: l10n.columnAlg.toUpperCase(),
                     column: _SortColumn.alg,
                     state: _sort,
-                    onSort: _onSort),
+                    onSort: _onSort,
+                    width: _algCellWidth),
                 const Spacer(),
                 if (_hasSplits) ...[
-                  _splitHeader(l10n.columnRecognition, _SortColumn.recognition),
-                  _splitHeader(l10n.columnExecution, _SortColumn.execution),
-                  const SizedBox(width: 12),
+                  SortHeader(
+                      label: l10n.columnRecognition.toUpperCase(),
+                      column: _SortColumn.recognition,
+                      state: _sort,
+                      onSort: _onSort,
+                      width: _splitCellWidth,
+                      align: TextAlign.right),
+                  SortHeader(
+                      label: l10n.columnExecution.toUpperCase(),
+                      column: _SortColumn.execution,
+                      state: _sort,
+                      onSort: _onSort,
+                      width: _splitCellWidth,
+                      align: TextAlign.right),
+                  const SizedBox(width: 8),
                 ],
                 SortHeader(
                     label: (_hasSplits ? l10n.columnTotal : l10n.columnAvg)
                         .toUpperCase(),
                     column: _SortColumn.total,
                     state: _sort,
-                    onSort: _onSort),
+                    onSort: _onSort,
+                    width: _totalCellWidth,
+                    align: TextAlign.right),
               ],
             ),
           ),

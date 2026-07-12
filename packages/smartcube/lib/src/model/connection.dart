@@ -1,5 +1,6 @@
-/// Lifecycle of a cube connection.
-enum CubeConnection { disconnected, scanning, connecting, ready, lost }
+/// Lifecycle of a cube connection. [lost] is a link that dropped on its own (the
+/// cube slept, or went out of range) and may come back; [disconnected] is final.
+enum CubeConnection { disconnected, scanning, connecting, reconnecting, ready, lost }
 
 /// Smart-cube brands the scanner can recognise. `unknown` is matched by service
 /// UUID when the device name is uninformative.

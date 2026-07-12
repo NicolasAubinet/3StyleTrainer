@@ -22,13 +22,19 @@ class SmartCubeConnectButton extends StatelessWidget {
       valueListenable: mgr.connection,
       builder: (context, conn, _) {
         final connected = conn == CubeConnection.ready;
-        final connecting = conn == CubeConnection.connecting;
+        final reconnecting = conn == CubeConnection.reconnecting ||
+            conn == CubeConnection.lost;
+        final connecting = conn == CubeConnection.connecting || reconnecting;
         final icon = connected
             ? Icons.bluetooth_connected
             : connecting
                 ? Icons.bluetooth_searching
                 : Icons.bluetooth;
-        final color = connected ? p.good : p.appBarFg;
+        final color = connected
+            ? p.good
+            : reconnecting
+                ? p.pop
+                : p.appBarFg;
         return Tooltip(
           message: l10n.smartCube,
           child: InkWell(

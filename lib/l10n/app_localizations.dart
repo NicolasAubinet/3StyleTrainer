@@ -190,6 +190,24 @@ abstract class AppLocalizations {
   /// **'Requeue case'**
   String get smartCubeRequeue;
 
+  /// No description provided for @smartCubeReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnecting to your cube…'**
+  String get smartCubeReconnecting;
+
+  /// No description provided for @smartCubeReconnectingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The cube went to sleep or out of range. Turn a face to wake it — the run resumes on its own.'**
+  String get smartCubeReconnectingHint;
+
+  /// No description provided for @smartCubeResynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Cube re-synced — execute the alg from here'**
+  String get smartCubeResynced;
+
   /// No description provided for @smartCubeSchemeUnrecognized.
   ///
   /// In en, this message translates to:

@@ -58,6 +58,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartCubeRequeue => 'Requeue case';
 
   @override
+  String get smartCubeReconnecting => 'Reconnecting to your cube…';
+
+  @override
+  String get smartCubeReconnectingHint =>
+      'The cube went to sleep or out of range. Turn a face to wake it — the run resumes on its own.';
+
+  @override
+  String get smartCubeResynced => 'Cube re-synced — execute the alg from here';
+
+  @override
   String get smartCubeSchemeUnrecognized =>
       'Letter-pair scheme not recognized — using press timing';
 

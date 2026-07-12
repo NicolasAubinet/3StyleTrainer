@@ -19,6 +19,14 @@ class MoyuMoveEvent extends MoyuEvent {
   MoyuMoveEvent(this.move, this.stateAfter);
 }
 
+/// More moves happened than the last packet could carry, so the tracked model no
+/// longer matches the cube. Moves are ignored until a fresh state re-anchors it.
+class MoyuDesyncEvent extends MoyuEvent {
+  /// Moves the cube reported that never reached the model.
+  final int lostMoves;
+  MoyuDesyncEvent(this.lostMoves);
+}
+
 class MoyuBatteryEvent extends MoyuEvent {
   final int level;
   MoyuBatteryEvent(this.level);
@@ -56,6 +64,7 @@ class MoyuV10Parser {
   int _deviceTime = 0;
   int _deviceTimeOffset = 0;
   int _batteryLevel = 0;
+  bool _pullPending = false;
 
   MoyuV10Parser(List<int> macBytes)
       : _cipher = GanCipher.forMac(baseKey, baseIv, macBytes);
@@ -63,6 +72,16 @@ class MoyuV10Parser {
   int get batteryLevel => _batteryLevel;
 
   CubeState get currentState => CubeState(_cube.toFaceCube());
+
+  /// `true` while the model is untrusted: moves are dropped until a state
+  /// message re-anchors it (after a [MoyuDesyncEvent]).
+  bool get needsAnchor => _prevMoveCnt == -1;
+
+  /// Accept the next state message even though the model is anchored, so a
+  /// voluntary pull re-anchors on the cube's own facelets. Unlike a desync this
+  /// keeps tracking moves meanwhile, so none are lost while the pull is in
+  /// flight.
+  void requestPull() => _pullPending = true;
 
   /// Force the next state message to re-anchor (used after packet loss).
   void resetAnchor() => _prevMoveCnt = -1;
@@ -97,7 +116,8 @@ class MoyuV10Parser {
         return [MoyuInfoEvent(name.toString().trim(), hw, sw)];
 
       case 163:
-        if (_prevMoveCnt != -1) return [];
+        if (_prevMoveCnt != -1 && !_pullPending) return [];
+        _pullPending = false;
         _moveCnt = val(152, 160);
         final facelet = _parseFacelet(s.substring(8, 152));
         _cube.fromFacelet(facelet);
@@ -132,9 +152,17 @@ class MoyuV10Parser {
 
   List<MoyuEvent> _emitMoves(
       List<int> timeOffs, List<CubeMove> moves, int hostTimeMs) {
-    var moveDiff = (_moveCnt - _prevMoveCnt) & 0xff;
+    final moveDiff = (_moveCnt - _prevMoveCnt) & 0xff;
     _prevMoveCnt = _moveCnt;
-    if (moveDiff > moves.length) moveDiff = moves.length;
+    // A packet only carries the last 5 moves. More than that means notifications
+    // were missed (radio drop, or the cube waking from sleep): the moves in
+    // between are gone for good, so applying the ones we did get would leave the
+    // model silently wrong — and nothing would ever complete again. Declare the
+    // model dead instead and let the driver pull a fresh state.
+    if (moveDiff > moves.length) {
+      _prevMoveCnt = -1;
+      return [MoyuDesyncEvent(moveDiff - moves.length)];
+    }
 
     var calcTs = _deviceTime + _deviceTimeOffset;
     for (var i = moveDiff - 1; i >= 0; i--) {

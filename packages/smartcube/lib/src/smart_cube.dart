@@ -13,6 +13,12 @@ abstract class SmartCube {
   /// Full-state snapshots — emitted on connect and after every applied move.
   Stream<CubeState> get states;
 
+  /// Emits when tracking was re-anchored on the cube's own state after moves
+  /// were lost (a radio drop, or the cube waking from sleep). Anything holding a
+  /// baseline taken before this must re-take it: moves happened that the app
+  /// never saw.
+  Stream<CubeState> get resyncs;
+
   Stream<CubeConnection> get connectionEvents;
   CubeConnection get connection;
 

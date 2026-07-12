@@ -82,15 +82,18 @@ class MoyuV10Cube implements SmartCube {
 
   final _moveCtrl = StreamController<CubeMove>.broadcast();
   final _stateCtrl = StreamController<CubeState>.broadcast();
+  final _resyncCtrl = StreamController<CubeState>.broadcast();
   final _connCtrl = StreamController<CubeConnection>.broadcast();
 
   late final BleCharacteristic _read;
   late final BleCharacteristic _write;
   StreamSubscription<List<int>>? _dataSub;
   StreamSubscription<bool>? _connSub;
+  Timer? _anchorTimer;
 
   CubeState _lastState = CubeState.solved;
   CubeConnection _connection = CubeConnection.connecting;
+  bool _resyncPending = false;
 
   MoyuV10Cube._(this.device, this._peripheral, this._parser);
 
@@ -127,16 +130,37 @@ class MoyuV10Cube implements SmartCube {
         case MoyuStateEvent(:final state):
           _lastState = state;
           _stateCtrl.add(state);
+          if (_resyncPending) {
+            _resyncPending = false;
+            _resyncCtrl.add(state);
+          }
         case MoyuMoveEvent(:final move, :final stateAfter):
           _moveCtrl.add(move);
           _lastState = stateAfter;
           _stateCtrl.add(stateAfter);
+        case MoyuDesyncEvent():
+          _resyncPending = true;
+          _pullState();
         case MoyuBatteryEvent():
           break;
         case MoyuInfoEvent():
           break;
       }
     }
+  }
+
+  // Ask the cube for its real state. Moves stay ignored until the answer lands,
+  // so keep asking until it does — a request can be lost the same way a move was.
+  void _pullState() {
+    _anchorTimer?.cancel();
+    _write.write(_parser.encodeRequest(MoyuV10Parser.opStatus));
+    _anchorTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!_parser.needsAnchor || _connection != CubeConnection.ready) {
+        t.cancel();
+        return;
+      }
+      _write.write(_parser.encodeRequest(MoyuV10Parser.opStatus));
+    });
   }
 
   void _setConnection(CubeConnection c) {
@@ -151,6 +175,9 @@ class MoyuV10Cube implements SmartCube {
   Stream<CubeState> get states => _stateCtrl.stream;
 
   @override
+  Stream<CubeState> get resyncs => _resyncCtrl.stream;
+
+  @override
   Stream<CubeConnection> get connectionEvents => _connCtrl.stream;
 
   @override
@@ -161,9 +188,10 @@ class MoyuV10Cube implements SmartCube {
 
   @override
   Future<CubeState> requestState() async {
-    _parser.resetAnchor();
+    final answer = _stateCtrl.stream.first;
+    _parser.requestPull();
     await _write.write(_parser.encodeRequest(MoyuV10Parser.opStatus));
-    return _lastState;
+    return answer.timeout(const Duration(seconds: 2), onTimeout: () => _lastState);
   }
 
   @override
@@ -186,12 +214,14 @@ class MoyuV10Cube implements SmartCube {
 
   @override
   Future<void> disconnect() async {
+    _anchorTimer?.cancel();
     await _dataSub?.cancel();
     await _connSub?.cancel();
     await _peripheral.disconnect();
     _setConnection(CubeConnection.disconnected);
     await _moveCtrl.close();
     await _stateCtrl.close();
+    await _resyncCtrl.close();
     await _connCtrl.close();
   }
 }

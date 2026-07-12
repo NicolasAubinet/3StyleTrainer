@@ -56,4 +56,66 @@ void main() {
     parser.resetAnchor();
     expect(parser.parse(c163, 1200), hasLength(1)); // re-anchors
   });
+
+  // A move packet carries only the last 5 moves, so a counter that ran further
+  // ahead than that means notifications were missed (radio drop / cube waking).
+  final cipher = GanCipher.forMac(MoyuV10Parser.baseKey, MoyuV10Parser.baseIv,
+      GanCipher.macBytes('CF:30:16:00:AB:CD'));
+  List<int> movePacket(int moveCnt, {List<int> moves = const [4, 4, 4, 4, 4]}) {
+    final bits = StringBuffer()..write(_bin(165, 8));
+    for (var i = 0; i < 5; i++) {
+      bits.write(_bin(100, 16)); // timestamps
+    }
+    bits.write(_bin(moveCnt, 8));
+    for (final m in moves) {
+      bits.write(_bin(m, 5));
+    }
+    final s = bits.toString().padRight(160, '0');
+    return cipher.encode([
+      for (var i = 0; i < 20; i++) int.parse(s.substring(i * 8, i * 8 + 8), radix: 2),
+    ]);
+  }
+
+  test('more moves than a packet carries declares a desync, applying none', () {
+    final parser = newParser();
+    parser.parse(c163, 1000); // anchor at solved, moveCnt 5
+
+    // The cube reports counter 12: seven moves happened, only five are in hand.
+    final events = parser.parse(movePacket(12), 1500);
+
+    expect(events, hasLength(1));
+    expect((events.single as MoyuDesyncEvent).lostMoves, 2);
+    // Nothing is applied — a partial replay would leave the model silently wrong.
+    expect(parser.currentState.facelets, CubieCube.solvedFacelet);
+    expect(parser.needsAnchor, isTrue);
+  });
+
+  test('moves stay ignored after a desync until a state packet re-anchors', () {
+    final parser = newParser();
+    parser.parse(c163, 1000);
+    parser.parse(movePacket(12), 1500); // desync
+
+    expect(parser.parse(movePacket(13, moves: [4, 4, 4, 4, 4]), 1600), isEmpty);
+    expect(parser.currentState.facelets, CubieCube.solvedFacelet);
+
+    // The cube's own state is authoritative; tracking resumes from it.
+    expect(parser.parse(c163, 1700), hasLength(1));
+    expect(parser.needsAnchor, isFalse);
+    expect(parser.parse(c165, 1800), hasLength(1)); // moveCnt 6 — tracking again
+    expect(parser.currentState.facelets, uFacelet);
+  });
+
+  test('requestPull re-anchors an anchored model without losing moves', () {
+    final parser = newParser();
+    parser.parse(c163, 1000);
+    parser.requestPull();
+
+    // A move landing while the pull is in flight is still tracked...
+    expect(parser.parse(c165, 1100), hasLength(1));
+    // ...and the state answer is accepted even though the model was anchored.
+    expect(parser.parse(c163, 1200), hasLength(1));
+    expect(parser.currentState.facelets, CubieCube.solvedFacelet);
+  });
 }
+
+String _bin(int value, int width) => value.toRadixString(2).padLeft(width, '0');

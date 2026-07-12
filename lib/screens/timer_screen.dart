@@ -66,6 +66,9 @@ class _TimerScreenState extends State<TimerScreen> {
   CubeRunController? _cubeRun;
   async.StreamSubscription<CubeState>? _stateSub;
   async.StreamSubscription<CubeMove>? _moveSub;
+  async.StreamSubscription<CubeState>? _resyncSub;
+  // The cube dropped and is being reconnected: the run pauses until it is back.
+  bool _reconnecting = false;
 
   _CubeFeedback? _feedback;
   // Un-normalised cube state at case start, for the orientation sweep.
@@ -341,9 +344,27 @@ class _TimerScreenState extends State<TimerScreen> {
     }
     if (alg == null) return;
     _cubeRun!.startCase(alg!.name, fromFacelets);
+    _verifyBaseline(alg!.name);
     stopwatch
       ..reset()
       ..start();
+  }
+
+  // Trust the cube over our own bookkeeping: pull its real state as the case
+  // opens, so drift we failed to notice costs one baseline instead of the whole
+  // session. Silent — the user has nothing to fix.
+  void _verifyBaseline(String pair) async {
+    final cube = SmartCubeManager().cube;
+    if (cube == null) return;
+    final state = await cube.requestState();
+    if (!mounted || alg?.name != pair) return;
+    // Left alone only if the case hasn't started moving; mid-execution the
+    // baseline is what the split is measured against.
+    if (_cubeRun!.phase != CubePhase.recognition) return;
+    final norm = _normalise(state.facelets);
+    if (norm == _cubeRun!.startFacelets) return;
+    _cubeRun!.rebaseline(pair, norm);
+    _caseRawStart = state.facelets;
   }
 
   void _onCubeComplete(CaseSplit split) {
@@ -446,10 +467,31 @@ class _TimerScreenState extends State<TimerScreen> {
   void _onConnectionChanged() {
     if (!mounted) return;
     final c = SmartCubeManager().connection.value;
-    if (c == CubeConnection.lost || c == CubeConnection.disconnected) {
+    if (c == CubeConnection.disconnected) {
       // The cube drives this screen; without it, drop back to the menu.
       Navigator.pop(context);
+      return;
     }
+    // A dropped link is usually the cube napping — hold the run and wait for the
+    // manager to bring it back rather than throwing the session away.
+    final reconnecting =
+        c == CubeConnection.lost || c == CubeConnection.reconnecting;
+    if (reconnecting != _reconnecting) setState(() => _reconnecting = reconnecting);
+  }
+
+  // Tracking was re-anchored on the cube's real state: moves happened that we
+  // never saw, so the current case's baseline is meaningless. Re-baseline onto
+  // where the cube actually is and let the user execute the shown pair from
+  // there — and don't record the case, since its time is no longer honest.
+  void _onCubeResync(CubeState state) {
+    if (!mounted || !isReady) return;
+    final shown = alg?.name;
+    if (shown == null) return;
+    final norm = _normalise(state.facelets);
+    _cubeRun!.rebaseline(shown, norm);
+    _caseRawStart = state.facelets;
+    _caseSpoiled = true;
+    _setFeedback(_CubeFeedback.resynced());
   }
 
   void _onTimeRaceEnded() async {
@@ -492,9 +534,11 @@ class _TimerScreenState extends State<TimerScreen> {
     if (_cubeMode) {
       _cubeRun = CubeRunController(_cubeAlgType!);
       _pairPool = enumerateAlgs(_cubeAlgType!);
-      final cube = mgr.cube!;
-      _stateSub = cube.states.listen(_onCubeState);
-      _moveSub = cube.moves.listen((_) => _onCubeMove());
+      // The manager's streams, not the cube's: a reconnect swaps the SmartCube
+      // underneath and these keep flowing.
+      _stateSub = mgr.states.listen(_onCubeState);
+      _moveSub = mgr.moves.listen((_) => _onCubeMove());
+      _resyncSub = mgr.resyncs.listen(_onCubeResync);
       mgr.connection.addListener(_onConnectionChanged);
     } else if (mgr.isConnected) {
       // Cube connected but this run isn't cube-drivable. Parity is unmappable
@@ -532,6 +576,7 @@ class _TimerScreenState extends State<TimerScreen> {
     _requeueDebounce?.cancel();
     _stateSub?.cancel();
     _moveSub?.cancel();
+    _resyncSub?.cancel();
     SmartCubeManager().connection.removeListener(_onConnectionChanged);
     ServicesBinding.instance.keyboard.removeHandler(_onKey);
   }
@@ -682,7 +727,8 @@ class _TimerScreenState extends State<TimerScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           child: OutlinedButton.icon(
-            onPressed: _requeueBlocked ? null : _requeueCubeCase,
+            onPressed:
+                _requeueBlocked || _reconnecting ? null : _requeueCubeCase,
             icon: const Icon(Icons.replay),
             label: Text(l10n.smartCubeRequeue),
           ),
@@ -698,7 +744,34 @@ class _TimerScreenState extends State<TimerScreen> {
               child: Container(color: p.good.withValues(alpha: 0.09)),
             ),
           ),
+        if (_reconnecting) Positioned.fill(child: _reconnectingOverlay(p)),
       ],
+    );
+  }
+
+  // The cube nodded off (or wandered out of range). Hold the run here — turning
+  // a face wakes it and the manager reconnects, then the case re-baselines.
+  Widget _reconnectingOverlay(AppPalette p) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      color: p.surfaceOpaque.withValues(alpha: 0.88),
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(color: p.accent),
+          const SizedBox(height: 20),
+          Text(l10n.smartCubeReconnecting,
+              style: TextStyle(fontSize: 20, color: p.textPrimary)),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(l10n.smartCubeReconnectingHint,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: p.textMuted)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -732,7 +805,7 @@ class _TimerScreenState extends State<TimerScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
       child: Text(
-        l10n.smartCubeWrongCase(fb.pair),
+        fb.isResynced ? l10n.smartCubeResynced : l10n.smartCubeWrongCase(fb.pair),
         textAlign: TextAlign.center,
         style: textStyle,
       ),
@@ -863,25 +936,37 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 }
 
+enum _FeedbackKind { wrongCase, orientation, resynced }
+
 class _CubeFeedback {
+  final _FeedbackKind kind;
   final String pair;
   final CubeColour? top;
   final CubeColour? front;
 
   const _CubeFeedback.wrongCase(this.pair)
-      : top = null,
+      : kind = _FeedbackKind.wrongCase,
+        top = null,
         front = null;
-  const _CubeFeedback.orientation(this.pair, this.top, this.front);
+  const _CubeFeedback.orientation(this.pair, this.top, this.front)
+      : kind = _FeedbackKind.orientation;
+  const _CubeFeedback.resynced()
+      : kind = _FeedbackKind.resynced,
+        pair = "",
+        top = null,
+        front = null;
 
-  bool get isOrientation => top != null;
+  bool get isOrientation => kind == _FeedbackKind.orientation;
+  bool get isResynced => kind == _FeedbackKind.resynced;
 
   @override
   bool operator ==(Object o) =>
       o is _CubeFeedback &&
+      o.kind == kind &&
       o.pair == pair &&
       o.top == top &&
       o.front == front;
 
   @override
-  int get hashCode => Object.hash(pair, top, front);
+  int get hashCode => Object.hash(kind, pair, top, front);
 }

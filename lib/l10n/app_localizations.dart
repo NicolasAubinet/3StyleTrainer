@@ -1090,11 +1090,35 @@ abstract class AppLocalizations {
   /// **'Under target'**
   String get statUnderTarget;
 
+  /// No description provided for @statMistakes.
+  ///
+  /// In en, this message translates to:
+  /// **'Mistakes'**
+  String get statMistakes;
+
+  /// No description provided for @summaryErrors.
+  ///
+  /// In en, this message translates to:
+  /// **'Errors'**
+  String get summaryErrors;
+
   /// No description provided for @summaryTarget.
   ///
   /// In en, this message translates to:
   /// **'Target'**
   String get summaryTarget;
+
+  /// No description provided for @mistakeExecuted.
+  ///
+  /// In en, this message translates to:
+  /// **'Executed {pair}'**
+  String mistakeExecuted(String pair);
+
+  /// No description provided for @mistakeRequeued.
+  ///
+  /// In en, this message translates to:
+  /// **'Requeued'**
+  String get mistakeRequeued;
 
   /// No description provided for @pillFastest.
   ///

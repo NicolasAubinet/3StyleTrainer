@@ -71,15 +71,22 @@ class _TimerScreenState extends State<TimerScreen> {
   bool _reconnecting = false;
 
   _CubeFeedback? _feedback;
+  // The feedback was carried over from the case that just went wrong; it stays
+  // up on the new case until the user starts turning again.
+  bool _carriedFeedback = false;
   // Un-normalised cube state at case start, for the orientation sweep.
   String? _caseRawStart;
   bool _orientationConfirmed = false;
-  // A wrong case was executed and re-baselined; its time won't be recorded.
+  // The cube re-synced mid-case, so its time is no longer honest: don't record
+  // it. Not a user mistake — it never reaches the summary's errors.
   bool _caseSpoiled = false;
   List<String> _pairPool = const [];
+  // Cases the user got wrong this run (cube-driven only); shown in the summary.
+  final List<AlgMistake> mistakes = [];
 
-  // Brief green flash on smartcube auto alg completion
+  // Brief flash on auto-advance: green on a clean completion, red on an error.
   bool _advanceFlash = false;
+  bool _flashError = false;
   async.Timer? _advanceFlashTimer;
   // Ignore the requeue button briefly after an auto-advance so a reflexive
   // press can't requeue the freshly-shown next case.
@@ -188,10 +195,12 @@ class _TimerScreenState extends State<TimerScreen> {
 
   // Deletion of recorded rows is wired only for recording runs; a non-recording
   // summary gets no delete callbacks (swiping there just explains why).
-  SessionSummaryScreen _buildSummary(List<AlgTime> algTimes, int totalTimeMs) {
+  SessionSummaryScreen _buildSummary(List<AlgTime> algTimes, int totalTimeMs,
+      {List<AlgMistake> algMistakes = const []}) {
     final recording = _isRecordingRun;
     return SessionSummaryScreen(
       algTimes: algTimes,
+      mistakes: algMistakes,
       algType: widget.algType,
       targetTime: widget.targetTime,
       practiceType: widget.practiceType,
@@ -296,12 +305,22 @@ class _TimerScreenState extends State<TimerScreen> {
     final wrong = ThreeStyleGeometry.matchingPair(
         normFacelets, start, _cubeAlgType!, _pairPool);
     if (wrong != null && wrong != shown) {
-      // Re-baseline so the shown pair can be executed from the current state;
-      // the botched attempt is flagged so its (inflated) time isn't recorded.
-      _cubeRun!.rebaseline(shown, normFacelets);
-      _caseSpoiled = true;
-      _setFeedback(_CubeFeedback.wrongCase(wrong));
+      _onCubeError(shown, AlgMistakeKind.wrongCase, executed: wrong);
     }
+  }
+
+  // A mistake ends the case: log it, put it back in the pool and move straight
+  // on (red flash), baselining the next case on wherever the cube now is. The
+  // message carries over so it can still be read once the next case is up.
+  void _onCubeError(String shown, AlgMistakeKind kind, {String? executed}) {
+    mistakes.add(
+        AlgMistake(mistakes.length + 1, Alg(shown), kind, executed: executed));
+    _advanceCubeCase(_currentFacelets,
+        requeueAfter: shown,
+        keepFeedback:
+            executed == null ? null : _CubeFeedback.wrongCase(executed));
+    _flashAdvance(error: true);
+    _blockRequeueBriefly();
   }
 
   void _setFeedback(_CubeFeedback fb) {
@@ -311,7 +330,14 @@ class _TimerScreenState extends State<TimerScreen> {
   void _onCubeMove() {
     if (!mounted || !isReady) return;
     // First move of a case ends recognition; refresh the phase indicator.
-    if (_cubeRun?.onMove() != null) setState(() {});
+    final started = _cubeRun?.onMove() != null;
+    // Turning again means the carried-over error message has served its purpose.
+    if (_carriedFeedback) {
+      _carriedFeedback = false;
+      setState(() => _feedback = null);
+    } else if (started) {
+      setState(() {});
+    }
   }
 
   // Arm from the cube's current physical state (no forced solve) once the
@@ -322,6 +348,7 @@ class _TimerScreenState extends State<TimerScreen> {
       isPressed = false;
       timerStartTime = DateTime.now();
       times.clear();
+      mistakes.clear();
       nextAlgs.clear();
       _orientationConfirmed = false;
       _startCubeCase(_currentFacelets);
@@ -333,8 +360,10 @@ class _TimerScreenState extends State<TimerScreen> {
   // [requeueAfter] is set, that case is re-inserted only *after* the next one is
   // drawn, so a requeued case never comes straight back — unless it was the last
   // remaining case, in which case there's nothing else and it returns now.
-  void _startCubeCase(String fromFacelets, {String? requeueAfter}) {
-    _feedback = null;
+  void _startCubeCase(String fromFacelets,
+      {String? requeueAfter, _CubeFeedback? keepFeedback}) {
+    _feedback = keepFeedback;
+    _carriedFeedback = keepFeedback != null;
     _caseSpoiled = false;
     _caseRawStart = _rawFacelets;
     alg = _fetchNextAlg();
@@ -384,11 +413,16 @@ class _TimerScreenState extends State<TimerScreen> {
     _blockRequeueBriefly();
   }
 
-  // Quick, faint green validation blip confirming smartcube alg completion
-  void _flashAdvance() {
+  // Quick, faint blip on auto-advance: green validates a completion, red an
+  // error (held a little longer, since it's the bad news).
+  void _flashAdvance({bool error = false}) {
     _advanceFlashTimer?.cancel();
-    setState(() => _advanceFlash = true);
-    _advanceFlashTimer = async.Timer(const Duration(milliseconds: 70), () {
+    setState(() {
+      _advanceFlash = true;
+      _flashError = error;
+    });
+    _advanceFlashTimer =
+        async.Timer(Duration(milliseconds: error ? 180 : 70), () {
       if (mounted) setState(() => _advanceFlash = false);
     });
   }
@@ -401,23 +435,27 @@ class _TimerScreenState extends State<TimerScreen> {
     });
   }
 
-  // Put the current case back in the pool to reappear later in the same run.
+  // The manual escape hatch: the case was botched into a state the cube can't
+  // name, so the user says so. Counts as a mistake and goes back in the pool.
   void _requeueCubeCase() {
     if (!isReady || alg == null || _requeueBlocked) return;
-    _advanceCubeCase(_currentFacelets, requeueAfter: alg!.name);
+    _onCubeError(alg!.name, AlgMistakeKind.requeued);
   }
 
+  // A settings fix, not a mistake: the case is requeued but nothing is logged.
   void _applyDetectedOrientation(CubeColour top, CubeColour front) {
     Settings().setCubeOrientation(top, front);
     _advanceCubeCase(_currentFacelets, requeueAfter: alg?.name);
   }
 
-  void _advanceCubeCase(String fromFacelets, {String? requeueAfter}) {
+  void _advanceCubeCase(String fromFacelets,
+      {String? requeueAfter, _CubeFeedback? keepFeedback}) {
     setState(() {
       stopwatch
         ..stop()
         ..reset();
-      _startCubeCase(fromFacelets, requeueAfter: requeueAfter);
+      _startCubeCase(fromFacelets,
+          requeueAfter: requeueAfter, keepFeedback: keepFeedback);
     });
     // Sets/slowest end when the pool is exhausted; time race ends on the timer.
     if (alg == null && widget.practiceType.isSetBased) {
@@ -427,23 +465,26 @@ class _TimerScreenState extends State<TimerScreen> {
 
   void _finishCubeSession() async {
     List<AlgTime> timesCopy = List.from(times);
+    List<AlgMistake> mistakesCopy = List.from(mistakes);
     int totalTimeMs = _elapsedSessionMs();
     setState(() {
       times.clear();
+      mistakes.clear();
       nextAlgs.clear();
       timerStartTime = null;
     });
-    await _showSummaryAndReset(timesCopy, totalTimeMs);
+    await _showSummaryAndReset(timesCopy, totalTimeMs, mistakesCopy);
   }
 
   // Shared summary navigation + repeat handling for cube-driven sessions
   // (mirrors the press/release flows, unified for sets and time race).
-  Future<void> _showSummaryAndReset(
-      List<AlgTime> timesCopy, int totalTimeMs) async {
+  Future<void> _showSummaryAndReset(List<AlgTime> timesCopy, int totalTimeMs,
+      List<AlgMistake> mistakesCopy) async {
     final result = await Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) => _buildSummary(timesCopy, totalTimeMs)));
+            builder: (context) => _buildSummary(timesCopy, totalTimeMs,
+                algMistakes: mistakesCopy)));
     if (!mounted) return;
     setState(() {
       isReady = false;
@@ -496,12 +537,14 @@ class _TimerScreenState extends State<TimerScreen> {
 
   void _onTimeRaceEnded() async {
     List<AlgTime> timesCopy = List.from(times);
+    List<AlgMistake> mistakesCopy = List.from(mistakes);
     int totalTimeMs = _elapsedSessionMs();
     setState(() {
       isPressed = false;
       stopwatch.stop();
       stopwatch.reset();
       times.clear();
+      mistakes.clear();
       nextAlgs.clear();
       timerStartTime = null;
     });
@@ -509,7 +552,8 @@ class _TimerScreenState extends State<TimerScreen> {
     final result = await Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) => _buildSummary(timesCopy, totalTimeMs)));
+            builder: (context) => _buildSummary(timesCopy, totalTimeMs,
+                algMistakes: mistakesCopy)));
 
     setState(() {
       isReady = false;
@@ -741,7 +785,10 @@ class _TimerScreenState extends State<TimerScreen> {
         if (_advanceFlash)
           Positioned.fill(
             child: IgnorePointer(
-              child: Container(color: p.good.withValues(alpha: 0.09)),
+              child: Container(
+                  color: _flashError
+                      ? p.bad.withValues(alpha: 0.16)
+                      : p.good.withValues(alpha: 0.09)),
             ),
           ),
         if (_reconnecting) Positioned.fill(child: _reconnectingOverlay(p)),

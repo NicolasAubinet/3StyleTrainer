@@ -202,7 +202,14 @@
   "statAverage": "Average",
   "statSpread": "Spread",
   "statUnderTarget": "Under target",
+  "statMistakes": "Mistakes",
+  "summaryErrors": "Errors",
   "summaryTarget": "Target",
+  "mistakeExecuted": "Executed {pair}",
+  "@mistakeExecuted": {
+    "placeholders": { "pair": { "type": "String" } }
+  },
+  "mistakeRequeued": "Requeued",
   "pillFastest": "Fastest",
   "pillSlowest": "Slowest",
   "undo": "Undo",

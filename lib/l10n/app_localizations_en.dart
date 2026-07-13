@@ -583,7 +583,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statUnderTarget => 'Under target';
 
   @override
+  String get statMistakes => 'Mistakes';
+
+  @override
+  String get summaryErrors => 'Errors';
+
+  @override
   String get summaryTarget => 'Target';
+
+  @override
+  String mistakeExecuted(String pair) {
+    return 'Executed $pair';
+  }
+
+  @override
+  String get mistakeRequeued => 'Requeued';
 
   @override
   String get pillFastest => 'Fastest';

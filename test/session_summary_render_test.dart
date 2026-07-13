@@ -42,7 +42,60 @@ List<AlgTime> _splitTimes() => [
       const AlgTime(5, 910, Alg("VU"), timestamp: 5, recognitionMs: 500),
     ];
 
+// A wrong-pair execution, a manual requeue, and a case botched twice — as a
+// cube-driven run logs them.
+List<AlgMistake> _sampleMistakes() => [
+      const AlgMistake(1, Alg("AG"), AlgMistakeKind.wrongCase, executed: "GA"),
+      const AlgMistake(2, Alg("VU"), AlgMistakeKind.requeued),
+      const AlgMistake(3, Alg("AG"), AlgMistakeKind.requeued),
+    ];
+
 void main() {
+  testWidgets('errors section groups the mistakes by case', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 900));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _sampleTimes(),
+        mistakes: _sampleMistakes(),
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 12000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.scrollUntilVisible(find.text('Requeued'), 120);
+    expect(find.text('ERRORS (3)'), findsOneWidget);
+    // AG went wrong twice: one row, both attempts, a (2) marker.
+    expect(find.text('Executed GA · Requeued'), findsOneWidget);
+    expect(find.text('(2)'), findsOneWidget);
+    // VU was requeued once and keeps its own row.
+    expect(find.text('Requeued'), findsOneWidget);
+    // Counted on their own tile, and excluded from the times' stats.
+    expect(find.text('MISTAKES'), findsOneWidget);
+    expect(find.text('COMPLETED'), findsOneWidget);
+  });
+
+  testWidgets('no mistakes: no errors section or tile', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 900));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _sampleTimes(),
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 12000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('MISTAKES'), findsNothing);
+    expect(find.text('ERRORS (0)'), findsNothing);
+  });
+
   for (final palette in [AppPalette.slate, AppPalette.cubeFace]) {
     testWidgets('renders time-race summary (${palette.id.name})',
         (tester) async {

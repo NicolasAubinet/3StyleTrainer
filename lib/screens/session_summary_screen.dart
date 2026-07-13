@@ -25,6 +25,9 @@ enum _SortColumn { order, recognition, execution, time }
 
 class SessionSummaryScreen extends StatefulWidget {
   final List<AlgTime> algTimes;
+  // Cases that went wrong (cube-driven runs only). They have no honest time, so
+  // they stay out of the times list and its stats, and get their own section.
+  final List<AlgMistake> mistakes;
   final AlgType algType;
   final double targetTime;
   final PracticeType practiceType;
@@ -40,6 +43,7 @@ class SessionSummaryScreen extends StatefulWidget {
   const SessionSummaryScreen(
       {super.key,
       required this.algTimes,
+      this.mistakes = const [],
       required this.algType,
       required this.targetTime,
       required this.practiceType,
@@ -340,8 +344,16 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
             const SizedBox(height: 4),
             Expanded(
               child: ListView.builder(
-                itemCount: widget.algTimes.length,
-                itemBuilder: (context, i) => _algRow(widget.algTimes[i], p),
+                itemCount: widget.algTimes.length + _errorSectionRows,
+                itemBuilder: (context, i) {
+                  if (i < widget.algTimes.length) {
+                    return _algRow(widget.algTimes[i], p);
+                  }
+                  final j = i - widget.algTimes.length;
+                  return j == 0
+                      ? _errorsHeader(p, l10n)
+                      : _mistakeRow(_mistakeGroups[j - 1], j, p, l10n);
+                },
               ),
             ),
           ],
@@ -374,7 +386,109 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                     value: "$_underTargetCount/${widget.algTimes.length}",
                     valueColor: p.good),
           ),
+          // Errored cases are excluded from the averages above, so they get
+          // their own count — and only when there are any.
+          if (widget.mistakes.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: _statTile(p, l10n.statMistakes,
+                  value: widget.mistakes.length.toString(), valueColor: p.bad),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  // The errors section: a header plus one row per errored case, below the times.
+  // A case botched more than once is one row carrying all its attempts, so the
+  // list reads as "the cases you got wrong", not "every time you slipped".
+  late final List<List<AlgMistake>> _mistakeGroups = _groupMistakes();
+
+  List<List<AlgMistake>> _groupMistakes() {
+    final groups = <String, List<AlgMistake>>{};
+    for (final m in widget.mistakes) {
+      groups.putIfAbsent(m.alg.name, () => []).add(m);
+    }
+    return groups.values.toList();
+  }
+
+  int get _errorSectionRows =>
+      _mistakeGroups.isEmpty ? 0 : _mistakeGroups.length + 1;
+
+  Widget _errorsHeader(AppPalette p, AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(_cardContentInset, 10, 0, 8),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: 15, color: p.bad),
+          const SizedBox(width: 6),
+          Text(
+            "${l10n.summaryErrors.toUpperCase()} (${widget.mistakes.length})",
+            style: TextStyle(
+                fontSize: 11,
+                letterSpacing: 0.8,
+                fontWeight: FontWeight.w700,
+                color: p.bad),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // An errored case: the pair that was shown, how many times it went wrong, and
+  // what the cube saw each time — the pair actually executed, or nothing
+  // recognizable (the user requeued it). No time and no swipe-to-delete:
+  // nothing was recorded.
+  Widget _mistakeRow(
+      List<AlgMistake> group, int row, AppPalette p, AppLocalizations l10n) {
+    // Identical attempts collapse: two GA slips read "Executed GA", not twice.
+    final detail = <String>{
+      for (final m in group)
+        m.kind == AlgMistakeKind.wrongCase
+            ? l10n.mistakeExecuted(m.executed!)
+            : l10n.mistakeRequeued
+    }.join(" · ");
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: GlassPanel(
+        radius: 10,
+        padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 18,
+              child: Text(row.toString(),
+                  style: _mono(12, p.textFaint, weight: FontWeight.w400)),
+            ),
+            const SizedBox(width: 6),
+            Text(group.first.alg.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: _mono(17, p.bad)),
+            if (group.length > 1)
+              Padding(
+                padding: const EdgeInsets.only(left: 5),
+                child: Text("(${group.length})",
+                    maxLines: 1,
+                    style: _mono(13, p.bad, weight: FontWeight.w400)),
+              ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                detail,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: p.textMuted),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

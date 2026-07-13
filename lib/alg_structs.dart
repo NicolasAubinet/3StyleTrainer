@@ -51,6 +51,21 @@ class AlgTime {
       recognitionMs == null ? null : timeMs - recognitionMs!;
 }
 
+enum AlgMistakeKind { wrongCase, requeued }
+
+// A case that went wrong in a cube-driven run: it was abandoned and put back in
+// the pool, so it has no honest time and never reaches the results history.
+class AlgMistake {
+  final int index;
+  final Alg alg;
+  final AlgMistakeKind kind;
+  // The pair the cube says was actually executed; null when nothing matched and
+  // the user requeued the case.
+  final String? executed;
+
+  const AlgMistake(this.index, this.alg, this.kind, {this.executed});
+}
+
 // Aggregated times for a single alg, built from the results history. The split
 // averages (recognition/execution) cover only smart-cube rows and are null when
 // no such row exists; splitCount is how many rows carry a split.

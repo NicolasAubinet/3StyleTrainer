@@ -62,8 +62,11 @@ class AlgMistake {
   // The pair the cube says was actually executed; null when nothing matched and
   // the user requeued the case.
   final String? executed;
+  // The moves actually turned on this attempt, in the user's holding frame
+  // (e.g. "R U R' U'"). Empty when the cube saw none.
+  final String? moves;
 
-  const AlgMistake(this.index, this.alg, this.kind, {this.executed});
+  const AlgMistake(this.index, this.alg, this.kind, {this.executed, this.moves});
 }
 
 // Aggregated times for a single alg, built from the results history. The split

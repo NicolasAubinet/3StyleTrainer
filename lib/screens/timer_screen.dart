@@ -88,6 +88,17 @@ class _TimerScreenState extends State<TimerScreen> {
   // three, so a case gets a single row — the summary still shows every slip.
   final Map<String, int> _mistakeRows = {};
   final Map<String, AlgMistakeKind> _mistakeKinds = {};
+  // Moves turned since the current case started, in the user's holding frame —
+  // what a botched attempt actually did. Capped so a long flail can't grow
+  // without bound.
+  final List<String> _caseMoves = [];
+  static const int _MAX_STORED_MOVES = 120;
+
+  // How long the cube must sit still before a non-completing state is judged a
+  // mistake. Long enough to outlast a hesitation mid-alg, short enough that the
+  // feedback still feels immediate once you've actually stopped.
+  static const Duration _FEEDBACK_QUIET_PERIOD = Duration(seconds: 1);
+  async.Timer? _feedbackTimer;
 
   // Brief flash on auto-advance: green on a clean completion, red on an error.
   bool _advanceFlash = false;
@@ -280,7 +291,19 @@ class _TimerScreenState extends State<TimerScreen> {
       _onCubeComplete(split);
       return;
     }
-    _updateFeedback(state.facelets, norm);
+    _scheduleFeedback(state.facelets, norm);
+  }
+
+  // Diagnose only once the turning stops. Many algs pass *through* another
+  // case's finished state on the way — DG's alg is a prefix of DB's — so a
+  // match seen mid-execution means nothing, and acting on it would abandon a
+  // case the user is executing correctly. Every move restarts the wait.
+  void _scheduleFeedback(String rawFacelets, String normFacelets) {
+    _feedbackTimer?.cancel();
+    _feedbackTimer = async.Timer(_FEEDBACK_QUIET_PERIOD, () {
+      if (!mounted || !isReady) return;
+      _updateFeedback(rawFacelets, normFacelets);
+    });
   }
 
   // Hint whether a non-completing state means a different case (wrong pair) or
@@ -318,9 +341,12 @@ class _TimerScreenState extends State<TimerScreen> {
   // on (red flash), baselining the next case on wherever the cube now is. The
   // message carries over so it can still be read once the next case is up.
   void _onCubeError(String shown, AlgMistakeKind kind, {String? executed}) {
-    mistakes.add(
-        AlgMistake(mistakes.length + 1, Alg(shown), kind, executed: executed));
-    if (widget.algType != AlgType.Custom) _persistMistake(shown, kind, executed);
+    final moves = _caseMoves.isEmpty ? null : _caseMoves.join(" ");
+    mistakes.add(AlgMistake(mistakes.length + 1, Alg(shown), kind,
+        executed: executed, moves: moves));
+    if (widget.algType != AlgType.Custom) {
+      _persistMistake(shown, kind, executed, moves);
+    }
     _advanceCubeCase(_currentFacelets,
         requeueAfter: shown,
         keepFeedback:
@@ -332,11 +358,12 @@ class _TimerScreenState extends State<TimerScreen> {
   // Errors are worth keeping whatever the run's timing settings — unlike a time,
   // a wrong pair is a wrong pair. One row per case per run: a repeat slip on a
   // case only refines the row, and a named wrong pair beats a bare requeue.
-  void _persistMistake(String pair, AlgMistakeKind kind, String? executed) async {
+  void _persistMistake(
+      String pair, AlgMistakeKind kind, String? executed, String? moves) async {
     final db = DatabaseManager();
     if (!_mistakeRows.containsKey(pair)) {
-      final id =
-          await db.insertMistake(widget.algType, pair, kind, executed: executed);
+      final id = await db.insertMistake(widget.algType, pair, kind,
+          executed: executed, moves: moves);
       if (id != null) {
         _mistakeRows[pair] = id;
         _mistakeKinds[pair] = kind;
@@ -346,7 +373,8 @@ class _TimerScreenState extends State<TimerScreen> {
     if (kind == AlgMistakeKind.wrongCase &&
         _mistakeKinds[pair] == AlgMistakeKind.requeued) {
       _mistakeKinds[pair] = kind;
-      await db.updateMistake(_mistakeRows[pair]!, kind, executed: executed);
+      await db.updateMistake(_mistakeRows[pair]!, kind,
+          executed: executed, moves: moves);
     }
   }
 
@@ -354,8 +382,18 @@ class _TimerScreenState extends State<TimerScreen> {
     if (fb != _feedback) setState(() => _feedback = fb);
   }
 
-  void _onCubeMove() {
+  void _onCubeMove(CubeMove move) {
     if (!mounted || !isReady) return;
+    // Still turning: whatever the last state looked like, it wasn't the end.
+    _feedbackTimer?.cancel();
+    if (_caseMoves.length < _MAX_STORED_MOVES) {
+      final face = CubeOrientation.normaliseFace(
+        move.face.name,
+        top: Settings().getCubeTopColour(),
+        front: Settings().getCubeFrontColour(),
+      );
+      _caseMoves.add(move.prime ? "$face'" : face);
+    }
     // First move of a case ends recognition; refresh the phase indicator.
     final started = _cubeRun?.onMove() != null;
     // Turning again means the carried-over error message has served its purpose.
@@ -391,9 +429,11 @@ class _TimerScreenState extends State<TimerScreen> {
   // remaining case, in which case there's nothing else and it returns now.
   void _startCubeCase(String fromFacelets,
       {String? requeueAfter, _CubeFeedback? keepFeedback}) {
+    _feedbackTimer?.cancel();
     _feedback = keepFeedback;
     _carriedFeedback = keepFeedback != null;
     _caseSpoiled = false;
+    _caseMoves.clear();
     _caseRawStart = _rawFacelets;
     alg = _fetchNextAlg();
     if (requeueAfter != null) {
@@ -561,6 +601,9 @@ class _TimerScreenState extends State<TimerScreen> {
     _cubeRun!.rebaseline(shown, norm);
     _caseRawStart = state.facelets;
     _caseSpoiled = true;
+    // Moves were missed, so what we collected no longer describes the attempt.
+    _caseMoves.clear();
+    _feedbackTimer?.cancel();
     _setFeedback(_CubeFeedback.resynced());
   }
 
@@ -610,7 +653,7 @@ class _TimerScreenState extends State<TimerScreen> {
       // The manager's streams, not the cube's: a reconnect swaps the SmartCube
       // underneath and these keep flowing.
       _stateSub = mgr.states.listen(_onCubeState);
-      _moveSub = mgr.moves.listen((_) => _onCubeMove());
+      _moveSub = mgr.moves.listen(_onCubeMove);
       _resyncSub = mgr.resyncs.listen(_onCubeResync);
       mgr.connection.addListener(_onConnectionChanged);
     } else if (mgr.isConnected) {
@@ -647,6 +690,7 @@ class _TimerScreenState extends State<TimerScreen> {
     refreshTimer.cancel();
     _advanceFlashTimer?.cancel();
     _requeueDebounce?.cancel();
+    _feedbackTimer?.cancel();
     _stateSub?.cancel();
     _moveSub?.cancel();
     _resyncSub?.cancel();

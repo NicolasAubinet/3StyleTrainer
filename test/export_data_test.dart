@@ -15,7 +15,7 @@ void main() {
         ],
         mistakes: [
           RecordedMistake('Corner', 'AG', 'wrongCase', 1730000000003,
-              executed: 'GA'),
+              executed: 'GA', moves: "R U R' U'"),
           RecordedMistake('Edge', 'VU', 'requeued', 1730000000004),
         ],
         customSets: [
@@ -49,9 +49,11 @@ void main() {
     expect(parsed.mistakes![0].alg, 'AG');
     expect(parsed.mistakes![0].kind, 'wrongCase');
     expect(parsed.mistakes![0].executed, 'GA');
+    expect(parsed.mistakes![0].moves, "R U R' U'");
     // A requeue has no pair the cube could name.
     expect(parsed.mistakes![1].kind, 'requeued');
     expect(parsed.mistakes![1].executed, isNull);
+    expect(parsed.mistakes![1].moves, isNull);
 
     expect(parsed.customSets, hasLength(1));
     expect(parsed.customSets![0].name, 'My set');

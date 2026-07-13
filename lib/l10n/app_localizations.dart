@@ -1150,6 +1150,12 @@ abstract class AppLocalizations {
   /// **'Requeued'**
   String get mistakeRequeued;
 
+  /// No description provided for @mistakeNoMoves.
+  ///
+  /// In en, this message translates to:
+  /// **'No moves recorded'**
+  String get mistakeNoMoves;
+
   /// No description provided for @pillFastest.
   ///
   /// In en, this message translates to:

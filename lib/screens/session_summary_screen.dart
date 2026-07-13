@@ -436,59 +436,124 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     );
   }
 
+  String _mistakeLabel(AlgMistake m, AppLocalizations l10n) =>
+      m.kind == AlgMistakeKind.wrongCase
+          ? l10n.mistakeExecuted(m.executed!)
+          : l10n.mistakeRequeued;
+
   // An errored case: the pair that was shown, how many times it went wrong, and
   // what the cube saw each time — the pair actually executed, or nothing
-  // recognizable (the user requeued it). No time and no swipe-to-delete:
-  // nothing was recorded.
+  // recognizable (the user requeued it) — plus the moves it saw you turn. The
+  // moves are clipped to one line; tapping the row shows every attempt in full.
+  // No time and no swipe-to-delete: nothing was recorded.
   Widget _mistakeRow(
       List<AlgMistake> group, int row, AppPalette p, AppLocalizations l10n) {
     // Identical attempts collapse: two GA slips read "Executed GA", not twice.
-    final detail = <String>{
-      for (final m in group)
-        m.kind == AlgMistakeKind.wrongCase
-            ? l10n.mistakeExecuted(m.executed!)
-            : l10n.mistakeRequeued
-    }.join(" · ");
+    final detail =
+        <String>{for (final m in group) _mistakeLabel(m, l10n)}.join(" · ");
+    final moves = group.lastWhere((m) => m.moves != null,
+        orElse: () => group.first).moves;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 7),
       child: GlassPanel(
         radius: 10,
-        padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 18,
-              child: Text(row.toString(),
-                  style: _mono(12, p.textFaint, weight: FontWeight.w400)),
+        padding: EdgeInsets.zero,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: moves == null ? null : () => _showMistakeMoves(group, l10n),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      child: Text(row.toString(),
+                          style:
+                              _mono(12, p.textFaint, weight: FontWeight.w400)),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(group.first.alg.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _mono(17, p.bad)),
+                    if (group.length > 1)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 5),
+                        child: Text("(${group.length})",
+                            maxLines: 1,
+                            style: _mono(13, p.bad, weight: FontWeight.w400)),
+                      ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        detail,
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: p.textMuted),
+                      ),
+                    ),
+                  ],
+                ),
+                if (moves != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 24, top: 4),
+                    child: Text(
+                      moves,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _mono(12, p.textFaint, weight: FontWeight.w400),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(width: 6),
-            Text(group.first.alg.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: _mono(17, p.bad)),
-            if (group.length > 1)
-              Padding(
-                padding: const EdgeInsets.only(left: 5),
-                child: Text("(${group.length})",
-                    maxLines: 1,
-                    style: _mono(13, p.bad, weight: FontWeight.w400)),
-              ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                detail,
-                textAlign: TextAlign.right,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: p.textMuted),
-              ),
-            ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  // Every attempt on this case: what it was read as, and the moves in full.
+  void _showMistakeMoves(List<AlgMistake> group, AppLocalizations l10n) {
+    final p = context.palette;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(group.first.alg.name, style: _mono(20, p.textPrimary)),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final m in group) ...[
+                Text(_mistakeLabel(m, l10n),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: p.bad)),
+                const SizedBox(height: 4),
+                SelectableText(
+                  m.moves ?? l10n.mistakeNoMoves,
+                  style: _mono(14, p.textMuted, weight: FontWeight.w400),
+                ),
+                const SizedBox(height: 14),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.close),
+          ),
+        ],
       ),
     );
   }

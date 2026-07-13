@@ -132,6 +132,18 @@ class CubeOrientation {
     return out.join();
   }
 
+  /// The face letter a cube-reported [face] reads as in the user's holding
+  /// frame: the cube names the face it turned in its own frame, so held
+  /// white-top/red-front its F (green) is the user's L. Same relabelling as
+  /// [normaliseFacelets], so moves and states agree.
+  static String normaliseFace(String face,
+      {required CubeColour top, required CubeColour front}) {
+    final rot = _rotationFor(top, front);
+    final centre = _faceCentre[face];
+    if (rot == null || centre == null) return face;
+    return _centreFace[rot.apply(centre)]!;
+  }
+
   /// Inverse of [normaliseFacelets] (standard → user frame). Exposed for tests
   /// and the future 3D view.
   static String denormaliseFacelets(String facelets,

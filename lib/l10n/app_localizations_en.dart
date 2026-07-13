@@ -617,6 +617,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mistakeRequeued => 'Requeued';
 
   @override
+  String get mistakeNoMoves => 'No moves recorded';
+
+  @override
   String get pillFastest => 'Fastest';
 
   @override

@@ -66,6 +66,53 @@ void main() {
     });
   });
 
+  group('normaliseFace', () {
+    test('white/green leaves every face alone', () {
+      for (final f in ['U', 'R', 'F', 'D', 'L', 'B']) {
+        expect(
+            CubeOrientation.normaliseFace(f,
+                top: CubeColour.white, front: CubeColour.green),
+            f);
+      }
+    });
+
+    test('a face turn reads the same whether normalised as a move or a state',
+        () {
+      // The invariant that matters: turning face X on the cube, then
+      // normalising the resulting state, must equal turning the *renamed* face
+      // in the user's own frame. Otherwise a stored move sequence would
+      // describe a different cube than the state does.
+      for (final (top, front) in CubeOrientation.allOrientations()) {
+        for (final face in Face.values) {
+          for (final prime in [false, true]) {
+            final asState = CubieCube();
+            asState.applyMove(face, prime);
+            final normalised = CubeOrientation.normaliseFacelets(
+                asState.toFaceCube(),
+                top: top,
+                front: front);
+
+            final renamed = CubeOrientation.normaliseFace(face.name,
+                top: top, front: front);
+            final asMove = CubieCube();
+            asMove.applyMove(
+                Face.values.firstWhere((f) => f.name == renamed), prime);
+
+            expect(normalised, asMove.toFaceCube(),
+                reason: '$face${prime ? "'" : ""} held $top/$front');
+          }
+        }
+      }
+    });
+
+    test('white/red is a real relabelling (the cube F reads as L)', () {
+      expect(
+          CubeOrientation.normaliseFace('F',
+              top: CubeColour.white, front: CubeColour.red),
+          isNot('F'));
+    });
+  });
+
   group('completion detection through orientation normalisation', () {
     // A case executed in the user's holding frame completes once its states are
     // normalised back to standard — the core reason §13 exists.

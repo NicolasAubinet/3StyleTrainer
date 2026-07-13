@@ -11,7 +11,7 @@ import 'alg_structs.dart';
 import 'export_data.dart';
 import 'slowest.dart';
 
-const int DB_VERSION = 8;
+const int DB_VERSION = 9;
 
 const String RESULTS = "results";
 const String CUSTOM_SETS = "custom_sets";
@@ -54,8 +54,8 @@ class DatabaseManager {
   }
 
   // Cases the user got wrong, one row per slip: a wrong pair executed (with the
-  // pair the cube saw) or a requeue. Kept apart from the results history, which
-  // holds only honest times — a mistake has none.
+  // pair the cube saw) or a requeue, plus the moves actually turned. Kept apart
+  // from the results history, which holds only honest times — a mistake has none.
   Future<void> _createMistakesTable(Database db) async {
     await db.execute('''
           CREATE TABLE $MISTAKES(
@@ -64,6 +64,7 @@ class DatabaseManager {
             alg TEXT,
             kind TEXT,
             executed TEXT,
+            moves TEXT,
             timestamp INTEGER
           )''');
     await db.execute(
@@ -101,6 +102,9 @@ class DatabaseManager {
     }
     if (oldVersion < 8) {
       await _createMistakesTable(db);
+    } else if (oldVersion < 9) {
+      // The table already exists from v8, without the executed moves.
+      await db.execute('ALTER TABLE $MISTAKES ADD COLUMN moves TEXT');
     }
   }
 
@@ -298,7 +302,7 @@ class DatabaseManager {
   // Mistakes. Returns the new row's id so a later slip on the same case in the
   // same run can refine it (see [updateMistake]) instead of adding a row.
   Future<int?> insertMistake(AlgType algType, String alg, AlgMistakeKind kind,
-      {String? executed, int? timestamp}) async {
+      {String? executed, String? moves, int? timestamp}) async {
     if (!isUsingDatabase()) {
       return null;
     }
@@ -308,19 +312,20 @@ class DatabaseManager {
       'alg': alg,
       'kind': kind.name,
       'executed': executed,
+      'moves': moves,
       'timestamp': timestamp ?? DateTime.now().millisecondsSinceEpoch,
     });
   }
 
   Future<void> updateMistake(int id, AlgMistakeKind kind,
-      {String? executed}) async {
+      {String? executed, String? moves}) async {
     if (!isUsingDatabase()) {
       return;
     }
 
     await _database.update(
       MISTAKES,
-      {'kind': kind.name, 'executed': executed},
+      {'kind': kind.name, 'executed': executed, 'moves': moves},
       where: "id = ?",
       whereArgs: [id],
     );
@@ -363,7 +368,7 @@ class DatabaseManager {
 
     final List<Map<String, Object?>> rows = await _database.query(
       MISTAKES,
-      columns: ['algType', 'alg', 'kind', 'executed', 'timestamp'],
+      columns: ['algType', 'alg', 'kind', 'executed', 'moves', 'timestamp'],
     );
 
     return [
@@ -374,6 +379,7 @@ class DatabaseManager {
           row['kind'] as String,
           (row['timestamp'] as num).toInt(),
           executed: row['executed'] as String?,
+          moves: row['moves'] as String?,
         ),
     ];
   }
@@ -403,6 +409,7 @@ class DatabaseManager {
           'alg': m.alg,
           'kind': m.kind,
           'executed': m.executed,
+          'moves': m.moves,
           'timestamp': m.timestamp,
         });
         inserted++;

@@ -45,9 +45,11 @@ List<AlgTime> _splitTimes() => [
 // A wrong-pair execution, a manual requeue, and a case botched twice — as a
 // cube-driven run logs them.
 List<AlgMistake> _sampleMistakes() => [
-      const AlgMistake(1, Alg("AG"), AlgMistakeKind.wrongCase, executed: "GA"),
+      const AlgMistake(1, Alg("AG"), AlgMistakeKind.wrongCase,
+          executed: "GA", moves: "R U R' U'"),
       const AlgMistake(2, Alg("VU"), AlgMistakeKind.requeued),
-      const AlgMistake(3, Alg("AG"), AlgMistakeKind.requeued),
+      const AlgMistake(3, Alg("AG"), AlgMistakeKind.requeued,
+          moves: "L' U2 L F R F' D2"),
     ];
 
 void main() {
@@ -76,6 +78,33 @@ void main() {
     // Counted on their own tile, and excluded from the times' stats.
     expect(find.text('MISTAKES'), findsOneWidget);
     expect(find.text('COMPLETED'), findsOneWidget);
+  });
+
+  testWidgets('tapping an errored case shows every attempt in full',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 900));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _sampleTimes(),
+        mistakes: _sampleMistakes(),
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 12000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+
+    // The row shows the latest attempt's moves, clipped to one line.
+    await tester.scrollUntilVisible(find.text("L' U2 L F R F' D2"), 120);
+    await tester.tap(find.text("L' U2 L F R F' D2"));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    // Both of AG's attempts, with their own move sequences.
+    expect(find.text("R U R' U'"), findsOneWidget);
+    expect(find.text("L' U2 L F R F' D2"), findsWidgets);
+    expect(find.text('Executed GA'), findsWidgets);
   });
 
   testWidgets('no mistakes: no errors section or tile', (tester) async {

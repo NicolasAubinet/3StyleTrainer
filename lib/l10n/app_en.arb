@@ -218,6 +218,7 @@
     "placeholders": { "pair": { "type": "String" } }
   },
   "mistakeRequeued": "Requeued",
+  "mistakeNoMoves": "No moves recorded",
   "pillFastest": "Fastest",
   "pillSlowest": "Slowest",
   "undo": "Undo",

@@ -52,15 +52,18 @@ class RecordedMistake {
   final String kind;
   final int timestamp;
   final String? executed;
+  // The moves turned on the attempt, in the user's holding frame.
+  final String? moves;
 
   const RecordedMistake(this.algType, this.alg, this.kind, this.timestamp,
-      {this.executed});
+      {this.executed, this.moves});
 
   Map<String, Object?> toJson() => {
         'algType': algType,
         'alg': alg,
         'kind': kind,
         if (executed != null) 'executed': executed,
+        if (moves != null) 'moves': moves,
         'timestamp': timestamp,
       };
 
@@ -69,7 +72,8 @@ class RecordedMistake {
         alg = json['alg'] as String,
         kind = json['kind'] as String,
         timestamp = (json['timestamp'] as num).toInt(),
-        executed = json['executed'] as String?;
+        executed = json['executed'] as String?,
+        moves = json['moves'] as String?;
 }
 
 /// A portable, versioned snapshot of the user's data. Serializes to the

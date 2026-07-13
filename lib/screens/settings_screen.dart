@@ -226,6 +226,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         recordedTimes: chosen.contains(DataCategory.recordedTimes)
             ? await DatabaseManager().getAllRecordedTimes()
             : null,
+        // Errors are part of the practice history, so they follow the times.
+        mistakes: chosen.contains(DataCategory.recordedTimes)
+            ? await DatabaseManager().getAllRecordedMistakes()
+            : null,
         customSets: chosen.contains(DataCategory.customSets)
             ? await DatabaseManager().getCustomSets()
             : null,
@@ -293,7 +297,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final data = ExportData.parse(utf8.decode(bytes));
 
       final present = <DataCategory>{
-        if (data.recordedTimes != null) DataCategory.recordedTimes,
+        if (data.recordedTimes != null || data.mistakes != null)
+          DataCategory.recordedTimes,
         if (data.customSets != null) DataCategory.customSets,
         if (data.settings != null) DataCategory.settings,
       };
@@ -315,6 +320,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           recordedTimes: chosen.contains(DataCategory.recordedTimes)
               ? data.recordedTimes
               : null,
+          mistakes:
+              chosen.contains(DataCategory.recordedTimes) ? data.mistakes : null,
           customSets:
               chosen.contains(DataCategory.customSets) ? data.customSets : null,
           settings:

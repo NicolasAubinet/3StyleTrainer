@@ -83,6 +83,11 @@ class _TimerScreenState extends State<TimerScreen> {
   List<String> _pairPool = const [];
   // Cases the user got wrong this run (cube-driven only); shown in the summary.
   final List<AlgMistake> mistakes = [];
+  // Cases already written to the errors history this run, by row id. Forgetting
+  // an alg and botching it three times in one session is one weak case, not
+  // three, so a case gets a single row — the summary still shows every slip.
+  final Map<String, int> _mistakeRows = {};
+  final Map<String, AlgMistakeKind> _mistakeKinds = {};
 
   // Brief flash on auto-advance: green on a clean completion, red on an error.
   bool _advanceFlash = false;
@@ -315,12 +320,34 @@ class _TimerScreenState extends State<TimerScreen> {
   void _onCubeError(String shown, AlgMistakeKind kind, {String? executed}) {
     mistakes.add(
         AlgMistake(mistakes.length + 1, Alg(shown), kind, executed: executed));
+    if (widget.algType != AlgType.Custom) _persistMistake(shown, kind, executed);
     _advanceCubeCase(_currentFacelets,
         requeueAfter: shown,
         keepFeedback:
             executed == null ? null : _CubeFeedback.wrongCase(executed));
     _flashAdvance(error: true);
     _blockRequeueBriefly();
+  }
+
+  // Errors are worth keeping whatever the run's timing settings — unlike a time,
+  // a wrong pair is a wrong pair. One row per case per run: a repeat slip on a
+  // case only refines the row, and a named wrong pair beats a bare requeue.
+  void _persistMistake(String pair, AlgMistakeKind kind, String? executed) async {
+    final db = DatabaseManager();
+    if (!_mistakeRows.containsKey(pair)) {
+      final id =
+          await db.insertMistake(widget.algType, pair, kind, executed: executed);
+      if (id != null) {
+        _mistakeRows[pair] = id;
+        _mistakeKinds[pair] = kind;
+      }
+      return;
+    }
+    if (kind == AlgMistakeKind.wrongCase &&
+        _mistakeKinds[pair] == AlgMistakeKind.requeued) {
+      _mistakeKinds[pair] = kind;
+      await db.updateMistake(_mistakeRows[pair]!, kind, executed: executed);
+    }
   }
 
   void _setFeedback(_CubeFeedback fb) {
@@ -349,6 +376,8 @@ class _TimerScreenState extends State<TimerScreen> {
       timerStartTime = DateTime.now();
       times.clear();
       mistakes.clear();
+      _mistakeRows.clear();
+      _mistakeKinds.clear();
       nextAlgs.clear();
       _orientationConfirmed = false;
       _startCubeCase(_currentFacelets);

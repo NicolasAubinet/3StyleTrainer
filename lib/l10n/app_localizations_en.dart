@@ -523,6 +523,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slowestNoTimes => 'No recorded times to practice yet';
 
   @override
+  String mostFailedSheetTitle(String type) {
+    return 'Most failed $type';
+  }
+
+  @override
+  String get weaknessSourceSlowest => 'Slowest';
+
+  @override
+  String get weaknessSourceMostFailed => 'Most failed';
+
+  @override
+  String get failedThresholdLabel => 'Failed at least (times)';
+
+  @override
+  String get failedModeThreshold => 'Min errors';
+
+  @override
   String get slowestLockedReason =>
       'Record some times in Time race first to practice your slowest cases';
 

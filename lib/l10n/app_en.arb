@@ -185,6 +185,14 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "slowestNoTimes": "No recorded times to practice yet",
+  "mostFailedSheetTitle": "Most failed {type}",
+  "@mostFailedSheetTitle": {
+    "placeholders": { "type": { "type": "String" } }
+  },
+  "weaknessSourceSlowest": "Slowest",
+  "weaknessSourceMostFailed": "Most failed",
+  "failedThresholdLabel": "Failed at least (times)",
+  "failedModeThreshold": "Min errors",
   "slowestLockedReason": "Record some times in Time race first to practice your slowest cases",
   "typeSubtitleLetters": "24-letter scheme",
   "typeSubtitleFlips": "edge-flip cases",

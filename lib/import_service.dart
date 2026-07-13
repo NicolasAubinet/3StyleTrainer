@@ -27,6 +27,11 @@ Future<ImportResult> applyImport(ExportData data) async {
         await DatabaseManager().importRecordedTimes(data.recordedTimes!);
   }
 
+  // Mistakes ride along with the recorded times (same category in the dialog).
+  if (data.mistakes != null) {
+    await DatabaseManager().importRecordedMistakes(data.mistakes!);
+  }
+
   int customSetsImported = 0;
   List<String> skippedCustomSets = const [];
   if (data.customSets != null) {

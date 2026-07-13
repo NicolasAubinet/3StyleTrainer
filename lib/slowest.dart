@@ -5,6 +5,31 @@
 
 enum SlowestMode { topN, threshold }
 
+// What makes a case "weak": how slow it is, or how often it goes wrong.
+enum WeaknessSource { slowestTime, mostFailed }
+
+// A case ranked by how many times it has been botched.
+class FailedAlg {
+  final String alg;
+  final int errorCount;
+
+  const FailedAlg(this.alg, this.errorCount);
+}
+
+// The alg names to drill from a ranked (most-failed-first) pool: the [topN]
+// most-failed, or every case with at least [minErrors] errors.
+List<String> selectMostFailed(
+  List<FailedAlg> mostFailedFirst, {
+  required SlowestMode mode,
+  required int topN,
+  required int minErrors,
+}) {
+  final Iterable<FailedAlg> chosen = mode == SlowestMode.topN
+      ? mostFailedFirst.take(topN)
+      : mostFailedFirst.where((f) => f.errorCount >= minErrors);
+  return [for (final f in chosen) f.alg];
+}
+
 // A case ranked by its recent average solve time.
 class SlowestAlg {
   final String alg;

@@ -988,6 +988,36 @@ abstract class AppLocalizations {
   /// **'No recorded times to practice yet'**
   String get slowestNoTimes;
 
+  /// No description provided for @mostFailedSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Most failed {type}'**
+  String mostFailedSheetTitle(String type);
+
+  /// No description provided for @weaknessSourceSlowest.
+  ///
+  /// In en, this message translates to:
+  /// **'Slowest'**
+  String get weaknessSourceSlowest;
+
+  /// No description provided for @weaknessSourceMostFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Most failed'**
+  String get weaknessSourceMostFailed;
+
+  /// No description provided for @failedThresholdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed at least (times)'**
+  String get failedThresholdLabel;
+
+  /// No description provided for @failedModeThreshold.
+  ///
+  /// In en, this message translates to:
+  /// **'Min errors'**
+  String get failedModeThreshold;
+
   /// No description provided for @slowestLockedReason.
   ///
   /// In en, this message translates to:

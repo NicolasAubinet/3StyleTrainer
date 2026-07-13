@@ -11,10 +11,11 @@ import 'alg_structs.dart';
 import 'export_data.dart';
 import 'slowest.dart';
 
-const int DB_VERSION = 7;
+const int DB_VERSION = 8;
 
 const String RESULTS = "results";
 const String CUSTOM_SETS = "custom_sets";
+const String MISTAKES = "mistakes";
 
 class DatabaseManager {
   late Database _database;
@@ -52,9 +53,27 @@ class DatabaseManager {
         'CREATE INDEX idx_results_algType_alg ON $RESULTS(algType, alg)');
   }
 
+  // Cases the user got wrong, one row per slip: a wrong pair executed (with the
+  // pair the cube saw) or a requeue. Kept apart from the results history, which
+  // holds only honest times — a mistake has none.
+  Future<void> _createMistakesTable(Database db) async {
+    await db.execute('''
+          CREATE TABLE $MISTAKES(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            algType TEXT,
+            alg TEXT,
+            kind TEXT,
+            executed TEXT,
+            timestamp INTEGER
+          )''');
+    await db.execute(
+        'CREATE INDEX idx_mistakes_algType_alg ON $MISTAKES(algType, alg)');
+  }
+
   Future<void> _createDb(Database db, int version) async {
     await _createResultsTable(db);
     createCustomSetsTable(db);
+    await _createMistakesTable(db);
   }
 
   Future<void> _upgradeDb(Database db, int oldVersion, int newVersion) async {
@@ -79,6 +98,9 @@ class DatabaseManager {
       // and get a NULL recognition (no split detail).
       await db
           .execute('ALTER TABLE $RESULTS ADD COLUMN recognitionMs INTEGER');
+    }
+    if (oldVersion < 8) {
+      await _createMistakesTable(db);
     }
   }
 
@@ -271,6 +293,123 @@ class DatabaseManager {
       ],
       window,
     );
+  }
+
+  // Mistakes. Returns the new row's id so a later slip on the same case in the
+  // same run can refine it (see [updateMistake]) instead of adding a row.
+  Future<int?> insertMistake(AlgType algType, String alg, AlgMistakeKind kind,
+      {String? executed, int? timestamp}) async {
+    if (!isUsingDatabase()) {
+      return null;
+    }
+
+    return await _database.insert(MISTAKES, {
+      'algType': algType.name,
+      'alg': alg,
+      'kind': kind.name,
+      'executed': executed,
+      'timestamp': timestamp ?? DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  Future<void> updateMistake(int id, AlgMistakeKind kind,
+      {String? executed}) async {
+    if (!isUsingDatabase()) {
+      return;
+    }
+
+    await _database.update(
+      MISTAKES,
+      {'kind': kind.name, 'executed': executed},
+      where: "id = ?",
+      whereArgs: [id],
+    );
+  }
+
+  // Whether any mistake has ever been recorded (any type). Gates "Slowest" mode
+  // alongside the recorded times, since errors alone are enough to drill.
+  Future<bool> hasAnyMistakes() async {
+    if (!isUsingDatabase()) {
+      return false;
+    }
+
+    final rows = await _database.rawQuery('SELECT 1 FROM $MISTAKES LIMIT 1');
+    return rows.isNotEmpty;
+  }
+
+  // Cases ranked by how often they went wrong, most-failed first.
+  Future<List<FailedAlg>> getMostFailedAlgs(AlgType algType) async {
+    if (!isUsingDatabase()) {
+      return List.empty();
+    }
+
+    final List<Map<String, Object?>> rows = await _database.rawQuery(
+      'SELECT alg, COUNT(*) AS errorCount FROM $MISTAKES WHERE algType = ? '
+      'GROUP BY alg ORDER BY errorCount DESC',
+      [algType.name],
+    );
+
+    return [
+      for (final row in rows)
+        FailedAlg(row['alg'] as String, (row['errorCount'] as num).toInt()),
+    ];
+  }
+
+  // Every recorded mistake, for export.
+  Future<List<RecordedMistake>> getAllRecordedMistakes() async {
+    if (!isUsingDatabase()) {
+      return List.empty();
+    }
+
+    final List<Map<String, Object?>> rows = await _database.query(
+      MISTAKES,
+      columns: ['algType', 'alg', 'kind', 'executed', 'timestamp'],
+    );
+
+    return [
+      for (final row in rows)
+        RecordedMistake(
+          row['algType'] as String,
+          row['alg'] as String,
+          row['kind'] as String,
+          (row['timestamp'] as num).toInt(),
+          executed: row['executed'] as String?,
+        ),
+    ];
+  }
+
+  // Insert imported mistakes, de-duping by (algType, alg, timestamp) against
+  // existing rows and within the input. Returns rows inserted.
+  Future<int> importRecordedMistakes(List<RecordedMistake> mistakes) async {
+    if (!isUsingDatabase() || mistakes.isEmpty) {
+      return 0;
+    }
+
+    final List<Map<String, Object?>> existing = await _database.query(
+      MISTAKES,
+      columns: ['algType', 'alg', 'timestamp'],
+    );
+    final Set<String> seen = {
+      for (final row in existing)
+        '${row['algType']}|${row['alg']}|${row['timestamp']}',
+    };
+
+    final batch = _database.batch();
+    int inserted = 0;
+    for (final m in mistakes) {
+      if (seen.add('${m.algType}|${m.alg}|${m.timestamp}')) {
+        batch.insert(MISTAKES, {
+          'algType': m.algType,
+          'alg': m.alg,
+          'kind': m.kind,
+          'executed': m.executed,
+          'timestamp': m.timestamp,
+        });
+        inserted++;
+      }
+    }
+    await batch.commit(noResult: true);
+    return inserted;
   }
 
   // Custom sets

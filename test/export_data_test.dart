@@ -13,6 +13,11 @@ void main() {
               recognitionMs: 500),
           RecordedTime('Edge', 'CD', 5678, 1730000000002),
         ],
+        mistakes: [
+          RecordedMistake('Corner', 'AG', 'wrongCase', 1730000000003,
+              executed: 'GA'),
+          RecordedMistake('Edge', 'VU', 'requeued', 1730000000004),
+        ],
         customSets: [
           CustomSet('My set', ['AB', 'CD', 'EF']),
         ],
@@ -40,6 +45,14 @@ void main() {
     // The unsplit press-timed row carries no recognition.
     expect(parsed.recordedTimes![1].recognitionMs, isNull);
 
+    expect(parsed.mistakes, hasLength(2));
+    expect(parsed.mistakes![0].alg, 'AG');
+    expect(parsed.mistakes![0].kind, 'wrongCase');
+    expect(parsed.mistakes![0].executed, 'GA');
+    // A requeue has no pair the cube could name.
+    expect(parsed.mistakes![1].kind, 'requeued');
+    expect(parsed.mistakes![1].executed, isNull);
+
     expect(parsed.customSets, hasLength(1));
     expect(parsed.customSets![0].name, 'My set');
     expect(parsed.customSets![0].algs, ['AB', 'CD', 'EF']);
@@ -47,6 +60,16 @@ void main() {
     expect(parsed.settings!['corners_scheme'], 'ABCDEFGHIJKLMNOPQRSTUVWX');
     expect(parsed.settings!['show_next_alg'], true);
     expect(parsed.settings!['target_time'], 2.5);
+  });
+
+  test('a pre-v3 file parses with no mistakes section', () {
+    final json = sample().toJson();
+    (json['sections'] as Map).remove('mistakes');
+    json['formatVersion'] = 2;
+
+    final parsed = ExportData.parse(jsonEncode(json));
+    expect(parsed.mistakes, isNull);
+    expect(parsed.recordedTimes, hasLength(2));
   });
 
   test('omitted sections stay null in the envelope', () {

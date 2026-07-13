@@ -172,4 +172,34 @@ void main() {
           ['BA', 'CD']);
     });
   });
+
+  group('selectMostFailed', () {
+    // As the DB returns them: most-failed first.
+    const ranked = [
+      FailedAlg('BA', 4),
+      FailedAlg('CD', 2),
+      FailedAlg('AB', 1),
+    ];
+
+    test('top-N drills the most-failed cases', () {
+      expect(
+          selectMostFailed(ranked,
+              mode: SlowestMode.topN, topN: 2, minErrors: 0),
+          ['BA', 'CD']);
+    });
+
+    test('top-N clamps to the pool', () {
+      expect(
+          selectMostFailed(ranked,
+              mode: SlowestMode.topN, topN: 10, minErrors: 0),
+          ['BA', 'CD', 'AB']);
+    });
+
+    test('threshold drills every case with at least that many errors', () {
+      expect(
+          selectMostFailed(ranked,
+              mode: SlowestMode.threshold, topN: 0, minErrors: 2),
+          ['BA', 'CD']);
+    });
+  });
 }

@@ -43,19 +43,50 @@ class RecordedTime {
         recognitionMs = (json['recognitionMs'] as num?)?.toInt();
 }
 
+// A single recorded mistake, as carried in an export file (format v3+). [kind]
+// is an AlgMistakeKind name; [executed] is the pair the cube saw, absent for a
+// requeue.
+class RecordedMistake {
+  final String algType;
+  final String alg;
+  final String kind;
+  final int timestamp;
+  final String? executed;
+
+  const RecordedMistake(this.algType, this.alg, this.kind, this.timestamp,
+      {this.executed});
+
+  Map<String, Object?> toJson() => {
+        'algType': algType,
+        'alg': alg,
+        'kind': kind,
+        if (executed != null) 'executed': executed,
+        'timestamp': timestamp,
+      };
+
+  RecordedMistake.fromJson(Map<String, Object?> json)
+      : algType = json['algType'] as String,
+        alg = json['alg'] as String,
+        kind = json['kind'] as String,
+        timestamp = (json['timestamp'] as num).toInt(),
+        executed = json['executed'] as String?;
+}
+
 /// A portable, versioned snapshot of the user's data. Serializes to the
 /// `three-style-trainer-export` JSON envelope. A section is `null` when it was
 /// not included in the file (selective export in 1C); in a full export all
 /// three are present.
 class ExportData {
   static const String kFormat = "three-style-trainer-export";
-  // v2 adds the optional recognitionMs split to recordedTimes.
-  static const int kCurrentFormatVersion = 2;
+  // v2 adds the optional recognitionMs split to recordedTimes; v3 adds the
+  // mistakes section (both travel with the recorded-times category).
+  static const int kCurrentFormatVersion = 3;
 
   final int formatVersion;
   final int dbVersion;
   final int exportedAt;
   final List<RecordedTime>? recordedTimes;
+  final List<RecordedMistake>? mistakes;
   final List<CustomSet>? customSets;
   final Map<String, Object?>? settings;
 
@@ -64,6 +95,7 @@ class ExportData {
     required this.dbVersion,
     required this.exportedAt,
     this.recordedTimes,
+    this.mistakes,
     this.customSets,
     this.settings,
   });
@@ -73,6 +105,9 @@ class ExportData {
     if (recordedTimes != null) {
       sections['recordedTimes'] =
           recordedTimes!.map((e) => e.toJson()).toList();
+    }
+    if (mistakes != null) {
+      sections['mistakes'] = mistakes!.map((e) => e.toJson()).toList();
     }
     if (customSets != null) {
       sections['customSets'] =
@@ -126,6 +161,7 @@ class ExportData {
     final sections = (json['sections'] as Map?)?.cast<String, Object?>() ?? {};
 
     final rawTimes = sections['recordedTimes'] as List?;
+    final rawMistakes = sections['mistakes'] as List?;
     final rawSets = sections['customSets'] as List?;
     final rawSettings = sections['settings'] as Map?;
 
@@ -135,6 +171,10 @@ class ExportData {
       exportedAt: (json['exportedAt'] as num).toInt(),
       recordedTimes: rawTimes
           ?.map((e) => RecordedTime.fromJson((e as Map).cast<String, Object?>()))
+          .toList(),
+      mistakes: rawMistakes
+          ?.map((e) =>
+              RecordedMistake.fromJson((e as Map).cast<String, Object?>()))
           .toList(),
       customSets: rawSets
           ?.map((e) => CustomSet.fromMap((e as Map).cast<String, Object?>()))

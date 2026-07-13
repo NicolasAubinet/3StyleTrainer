@@ -7,29 +7,39 @@ import '../theme/theme_scope.dart';
 import 'app_segmented_control.dart';
 import 'number_input_field.dart';
 
-// Result of the sheet: the chosen mode/values (to persist) plus the alg names
-// to drill. Null return means the user dismissed without starting.
+// Result of the sheet: the chosen source/mode/values (to persist) plus the alg
+// names to drill. Null return means the user dismissed without starting.
 class SlowestSelection {
+  final WeaknessSource source;
   final SlowestMode mode;
   final int topN;
   final double thresholdSeconds;
+  final int minErrors;
   final List<String> algs;
 
-  const SlowestSelection(this.mode, this.topN, this.thresholdSeconds, this.algs);
+  const SlowestSelection(this.source, this.mode, this.topN,
+      this.thresholdSeconds, this.minErrors, this.algs);
 }
 
-// Bottom sheet to configure a "Practice slowest" run for a given alg type. Shows
-// the Top-N / threshold toggle, a value field, a live case count, and Start.
-// [onChanged] fires whenever the mode/value changes so the caller can persist
-// the choice even when the sheet is dismissed without starting.
+typedef WeaknessConfigChanged = void Function(WeaknessSource source,
+    SlowestMode mode, int topN, double thresholdSeconds, int minErrors);
+
+// Bottom sheet to configure a "practice your weak cases" run for a given alg
+// type: rank the cases by how slow they are or by how often they go wrong, then
+// take the top N or everything past a threshold. Shows a live case count and
+// Start. [onChanged] fires whenever a choice changes so the caller can persist
+// it even when the sheet is dismissed without starting.
 Future<SlowestSelection?> showSlowestConfigSheet(
   BuildContext context, {
   required AlgType algType,
   required List<SlowestAlg> slowest,
+  required List<FailedAlg> mostFailed,
+  required WeaknessSource source,
   required SlowestMode mode,
   required int topN,
   required double thresholdSeconds,
-  void Function(SlowestMode mode, int topN, double thresholdSeconds)? onChanged,
+  required int minErrors,
+  WeaknessConfigChanged? onChanged,
 }) {
   return showModalBottomSheet<SlowestSelection>(
     context: context,
@@ -38,9 +48,12 @@ Future<SlowestSelection?> showSlowestConfigSheet(
     builder: (_) => _SlowestConfigSheet(
       algType: algType,
       slowest: slowest,
+      mostFailed: mostFailed,
+      initialSource: source,
       initialMode: mode,
       initialTopN: topN,
       initialThresholdSeconds: thresholdSeconds,
+      initialMinErrors: minErrors,
       onChanged: onChanged,
     ),
   );
@@ -49,18 +62,23 @@ Future<SlowestSelection?> showSlowestConfigSheet(
 class _SlowestConfigSheet extends StatefulWidget {
   final AlgType algType;
   final List<SlowestAlg> slowest;
+  final List<FailedAlg> mostFailed;
+  final WeaknessSource initialSource;
   final SlowestMode initialMode;
   final int initialTopN;
   final double initialThresholdSeconds;
-  final void Function(SlowestMode mode, int topN, double thresholdSeconds)?
-      onChanged;
+  final int initialMinErrors;
+  final WeaknessConfigChanged? onChanged;
 
   const _SlowestConfigSheet({
     required this.algType,
     required this.slowest,
+    required this.mostFailed,
+    required this.initialSource,
     required this.initialMode,
     required this.initialTopN,
     required this.initialThresholdSeconds,
+    required this.initialMinErrors,
     this.onChanged,
   });
 
@@ -69,24 +87,28 @@ class _SlowestConfigSheet extends StatefulWidget {
 }
 
 class _SlowestConfigSheetState extends State<_SlowestConfigSheet> {
+  late WeaknessSource _source = widget.initialSource;
   late SlowestMode _mode = widget.initialMode;
   late int _topN = widget.initialTopN;
   late double _thresholdSeconds = widget.initialThresholdSeconds;
+  late int _minErrors = widget.initialMinErrors;
 
-  List<String> get _selectedAlgs => selectSlowest(
-        widget.slowest,
-        mode: _mode,
-        topN: _topN,
-        thresholdMs: _thresholdSeconds * 1000,
-      );
+  bool get _byErrors => _source == WeaknessSource.mostFailed;
 
-  void _notifyChanged() =>
-      widget.onChanged?.call(_mode, _topN, _thresholdSeconds);
+  List<String> get _selectedAlgs => _byErrors
+      ? selectMostFailed(widget.mostFailed,
+          mode: _mode, topN: _topN, minErrors: _minErrors)
+      : selectSlowest(widget.slowest,
+          mode: _mode, topN: _topN, thresholdMs: _thresholdSeconds * 1000);
+
+  void _notifyChanged() => widget.onChanged
+      ?.call(_source, _mode, _topN, _thresholdSeconds, _minErrors);
 
   void _start() {
     Navigator.pop(
       context,
-      SlowestSelection(_mode, _topN, _thresholdSeconds, _selectedAlgs),
+      SlowestSelection(
+          _source, _mode, _topN, _thresholdSeconds, _minErrors, _selectedAlgs),
     );
   }
 
@@ -98,29 +120,44 @@ class _SlowestConfigSheetState extends State<_SlowestConfigSheet> {
 
     final valueLabel = _mode == SlowestMode.topN
         ? l10n.slowestCountLabel
-        : l10n.slowestThresholdLabel;
-    final valueField = _mode == SlowestMode.topN
-        ? NumberInputField(
-            defaultValue: _topN.toString(),
-            onCommit: (text) {
-              final parsed = int.tryParse(text);
-              if (parsed != null && parsed > 0) {
-                setState(() => _topN = parsed);
-                _notifyChanged();
-              }
-            },
-          )
-        : NumberInputField(
-            decimal: true,
-            defaultValue: _thresholdSeconds.toString(),
-            onCommit: (text) {
-              final parsed = double.tryParse(text);
-              if (parsed != null && parsed > 0) {
-                setState(() => _thresholdSeconds = parsed);
-                _notifyChanged();
-              }
-            },
-          );
+        : (_byErrors ? l10n.failedThresholdLabel : l10n.slowestThresholdLabel);
+
+    final Widget valueField;
+    if (_mode == SlowestMode.topN) {
+      valueField = NumberInputField(
+        defaultValue: _topN.toString(),
+        onCommit: (text) {
+          final parsed = int.tryParse(text);
+          if (parsed != null && parsed > 0) {
+            setState(() => _topN = parsed);
+            _notifyChanged();
+          }
+        },
+      );
+    } else if (_byErrors) {
+      valueField = NumberInputField(
+        defaultValue: _minErrors.toString(),
+        onCommit: (text) {
+          final parsed = int.tryParse(text);
+          if (parsed != null && parsed > 0) {
+            setState(() => _minErrors = parsed);
+            _notifyChanged();
+          }
+        },
+      );
+    } else {
+      valueField = NumberInputField(
+        decimal: true,
+        defaultValue: _thresholdSeconds.toString(),
+        onCommit: (text) {
+          final parsed = double.tryParse(text);
+          if (parsed != null && parsed > 0) {
+            setState(() => _thresholdSeconds = parsed);
+            _notifyChanged();
+          }
+        },
+      );
+    }
 
     return SafeArea(
       child: Padding(
@@ -142,18 +179,43 @@ class _SlowestConfigSheetState extends State<_SlowestConfigSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                l10n.slowestSheetTitle(widget.algType.getLocalizedName(context)),
+                _byErrors
+                    ? l10n.mostFailedSheetTitle(
+                        widget.algType.getLocalizedName(context))
+                    : l10n.slowestSheetTitle(
+                        widget.algType.getLocalizedName(context)),
                 style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
                     color: p.textPrimary),
               ),
               const SizedBox(height: 16),
+              // What "weak" means here: slow, or often botched.
+              AppSegmentedControl<WeaknessSource>(
+                selected: _source,
+                options: [
+                  SegmentOption(
+                      WeaknessSource.slowestTime, l10n.weaknessSourceSlowest),
+                  SegmentOption(
+                      WeaknessSource.mostFailed, l10n.weaknessSourceMostFailed),
+                ],
+                onChanged: (s) {
+                  setState(() => _source = s);
+                  _notifyChanged();
+                },
+              ),
+              const SizedBox(height: 10),
+              // The threshold cuts on time when ranking by speed, on error count
+              // when ranking by errors — so it says which.
               AppSegmentedControl<SlowestMode>(
                 selected: _mode,
                 options: [
                   SegmentOption(SlowestMode.topN, l10n.slowestModeTopN),
-                  SegmentOption(SlowestMode.threshold, l10n.slowestModeThreshold),
+                  SegmentOption(
+                      SlowestMode.threshold,
+                      _byErrors
+                          ? l10n.failedModeThreshold
+                          : l10n.slowestModeThreshold),
                 ],
                 onChanged: (m) {
                   setState(() => _mode = m);

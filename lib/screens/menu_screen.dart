@@ -37,9 +37,11 @@ class _MenuScreenState extends State<MenuScreen> {
   bool _showNextAlg = false;
   bool _recordTimes = true;
   PracticeType _practiceType = PracticeType.sets;
+  WeaknessSource _weaknessSource = WeaknessSource.slowestTime;
   SlowestMode _slowestMode = SlowestMode.topN;
   int _slowestTopN = 20;
   double _slowestThresholdSeconds = DEFAULT_TARGET_TIME;
+  int _minErrors = 2;
   bool _hasRecordedTimes = false;
 
   @override
@@ -54,8 +56,10 @@ class _MenuScreenState extends State<MenuScreen> {
     _refreshRecordedTimesFlag();
   }
 
+  // Errors alone are enough to drill, so they unlock the tab just like times do.
   void _refreshRecordedTimesFlag() async {
-    final has = await DatabaseManager().hasAnyRecordedTimes();
+    final has = await DatabaseManager().hasAnyRecordedTimes() ||
+        await DatabaseManager().hasAnyMistakes();
     if (!mounted) return;
     setState(() {
       _hasRecordedTimes = has;
@@ -84,6 +88,11 @@ class _MenuScreenState extends State<MenuScreen> {
       _slowestTopN = prefs.getInt("slowest_top_n") ?? 20;
       _slowestThresholdSeconds =
           prefs.getDouble("slowest_threshold") ?? DEFAULT_TARGET_TIME;
+      final sourceName = prefs.getString("weakness_source");
+      _weaknessSource = WeaknessSource.values.firstWhere(
+          (s) => s.name == sourceName,
+          orElse: () => WeaknessSource.slowestTime);
+      _minErrors = prefs.getInt("weakness_min_errors") ?? 2;
     });
   }
 
@@ -175,8 +184,12 @@ class _MenuScreenState extends State<MenuScreen> {
     } else if (_practiceType == PracticeType.slowest) {
       final List<SlowestAlg> slowest =
           await DatabaseManager().getSlowestAlgs(algType);
+      final List<FailedAlg> mostFailed =
+          await DatabaseManager().getMostFailedAlgs(algType);
       if (!mounted || !context.mounted) return;
-      if (slowest.isEmpty) {
+      // Nothing to rank either way; with only one of the two, the sheet's own
+      // case count says so and the user can switch source.
+      if (slowest.isEmpty && mostFailed.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(AppLocalizations.of(context)!.slowestNoTimes),
         ));
@@ -186,14 +199,17 @@ class _MenuScreenState extends State<MenuScreen> {
         context,
         algType: algType,
         slowest: slowest,
+        mostFailed: mostFailed,
+        source: _weaknessSource,
         mode: _slowestMode,
         topN: _slowestTopN,
         thresholdSeconds: _slowestThresholdSeconds,
+        minErrors: _minErrors,
         onChanged: _persistSlowestConfig,
       );
       if (selection == null || !mounted || !context.mounted) return;
-      _persistSlowestConfig(
-          selection.mode, selection.topN, selection.thresholdSeconds);
+      _persistSlowestConfig(selection.source, selection.mode, selection.topN,
+          selection.thresholdSeconds, selection.minErrors);
       if (selection.algs.isNotEmpty) {
         Navigator.push(
           context,
@@ -226,14 +242,19 @@ class _MenuScreenState extends State<MenuScreen> {
 
   // Remember the slowest-mode config as it changes in the sheet, so it's
   // restored next time even if the sheet is dismissed without starting.
-  void _persistSlowestConfig(SlowestMode mode, int topN, double thresholdSeconds) {
+  void _persistSlowestConfig(WeaknessSource source, SlowestMode mode, int topN,
+      double thresholdSeconds, int minErrors) {
+    _weaknessSource = source;
     _slowestMode = mode;
     _slowestTopN = topN;
     _slowestThresholdSeconds = thresholdSeconds;
+    _minErrors = minErrors;
     _setPref((prefs) {
+      prefs.setString("weakness_source", source.name);
       prefs.setString("slowest_mode", mode.name);
       prefs.setInt("slowest_top_n", topN);
       prefs.setDouble("slowest_threshold", thresholdSeconds);
+      prefs.setInt("weakness_min_errors", minErrors);
     });
   }
 

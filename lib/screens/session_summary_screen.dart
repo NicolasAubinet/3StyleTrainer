@@ -40,11 +40,16 @@ class SessionSummaryScreen extends StatefulWidget {
   final void Function(AlgTime)? onDeleteFromDb;
   final void Function(AlgTime)? onRestoreToDb;
 
+  // Fires when the target is edited here, so the session keeps the new value
+  // instead of reverting to the one it was started with.
+  final void Function(double)? onTargetTimeChanged;
+
   const SessionSummaryScreen(
       {super.key,
       required this.algTimes,
       this.mistakes = const [],
       required this.algType,
+      this.onTargetTimeChanged,
       required this.targetTime,
       required this.practiceType,
       required this.totalTimeMs,
@@ -304,6 +309,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     );
     if (newTarget == null) return;
     setState(() => _targetTime = newTarget);
+    widget.onTargetTimeChanged?.call(newTarget);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble("target_time", newTarget);
   }

@@ -130,7 +130,7 @@ class _MenuScreenState extends State<MenuScreen> {
               algsShownInAdvance,
             ),
           ),
-        );
+        ).then((_) => _loadPreferences());
         return;
       }
 
@@ -150,7 +150,7 @@ class _MenuScreenState extends State<MenuScreen> {
             customSets: customSets,
           ),
         ),
-      );
+      ).then((_) => _loadPreferences());
     } else if (_practiceType == PracticeType.timeRace) {
       final Map<String, int> counts =
           await DatabaseManager().getAlgCounts(algType);
@@ -179,7 +179,11 @@ class _MenuScreenState extends State<MenuScreen> {
               recordTimes: _recordTimes,
             ),
           ),
-        ).then((_) => _refreshRecordedTimesFlag());
+        ).then((_) {
+          _refreshRecordedTimesFlag();
+          // The summary can edit the target; pick that up for the next run.
+          _loadPreferences();
+        });
       }
     } else if (_practiceType == PracticeType.slowest) {
       final List<SlowestAlg> slowest =
@@ -223,7 +227,7 @@ class _MenuScreenState extends State<MenuScreen> {
               algsShownInAdvance,
             ),
           ),
-        );
+        ).then((_) => _loadPreferences());
       }
     } else if (_practiceType == PracticeType.letterPairsList) {
       AlgProvider algProvider = _constructAlgProvider(algType);

@@ -2,7 +2,6 @@ import 'dart:async' as async;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartcube/smartcube.dart';
 import 'package:three_style_trainer/database_manager.dart';
 import 'package:timer_count_down/timer_count_down.dart';
@@ -81,6 +80,11 @@ class _TimerScreenState extends State<TimerScreen> {
   // it. Not a user mistake — it never reaches the summary's errors.
   bool _caseSpoiled = false;
   List<String> _pairPool = const [];
+  // The target the run is judged against. Starts from the menu's value; editing
+  // it on the summary updates it for the rest of the session, not just that one
+  // summary.
+  late double _targetTime = widget.targetTime;
+
   // Cases the user got wrong this run (cube-driven only); shown in the summary.
   final List<AlgMistake> mistakes = [];
   // Cases already written to the errors history this run, by row id. Forgetting
@@ -186,10 +190,8 @@ class _TimerScreenState extends State<TimerScreen> {
       if (result == "repeat_all") {
         widget.algProvider.reset(skippedAlgs: skippedAlgs);
       } else if (result == "repeat_target_time") {
-        final prefs = await SharedPreferences.getInstance();
-        final target = prefs.getDouble("target_time") ?? widget.targetTime;
         for (AlgTime algTime in timesCopy) {
-          if (isUnderTargetTime(algTime.timeMs, target)) {
+          if (isUnderTargetTime(algTime.timeMs, _targetTime)) {
             skippedAlgs.add(algTime.alg.name);
           }
         }
@@ -218,7 +220,8 @@ class _TimerScreenState extends State<TimerScreen> {
       algTimes: algTimes,
       mistakes: algMistakes,
       algType: widget.algType,
-      targetTime: widget.targetTime,
+      targetTime: _targetTime,
+      onTargetTimeChanged: (t) => setState(() => _targetTime = t),
       practiceType: widget.practiceType,
       totalTimeMs: totalTimeMs,
       onDeleteFromDb: recording
@@ -561,10 +564,8 @@ class _TimerScreenState extends State<TimerScreen> {
     if (result == "repeat_all" || result == "again") {
       widget.algProvider.reset(skippedAlgs: skippedAlgs);
     } else if (result == "repeat_target_time") {
-      final prefs = await SharedPreferences.getInstance();
-      final target = prefs.getDouble("target_time") ?? widget.targetTime;
       for (AlgTime algTime in timesCopy) {
-        if (isUnderTargetTime(algTime.timeMs, target)) {
+        if (isUnderTargetTime(algTime.timeMs, _targetTime)) {
           skippedAlgs.add(algTime.alg.name);
         }
       }

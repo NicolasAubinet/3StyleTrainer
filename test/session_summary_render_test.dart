@@ -412,4 +412,32 @@ void main() {
     expect(SharedPreferences.getInstance()
         .then((p) => p.getDouble('target_time')), completion(1.2));
   });
+
+  testWidgets('sets: the edited target is handed back to the session',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    double? reported;
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: [const AlgTime(1, 800, Alg('BA'), timestamp: 1)],
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 800,
+        onTargetTimeChanged: (t) => reported = t,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.edit));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), '1.20');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    // The timer keeps this for the rest of the session, so a later summary of
+    // the same run doesn't revert to the value it was started with.
+    expect(reported, 1.2);
+  });
 }

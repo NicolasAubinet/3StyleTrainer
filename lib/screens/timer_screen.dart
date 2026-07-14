@@ -68,6 +68,9 @@ class _TimerScreenState extends State<TimerScreen> {
   async.StreamSubscription<CubeState>? _resyncSub;
   // The cube dropped and is being reconnected: the run pauses until it is back.
   bool _reconnecting = false;
+  // The link dropped: what the cube reports is stale until the resync re-anchors
+  // us, and judging it meanwhile would abandon or falsely complete the case.
+  bool _awaitingResync = false;
 
   _CubeFeedback? _feedback;
   // The feedback was carried over from the case that just went wrong; it stays
@@ -287,7 +290,7 @@ class _TimerScreenState extends State<TimerScreen> {
       );
 
   void _onCubeState(CubeState state) {
-    if (!mounted || !isReady) return;
+    if (!mounted || !isReady || _awaitingResync) return;
     final norm = _normalise(state.facelets);
     final split = _cubeRun?.onState(norm);
     if (split != null) {
@@ -386,7 +389,7 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   void _onCubeMove(CubeMove move) {
-    if (!mounted || !isReady) return;
+    if (!mounted || !isReady || _awaitingResync) return;
     // Still turning: whatever the last state looked like, it wasn't the end.
     _feedbackTimer?.cancel();
     if (_caseMoves.length < _MAX_STORED_MOVES) {
@@ -471,16 +474,20 @@ class _TimerScreenState extends State<TimerScreen> {
   void _onCubeComplete(CaseSplit split) {
     final finished = alg;
     if (finished == null) return;
+    final spoiled = _caseSpoiled; // starting the next case clears the flag
     stopwatch.stop();
     setState(() {
       _orientationConfirmed = true; // a clean solve proves the orientation
       _feedback = null;
-      if (!_caseSpoiled) {
+      if (!spoiled) {
         _recordSolve(finished, split.total.inMilliseconds,
             recognitionMs: split.recognition.inMilliseconds);
       }
     });
-    _advanceCubeCase(_cubeRun!.expectedFacelets ?? _currentFacelets);
+    // A resync cost the case its honest time: no mistake, but no time either —
+    // so back in the pool rather than dropped from the run.
+    _advanceCubeCase(_cubeRun!.expectedFacelets ?? _currentFacelets,
+        requeueAfter: spoiled ? finished.name : null);
     _flashAdvance();
     _blockRequeueBriefly();
   }
@@ -587,6 +594,10 @@ class _TimerScreenState extends State<TimerScreen> {
     // manager to bring it back rather than throwing the session away.
     final reconnecting =
         c == CubeConnection.lost || c == CubeConnection.reconnecting;
+    if (reconnecting) {
+      _awaitingResync = true;
+      _feedbackTimer?.cancel();
+    }
     if (reconnecting != _reconnecting) setState(() => _reconnecting = reconnecting);
   }
 
@@ -595,7 +606,9 @@ class _TimerScreenState extends State<TimerScreen> {
   // where the cube actually is and let the user execute the shown pair from
   // there — and don't record the case, since its time is no longer honest.
   void _onCubeResync(CubeState state) {
-    if (!mounted || !isReady) return;
+    if (!mounted) return;
+    _awaitingResync = false;
+    if (!isReady) return;
     final shown = alg?.name;
     if (shown == null) return;
     final norm = _normalise(state.facelets);

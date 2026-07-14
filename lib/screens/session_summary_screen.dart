@@ -20,6 +20,8 @@ const int BUTTON_PRESS_DELAY_MS = 250;
 
 // Sets rows fill toward a fixed target tick; under-target fills stop short of it.
 const double _TARGET_TICK_FRAC = 0.65;
+// The session's fastest under-target case keeps this much fill, so it stays visible.
+const double _METER_FLOOR_FRAC = 0.05;
 
 enum _SortColumn { order, recognition, execution, time }
 
@@ -240,11 +242,20 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     return (0.15 + 0.70 * f).clamp(0.0, 1.0);
   }
 
-  // Sets success meter: fills toward the target tick; over-target overflows it.
+  // Sets success meter: the target tick anchors the scale. Over-target times
+  // spread between the tick and the session's slowest (which alone fills the
+  // track); under-target ones between the tick and the session's fastest.
   double _meterFrac(int timeMs) {
     if (_targetTime <= 0) return _TARGET_TICK_FRAC;
-    final f = (timeMs / 1000) / _targetTime * _TARGET_TICK_FRAC;
-    return f.clamp(0.05, 1.0);
+    final targetMs = _targetTime * 1000;
+    if (timeMs >= targetMs) {
+      final span = _hiMs - targetMs;
+      final f = span <= 0 ? 1.0 : ((timeMs - targetMs) / span).clamp(0.0, 1.0);
+      return _TARGET_TICK_FRAC + (1.0 - _TARGET_TICK_FRAC) * f;
+    }
+    final span = targetMs - _loMs;
+    final f = span <= 0 ? 0.0 : ((timeMs - _loMs) / span).clamp(0.0, 1.0);
+    return _METER_FLOOR_FRAC + (_TARGET_TICK_FRAC - _METER_FLOOR_FRAC) * f;
   }
 
   String _formattedAverage() {

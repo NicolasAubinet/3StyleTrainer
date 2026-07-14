@@ -395,12 +395,12 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
             child: _statTile(p, l10n.statCompleted,
                 value: widget.algTimes.length.toString()),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 5),
           Expanded(
             child: _statTile(p, l10n.statAverage,
                 value: _formattedAverage(), valueColor: p.accent),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 5),
           Expanded(
             child: _isTimeRace
                 ? _spreadTile(p, l10n)
@@ -412,7 +412,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
           // own count. Only a cube can detect them, but then the tile is always
           // there — a summary that changes shape run to run is hard to read.
           if (widget.cubeDriven) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: 5),
             Expanded(
               child: _statTile(p, l10n.statMistakes,
                   value: mistakes.toString(),
@@ -588,9 +588,9 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
       {String value = "", Color? valueColor, Widget? valueWidget}) {
     return GlassPanel(
       radius: 12,
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // One line in a fixed box, shrunk to fit if need be. Four tiles are tight
           // on a phone, and a label that wrapped (or merely scaled) would drag its
@@ -599,7 +599,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
             height: _statLabelHeight,
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
+              alignment: Alignment.center,
               child: Text(label.toUpperCase(),
                   maxLines: 1,
                   style: TextStyle(
@@ -622,8 +622,9 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         ? const SizedBox.shrink()
         : FittedBox(
             fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.center,
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(timeToString(_loMs, fractionDigits: 2),
                     style: _mono(16, p.good)),

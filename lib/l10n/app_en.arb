@@ -72,6 +72,12 @@
   "selectAtLeastOneSet": "Select at least one set",
   "selectAll": "Select all",
   "deselectAll": "Deselect all",
+  "setAlgCount": "{count} algs",
+  "@setAlgCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "average": "Average: {average}",
   "invertedAlgs": "Inverted algs",
   "createCustomSet": "Create custom set",

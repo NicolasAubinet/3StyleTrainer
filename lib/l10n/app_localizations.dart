@@ -400,6 +400,12 @@ abstract class AppLocalizations {
   /// **'Deselect all'**
   String get deselectAll;
 
+  /// No description provided for @setAlgCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} algs'**
+  String setAlgCount(int count);
+
   /// No description provided for @average.
   ///
   /// In en, this message translates to:

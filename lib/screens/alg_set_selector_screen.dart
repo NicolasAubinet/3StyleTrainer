@@ -6,8 +6,10 @@ import 'package:three_style_trainer/widgets/custom_set_dialog.dart';
 import '../alg_provider.dart';
 import '../database_manager.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_palette.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/glass_panel.dart';
 import 'timer_screen.dart';
 
 class AlgSetSelectorScreen extends StatefulWidget {
@@ -30,6 +32,10 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
   Set<int> selectedIndices = {};
   bool invertedAlgs = false;
 
+  // How many algs each set would drill, shown on its tile. Inverting doubles
+  // them, so this is recomputed whenever the selection inputs change.
+  List<int> algCountsPerSet = [];
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +44,21 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
     } else {
       selectableAlgSets = getAlgSetWithoutBuffers();
     }
+    _recomputeAlgCounts();
+  }
+
+  void _recomputeAlgCounts() {
+    if (widget.algType == AlgType.Custom) {
+      algCountsPerSet =
+          selectableAlgSets.map((name) => getCustomAlgSet(name).length).toList();
+      return;
+    }
+    final allAlgSets = getAlgSets(widget.algType);
+    algCountsPerSet = selectableAlgSets
+        .map((set) => enumerateAlgs(widget.algType,
+            setIndices: [allAlgSets.indexOf(set)],
+            invertedAlgs: invertedAlgs).length)
+        .toList();
   }
 
   AlgProvider getAlgProvider() {
@@ -150,6 +171,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
   void _refreshSelectableAlgSets() {
     selectableAlgSets = widget.customSets.map((e) => e.name).toList();
     selectedIndices.clear();
+    _recomputeAlgCounts();
   }
 
   bool _onCustomSetCreated(CustomSet customSet) {
@@ -281,46 +303,117 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
         });
   }
 
-  Widget getAlgSetsItemBuilder(BuildContext context, int index) {
-    var theme = Theme.of(context);
+  // The selected-row fill. With no checkbox, this tint is the whole selected
+  // state, so the rows and the dividers between them must share it exactly.
+  Color get _selectedTint => context.palette.accent.withValues(alpha: 0.22);
+
+  /// One set as a row: its name and the algs it would drill. The accent tint is
+  /// the whole selected state; custom sets also carry edit/delete.
+  Widget _setRow(int index) {
     final p = context.palette;
+    final l10n = AppLocalizations.of(context)!;
     final selected = selectedIndices.contains(index);
-    // Selected rows sit on the accent tile, so use onAccent; unselected rows sit
-    // on the page background, so use textPrimary (white was invisible on light).
-    final fg = selected ? p.onAccent : p.textPrimary;
-    return ListTile(
-      title: Center(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Center(
-                child: Text(
-                  selectableAlgSets[index],
-                  style: theme.textTheme.displayMedium?.copyWith(color: fg),
+    final isCustom = widget.algType == AlgType.Custom;
+    return Material(
+      color: selected ? _selectedTint : Colors.transparent,
+      child: InkWell(
+        onTap: () => onAlgSetTap(index),
+        child: SizedBox(
+          height: 52,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, isCustom ? 4 : 18, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    selectableAlgSets[index],
+                    style: TextStyle(
+                        fontFamily: isCustom ? null : MONO_FONT,
+                        fontSize: isCustom ? 16 : 20,
+                        fontWeight: FontWeight.w600,
+                        color: selected ? p.textPrimary : p.textMuted),
+                  ),
                 ),
-              ),
+                Text(
+                  l10n.setAlgCount(algCountsPerSet[index]),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: selected ? p.textMuted : p.textFaint),
+                ),
+                if (isCustom) ...[
+                  IconButton(
+                    tooltip: l10n.editCustomSet,
+                    onPressed: () => _editCustomSet(context, index),
+                    icon: const Icon(Icons.edit_rounded, size: 18),
+                    color: p.textMuted,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  IconButton(
+                    tooltip: l10n.delete,
+                    onPressed: () => _onDeleteCustomSet(context, index),
+                    icon: const Icon(Icons.delete_rounded, size: 18),
+                    color: p.textMuted,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ],
             ),
-            widget.algType == AlgType.Custom
-                ? IconButton(
-                    onPressed: () => {_editCustomSet(context, index)},
-                    icon: Icon(Icons.edit),
-                    color: fg,
-                  )
-                : Container(),
-            widget.algType == AlgType.Custom
-                ? IconButton(
-                    onPressed: () => {_onDeleteCustomSet(context, index)},
-                    icon: Icon(Icons.delete),
-                    color: fg,
-                  )
-                : Container(),
-          ],
+          ),
         ),
       ),
-      onTap: () => onAlgSetTap(index),
-      selected: selected,
-      selectedTileColor: theme.colorScheme.primary,
+    );
+  }
+
+  Widget _blockButton(AppPalette p,
+      {required String label,
+      required bool filled,
+      required VoidCallback onPressed}) {
+    return Material(
+      color: filled ? p.accent : Colors.transparent,
+      borderRadius: BorderRadius.circular(11),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(11),
+        onTap: onPressed,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          decoration: filled
+              ? null
+              : BoxDecoration(
+                  borderRadius: BorderRadius.circular(11),
+                  border:
+                      Border.all(color: p.accent.withValues(alpha: 0.55))),
+          alignment: Alignment.center,
+          child: Text(label,
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: filled ? p.onAccent : p.accent)),
+        ),
+      ),
+    );
+  }
+
+  void _onStartPressed() {
+    if (selectedIndices.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(
+          content: Text(AppLocalizations.of(context)!.selectAtLeastOneSet),
+        ));
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TimerScreen(
+          PracticeType.sets,
+          widget.targetTime,
+          widget.raceTime,
+          getAlgProvider(),
+          widget.algType,
+          widget.algsShownInAdvance,
+        ),
+      ),
     );
   }
 
@@ -328,15 +421,17 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
     final p = context.palette;
+    final l10n = AppLocalizations.of(context)!;
+    final isCustom = widget.algType == AlgType.Custom;
+    // Only letter-pair types have a direction to invert.
+    final showInvertedOption =
+        widget.algType == AlgType.Corner || widget.algType == AlgType.Edge;
 
     return AppScaffold(
-      title:
-          "${AppLocalizations.of(context)!.algSet} · ${widget.algType.getLocalizedName(context)}",
+      title: "${l10n.algSet} · ${widget.algType.getLocalizedName(context)}",
       actions: [
         IconButton(
-          tooltip: _allSelected
-              ? AppLocalizations.of(context)!.deselectAll
-              : AppLocalizations.of(context)!.selectAll,
+          tooltip: _allSelected ? l10n.deselectAll : l10n.selectAll,
           icon: Icon(_allSelected
               ? Icons.remove_done_rounded
               : Icons.done_all_rounded),
@@ -344,101 +439,104 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
         ),
         const SizedBox(width: 4),
       ],
-      body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              AppLocalizations.of(context)!
-                  .selectSetsToPractice(selectedIndices.length, _algCount),
-              style: theme.textTheme.labelSmall,
-            ),
-            SizedBox(height: 5),
-            Expanded(
-              child: Card(
-                color: p.panel,
-                child: ListView.builder(
-                  itemCount: selectableAlgSets.length,
-                  itemBuilder: getAlgSetsItemBuilder,
-                ),
-              ),
-            ),
-            widget.algType == AlgType.Custom ||
-                    widget.algType == AlgType.TwoFlip ||
-                    widget.algType == AlgType.TwoTwist ||
-                    widget.algType == AlgType.Parity
-                ? Container()
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.invertedAlgs,
-                        style: theme.textTheme.labelSmall,
-                      ),
-                      Checkbox(
-                          value: invertedAlgs,
-                          onChanged: (bool? newValue) {
-                            setState(() {
-                              invertedAlgs = newValue!;
-                            });
-                          }),
-                    ],
-                  ),
-            SizedBox(height: 2),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+      // Capped and centred: full-desktop-width rows would strand the set name
+      // an arm's length from its checkbox.
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 4, 18, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    fixedSize: Size(270, 60),
-                    padding: EdgeInsets.all(2),
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
-                    elevation: 3,
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 10),
+                  child: Text(
+                    l10n.selectSetsToPractice(
+                        selectedIndices.length, _algCount),
+                    style: theme.textTheme.labelSmall,
                   ),
-                  onPressed: () {
-                    if (selectedIndices.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(AppLocalizations.of(context)!
-                              .selectAtLeastOneSet),
-                        ),
-                      );
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TimerScreen(
-                            PracticeType.sets,
-                            widget.targetTime,
-                            widget.raceTime,
-                            getAlgProvider(),
-                            widget.algType,
-                            widget.algsShownInAdvance,
+                ),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: GlassPanel(
+                      padding: EdgeInsets.zero,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        itemCount: selectableAlgSets.length,
+                        // The divider is inset, so between two selected rows its
+                        // margins would show untinted panel — carry the tint
+                        // across the whole strip to keep the block continuous.
+                        separatorBuilder: (_, index) => Container(
+                          color: selectedIndices.contains(index) &&
+                                  selectedIndices.contains(index + 1)
+                              ? _selectedTint
+                              : Colors.transparent,
+                          child: Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: p.panelBorder,
+                            indent: 16,
+                            endIndent: 16,
                           ),
                         ),
-                      );
-                    }
-                  },
-                  child: Text(
-                    AppLocalizations.of(context)!.start,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onPrimary,
+                        itemBuilder: (_, index) => _setRow(index),
+                      ),
                     ),
                   ),
                 ),
-                widget.algType == AlgType.Custom
-                    ? IconButton(
+                const SizedBox(height: 10),
+                // A side-setting, not a headline: a small trailing toggle rather
+                // than a panel competing with Start.
+                if (showInvertedOption)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(l10n.invertedAlgs,
+                            style:
+                                TextStyle(fontSize: 13, color: p.textMuted)),
+                        const SizedBox(width: 4),
+                        Transform.scale(
+                          scale: 0.75,
+                          child: Switch(
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            value: invertedAlgs,
+                            onChanged: (value) => setState(() {
+                              invertedAlgs = value;
+                              _recomputeAlgCounts();
+                            }),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _blockButton(p,
+                          label: l10n.start,
+                          filled: true,
+                          onPressed: _onStartPressed),
+                    ),
+                    if (isCustom) ...[
+                      const SizedBox(width: 10),
+                      IconButton(
+                        tooltip: l10n.createCustomSet,
                         onPressed: () => _createCustomSet(context),
-                        icon: const Icon(Icons.add_box_outlined),
+                        icon: const Icon(Icons.add_box_rounded),
                         color: p.accent,
-                      )
-                    : Container(),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -178,6 +178,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deselectAll => 'Deselect all';
 
   @override
+  String setAlgCount(int count) {
+    return '$count algs';
+  }
+
+  @override
   String average(Object average) {
     return 'Average: $average';
   }

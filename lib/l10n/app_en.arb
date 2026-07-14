@@ -209,7 +209,7 @@
   "statCompleted": "Completed",
   "statAverage": "Average",
   "statSpread": "Spread",
-  "statUnderTarget": "Under target",
+  "statHitTarget": "Hit target",
   "statMistakes": "Mistakes",
   "summaryErrors": "Errors",
   "summaryTarget": "Target",

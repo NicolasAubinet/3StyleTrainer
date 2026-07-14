@@ -222,6 +222,7 @@ class _TimerScreenState extends State<TimerScreen> {
     return SessionSummaryScreen(
       algTimes: algTimes,
       mistakes: algMistakes,
+      cubeDriven: _cubeMode,
       algType: widget.algType,
       targetTime: _targetTime,
       onTargetTimeChanged: (t) => setState(() => _targetTime = t),

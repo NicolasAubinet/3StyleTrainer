@@ -1114,11 +1114,11 @@ abstract class AppLocalizations {
   /// **'Spread'**
   String get statSpread;
 
-  /// No description provided for @statUnderTarget.
+  /// No description provided for @statHitTarget.
   ///
   /// In en, this message translates to:
-  /// **'Under target'**
-  String get statUnderTarget;
+  /// **'Hit target'**
+  String get statHitTarget;
 
   /// No description provided for @statMistakes.
   ///

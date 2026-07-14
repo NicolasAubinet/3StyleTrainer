@@ -59,6 +59,7 @@ void main() {
       SessionSummaryScreen(
         algTimes: _sampleTimes(),
         mistakes: _sampleMistakes(),
+        cubeDriven: true,
         algType: AlgType.Corner,
         targetTime: 0.85,
         practiceType: PracticeType.sets,
@@ -107,7 +108,58 @@ void main() {
     expect(find.text('Executed GA'), findsWidgets);
   });
 
-  testWidgets('no mistakes: no errors section or tile', (tester) async {
+  testWidgets('cube run without mistakes: the tile stays, showing zero',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800)); // phone width
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _sampleTimes(),
+        cubeDriven: true,
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 12000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    // The layout doesn't change shape run to run: four tiles, mistakes at zero.
+    expect(find.text('MISTAKES'), findsOneWidget);
+    expect(find.text('0'), findsOneWidget);
+    // But no errors section: there is nothing to list.
+    expect(find.text('ERRORS (0)'), findsNothing);
+  });
+
+  testWidgets('four tiles on a phone: the values stay on one line',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _sampleTimes(),
+        mistakes: _sampleMistakes(),
+        cubeDriven: true,
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 12000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    // A wrapping label used to push its value a line below the others'.
+    double valueTop(String value) => tester
+        .getTopLeft(find.descendant(
+            of: find.byType(IntrinsicHeight), matching: find.text(value)))
+        .dy;
+    final completed = valueTop('6');
+    expect(valueTop('5/6'), completed); // hit target — the label that wrapped
+    expect(valueTop('3'), completed); // mistakes
+  });
+
+  testWidgets('no cube: no mistakes tile at all', (tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 900));
     await tester.pumpWidget(_host(
       SessionSummaryScreen(

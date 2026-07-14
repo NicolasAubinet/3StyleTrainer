@@ -597,7 +597,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statSpread => 'Spread';
 
   @override
-  String get statUnderTarget => 'Under target';
+  String get statHitTarget => 'Hit target';
 
   @override
   String get statMistakes => 'Mistakes';

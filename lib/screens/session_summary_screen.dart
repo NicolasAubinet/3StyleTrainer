@@ -28,6 +28,9 @@ class SessionSummaryScreen extends StatefulWidget {
   // Cases that went wrong (cube-driven runs only). They have no honest time, so
   // they stay out of the times list and its stats, and get their own section.
   final List<AlgMistake> mistakes;
+  // The cube drove the run: it alone can spot mistakes, so it alone gets the
+  // errors tile — shown even at zero, so the summary keeps one shape.
+  final bool cubeDriven;
   final AlgType algType;
   final double targetTime;
   final PracticeType practiceType;
@@ -48,6 +51,7 @@ class SessionSummaryScreen extends StatefulWidget {
       {super.key,
       required this.algTimes,
       this.mistakes = const [],
+      this.cubeDriven = false,
       required this.algType,
       this.onTargetTimeChanged,
       required this.targetTime,
@@ -369,8 +373,9 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   }
 
   Widget _statHeader(AppPalette p, AppLocalizations l10n) {
-    // IntrinsicHeight + stretch so all three tiles match the tallest, even
-    // though the Spread value uses a smaller font than the single numbers.
+    final mistakes = widget.mistakes.length;
+    // IntrinsicHeight + stretch so all tiles match the tallest, even though the
+    // Spread value uses a smaller font than the single numbers.
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -388,17 +393,19 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
           Expanded(
             child: _isTimeRace
                 ? _spreadTile(p, l10n)
-                : _statTile(p, l10n.statUnderTarget,
+                : _statTile(p, l10n.statHitTarget,
                     value: "$_underTargetCount/${widget.algTimes.length}",
                     valueColor: p.good),
           ),
-          // Errored cases are excluded from the averages above, so they get
-          // their own count — and only when there are any.
-          if (widget.mistakes.isNotEmpty) ...[
+          // Errored cases are excluded from the averages above, so they get their
+          // own count. Only a cube can detect them, but then the tile is always
+          // there — a summary that changes shape run to run is hard to read.
+          if (widget.cubeDriven) ...[
             const SizedBox(width: 8),
             Expanded(
               child: _statTile(p, l10n.statMistakes,
-                  value: widget.mistakes.length.toString(), valueColor: p.bad),
+                  value: mistakes.toString(),
+                  valueColor: mistakes == 0 ? p.textFaint : p.bad),
             ),
           ],
         ],
@@ -564,6 +571,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     );
   }
 
+  static const double _statLabelHeight = 12;
+
   Widget _statTile(AppPalette p, String label,
       {String value = "", Color? valueColor, Widget? valueWidget}) {
     return GlassPanel(
@@ -572,12 +581,23 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label.toUpperCase(),
-              style: TextStyle(
-                  fontSize: 9,
-                  letterSpacing: 0.6,
-                  fontWeight: FontWeight.w700,
-                  color: p.textFaint)),
+          // One line in a fixed box, shrunk to fit if need be. Four tiles are tight
+          // on a phone, and a label that wrapped (or merely scaled) would drag its
+          // value out of line with the others'.
+          SizedBox(
+            height: _statLabelHeight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(label.toUpperCase(),
+                  maxLines: 1,
+                  style: TextStyle(
+                      fontSize: 9,
+                      letterSpacing: 0.6,
+                      fontWeight: FontWeight.w700,
+                      color: p.textFaint)),
+            ),
+          ),
           const SizedBox(height: 3),
           valueWidget ?? Text(value, style: _mono(20, valueColor ?? p.textPrimary)),
         ],

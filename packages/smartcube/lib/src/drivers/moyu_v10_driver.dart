@@ -47,7 +47,14 @@ class MoyuV10Driver extends CubeDriver {
       peripheral,
       MoyuV10Parser(GanCipher.macBytes(mac)),
     );
-    await cube._start();
+    try {
+      await cube._start();
+    } catch (_) {
+      // Handshake failed with the link open: hang up, or a retry stacks another
+      // connection on top of a half-open one.
+      await cube.disconnect();
+      rethrow;
+    }
     return cube;
   }
 

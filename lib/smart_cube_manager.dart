@@ -34,12 +34,16 @@ class SmartCubeManager {
   Stream<CubeState> get states => _stateCtrl.stream;
 
   /// Tracking was re-anchored on the cube's own state (after lost moves or a
-  /// reconnect) — any baseline taken before this is stale.
+  /// reconnect) — any baseline taken before this is stale. Every reconnect ends
+  /// in one, so listeners may ignore the cube from the drop until this fires.
   Stream<CubeState> get resyncs => _resyncCtrl.stream;
 
   final List<StreamSubscription> _cubeSubs = [];
   Timer? _batteryTimer;
   Timer? _reconnectTimer;
+  // Without these a slow attempt outlives the retry tick and we dial twice.
+  bool _retrying = false;
+  bool _opening = false;
 
   // What to reconnect to, kept for as long as the user wants a cube.
   DiscoveredCube? _device;
@@ -58,11 +62,21 @@ class SmartCubeManager {
 
   Future<void> _openCube() async {
     final device = _device;
-    if (device == null) return;
-    final cube = await _scanner.connect(device, macAddress: _macAddress);
-    _cube = cube;
-    _bind(cube);
-    connection.value = cube.connection;
+    if (device == null || _opening) return;
+    _opening = true;
+    try {
+      final cube = await _scanner.connect(device, macAddress: _macAddress);
+      // Disconnected (or switched cubes) while we dialled: this link is nobody's.
+      if (!identical(_device, device)) {
+        await cube.disconnect();
+        return;
+      }
+      _cube = cube;
+      _bind(cube);
+      connection.value = cube.connection;
+    } finally {
+      _opening = false;
+    }
     await _refreshBattery();
     _batteryTimer?.cancel();
     _batteryTimer =
@@ -92,50 +106,90 @@ class SmartCubeManager {
   // A dropped link usually means the cube went to sleep, and it comes back the
   // moment a face is turned. Keep retrying until it does (or the user gives up
   // and disconnects) rather than dropping the session.
-  void _startReconnecting() {
-    if (_reconnectTimer != null) return;
+  Future<void> _startReconnecting() async {
+    if (_retrying) return;
     if (_device == null) {
       _cleanup();
       return;
     }
-    _cube = null;
+    _retrying = true;
+    _batteryTimer?.cancel();
+    _batteryTimer = null;
     battery.value = null;
     connection.value = CubeConnection.reconnecting;
+    // Hang up before dialling again: a leaked link keeps its notify subscription
+    // and pull timer alive, and the new connection ends up fighting it.
+    await _releaseCube();
+    if (!_retrying) return; // disconnected while we were letting go
     _reconnectTimer =
         Timer.periodic(const Duration(seconds: 3), (_) => _tryReconnect());
     _tryReconnect();
   }
 
   Future<void> _tryReconnect() async {
-    if (_cube != null || _device == null) return;
+    if (_cube != null || _device == null || _opening) return;
     try {
       await _openCube();
     } catch (_) {
-      return; // asleep or out of range — the timer tries again
+      // Asleep, out of range, or a failed handshake: drop whatever link that
+      // left behind so the next try starts clean.
+      await _releaseCube();
+      return;
     }
     final cube = _cube;
-    if (cube != null) {
-      _reconnectTimer?.cancel();
-      _reconnectTimer = null;
-      // Pull the real state before announcing the resync: the cube was turned
-      // while it was away (that is usually what woke it), so any baseline taken
-      // before the drop is stale.
-      _resyncCtrl.add(await cube.requestState());
+    if (cube == null) return;
+    _retrying = false;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    // Pull the real state before announcing the resync: the cube was turned while
+    // it was away (that is usually what woke it). Listeners wait for the resync,
+    // so it must go out even if the pull fails — the tracked state will do.
+    CubeState state;
+    try {
+      state = await cube.requestState();
+    } catch (_) {
+      state = cube.currentState;
+    }
+    if (identical(_cube, cube)) _resyncCtrl.add(state);
+  }
+
+  // Let go of the current cube. Stop listening first: its own disconnected event
+  // must not reach [_bind]'s listener, which would end the session.
+  Future<void> _releaseCube() async {
+    final cube = _cube;
+    _cube = null;
+    for (final s in _cubeSubs) {
+      s.cancel();
+    }
+    _cubeSubs.clear();
+    try {
+      await cube?.disconnect();
+    } catch (_) {
+      // Already gone — nothing left to close.
     }
   }
 
   Future<void> _refreshBattery() async {
-    final b = await _cube?.batteryLevel();
-    if (b != null) battery.value = b;
+    try {
+      final b = await _cube?.batteryLevel();
+      if (b != null) battery.value = b;
+    } catch (_) {
+      // A battery read failing is not worth dropping the session over.
+    }
   }
 
   Future<void> disconnect() async {
     final cube = _cube;
     _cleanup();
-    await cube?.disconnect();
+    try {
+      await cube?.disconnect();
+    } catch (_) {
+      // Already gone.
+    }
   }
 
   void _cleanup() {
+    _retrying = false;
     _batteryTimer?.cancel();
     _batteryTimer = null;
     _reconnectTimer?.cancel();

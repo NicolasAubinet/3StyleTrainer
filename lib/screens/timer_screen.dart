@@ -102,9 +102,9 @@ class _TimerScreenState extends State<TimerScreen> {
   static const int _MAX_STORED_MOVES = 120;
 
   // How long the cube must sit still before a non-completing state is judged a
-  // mistake. Long enough to outlast a hesitation mid-alg, short enough that the
-  // feedback still feels immediate once you've actually stopped.
-  static const Duration _FEEDBACK_QUIET_PERIOD = Duration(seconds: 1);
+  // mistake. Algs are meant to flow, so a pause this long already means you've
+  // stopped — waiting any longer just leaves the error hanging unexplained.
+  static const Duration _FEEDBACK_QUIET_PERIOD = Duration(milliseconds: 500);
   async.Timer? _feedbackTimer;
 
   // Brief flash on auto-advance: green on a clean completion, red on an error.

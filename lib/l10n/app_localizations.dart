@@ -1072,11 +1072,17 @@ abstract class AppLocalizations {
   /// **'UF/UR + 2 corners'**
   String get typeSubtitleParity;
 
-  /// No description provided for @statsSolvesRange.
+  /// No description provided for @statsSolvesCount.
   ///
   /// In en, this message translates to:
-  /// **'{count} solves · {min}–{max}s'**
-  String statsSolvesRange(Object count, Object max, Object min);
+  /// **'{count} solves'**
+  String statsSolvesCount(int count);
+
+  /// No description provided for @statsSpread.
+  ///
+  /// In en, this message translates to:
+  /// **'{min}–{max}s'**
+  String statsSpread(String min, String max);
 
   /// No description provided for @totalSolves.
   ///

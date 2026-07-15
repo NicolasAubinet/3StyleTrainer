@@ -207,7 +207,14 @@
   "twists": "2Twists",
   "parity": "Parity",
   "typeSubtitleParity": "UF/UR + 2 corners",
-  "statsSolvesRange": "{count} solves · {min}–{max}s",
+  "statsSolvesCount": "{count} solves",
+  "@statsSolvesCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "statsSpread": "{min}–{max}s",
+  "@statsSpread": {
+    "placeholders": { "min": { "type": "String" }, "max": { "type": "String" } }
+  },
   "totalSolves": "Total solves: {count}",
   "globalAvg": "Global avg: {avg}",
   "totalTime": "Total time: {time}",

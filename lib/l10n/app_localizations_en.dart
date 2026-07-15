@@ -570,8 +570,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get typeSubtitleParity => 'UF/UR + 2 corners';
 
   @override
-  String statsSolvesRange(Object count, Object max, Object min) {
-    return '$count solves · $min–${max}s';
+  String statsSolvesCount(int count) {
+    return '$count solves';
+  }
+
+  @override
+  String statsSpread(String min, String max) {
+    return '$min–${max}s';
   }
 
   @override

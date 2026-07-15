@@ -49,11 +49,18 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
   double _hiAvgMs = 0;
   bool _loading = true;
   int _loadGeneration = 0;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _init();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _init() async {
@@ -286,15 +293,26 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
                       color: p.textPrimary)),
             ),
             Expanded(
-              child: Text(
-                l10n.statsSolvesRange(
-                  stats.count,
-                  timeToString(stats.maxMs, fractionDigits: 1),
-                  timeToString(stats.minMs, fractionDigits: 1),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12, color: p.textFaint),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    l10n.statsSolvesCount(stats.count),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: p.textFaint),
+                  ),
+                  Text(
+                    l10n.statsSpread(
+                      timeToString(stats.minMs, fractionDigits: 1),
+                      timeToString(stats.maxMs, fractionDigits: 1),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: p.textFaint),
+                  ),
+                ],
               ),
             ),
             if (_hasSplits) ...[
@@ -384,9 +402,14 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: _stats.length,
-              itemBuilder: (context, i) => _statCard(_stats[i], p, l10n),
+            child: Scrollbar(
+              controller: _scrollController,
+              thumbVisibility: true,
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: _stats.length,
+                itemBuilder: (context, i) => _statCard(_stats[i], p, l10n),
+              ),
             ),
           ),
         ],

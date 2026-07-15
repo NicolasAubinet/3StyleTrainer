@@ -29,7 +29,8 @@ class AlgResultDetailsScreen extends StatefulWidget {
 }
 
 class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
-  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd - HH:mm:ss');
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+  final DateFormat _timeFormat = DateFormat('HH:mm:ss');
 
   List<AlgResult> _results = [];
   bool _loading = true;
@@ -124,10 +125,12 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   }
 
   // Keep these widths in sync between the header and the rows so columns align.
-  // They stay tight so the date column keeps enough room to fit on one line.
-  static const double _timeColumnWidth = 62;
-  static const double _deleteColumnWidth = 40;
-  static const double _splitColumnWidth = 52;
+  // Kept tight so the date column has room to show the full date on its line.
+  static const double _timeColumnWidth = 58;
+  static const double _deleteColumnWidth = 34;
+  static const double _splitColumnWidth = 44;
+  // Gap between the split columns and the total.
+  static const double _splitGap = 6;
 
   Widget _sortHeader(String label, _SortColumn column,
           {double? width, TextAlign align = TextAlign.left}) =>
@@ -152,7 +155,7 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
                 width: _splitColumnWidth, align: TextAlign.right),
             _sortHeader(l10n.columnExecution, _SortColumn.execution,
                 width: _splitColumnWidth, align: TextAlign.right),
-            const SizedBox(width: 8),
+            const SizedBox(width: _splitGap),
           ],
           _sortHeader(_hasSplits ? l10n.columnTotal : l10n.columnResult,
               _SortColumn.total,
@@ -182,20 +185,34 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
 
   Widget _buildRow(ThemeData theme, AlgResult result) {
     final date = DateTime.fromMillisecondsSinceEpoch(result.timestamp);
+    final p = context.palette;
     final cellStyle = theme.textTheme.labelLarge;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Row(
         children: [
           Expanded(
-              child: Text(_dateFormat.format(date),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: cellStyle)),
+            // Auto-fit so the full date always shows, shrinking only on the
+            // narrowest phones rather than clipping to "2026-07-…".
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_dateFormat.format(date), maxLines: 1, style: cellStyle),
+                  Text(_timeFormat.format(date),
+                      maxLines: 1,
+                      style: cellStyle?.copyWith(color: p.textFaint)),
+                ],
+              ),
+            ),
+          ),
           if (_hasSplits) ...[
             _splitCell(theme, result.recognitionMs),
             _splitCell(theme, result.executionMs),
-            const SizedBox(width: 8),
+            const SizedBox(width: _splitGap),
           ],
           SizedBox(
             width: _timeColumnWidth,

@@ -384,17 +384,13 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   }
 
   Widget _statHeader(AppPalette p, AppLocalizations l10n) {
-    final mistakes = widget.mistakes.length;
     // IntrinsicHeight + stretch so all tiles match the tallest, even though the
     // Spread value uses a smaller font than the single numbers.
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: _statTile(p, l10n.statCompleted,
-                value: widget.algTimes.length.toString()),
-          ),
+          Expanded(child: _solvedTile(p, l10n)),
           const SizedBox(width: 5),
           Expanded(
             child: _statTile(p, l10n.statAverage,
@@ -408,20 +404,26 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                     value: "$_underTargetCount/${widget.algTimes.length}",
                     valueColor: p.good),
           ),
-          // Errored cases are excluded from the averages above, so they get their
-          // own count. Only a cube can detect them, but then the tile is always
-          // there — a summary that changes shape run to run is hard to read.
-          if (widget.cubeDriven) ...[
-            const SizedBox(width: 5),
-            Expanded(
-              child: _statTile(p, l10n.statMistakes,
-                  value: mistakes.toString(),
-                  valueColor: mistakes == 0 ? p.textFaint : p.bad),
-            ),
-          ],
         ],
       ),
     );
+  }
+
+  // Solved count, with the error total folded in as a red parenthetical (only a
+  // cube detects errors, so it shows on cube-driven runs only).
+  Widget _solvedTile(AppPalette p, AppLocalizations l10n) {
+    final solved = widget.algTimes.length;
+    final mistakes = widget.mistakes.length;
+    final valueWidget = widget.cubeDriven
+        ? Text.rich(TextSpan(children: [
+            TextSpan(text: solved.toString(), style: _mono(20, p.textPrimary)),
+            TextSpan(
+                text: " ($mistakes)",
+                style: _mono(14, mistakes == 0 ? p.textFaint : p.bad)),
+          ]))
+        : null;
+    return _statTile(p, l10n.statSolved,
+        value: solved.toString(), valueWidget: valueWidget);
   }
 
   // The errors section: a header plus one row per errored case, below the times.

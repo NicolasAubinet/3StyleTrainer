@@ -593,7 +593,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get optionsSection => 'Options';
 
   @override
-  String get statCompleted => 'Completed';
+  String get statSolved => 'Solved';
 
   @override
   String get statAverage => 'Average';
@@ -603,9 +603,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statHitTarget => 'Hit target';
-
-  @override
-  String get statMistakes => 'Mistakes';
 
   @override
   String get summaryErrors => 'Errors';

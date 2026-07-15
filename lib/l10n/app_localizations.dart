@@ -1102,11 +1102,11 @@ abstract class AppLocalizations {
   /// **'Options'**
   String get optionsSection;
 
-  /// No description provided for @statCompleted.
+  /// No description provided for @statSolved.
   ///
   /// In en, this message translates to:
-  /// **'Completed'**
-  String get statCompleted;
+  /// **'Solved'**
+  String get statSolved;
 
   /// No description provided for @statAverage.
   ///
@@ -1125,12 +1125,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hit target'**
   String get statHitTarget;
-
-  /// No description provided for @statMistakes.
-  ///
-  /// In en, this message translates to:
-  /// **'Mistakes'**
-  String get statMistakes;
 
   /// No description provided for @summaryErrors.
   ///

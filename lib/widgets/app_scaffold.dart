@@ -24,16 +24,24 @@ class AppScaffold extends StatelessWidget {
     this.leadingWidth,
   });
 
+  // Scale the title down to fit rather than clipping it, so a name like
+  // "3-Style Trainer" stays whole on narrow screens instead of ellipsizing.
+  Widget _fittedTitle() => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(title!, maxLines: 1),
+      );
+
   Widget _buildTitle() {
     if (titleLeading == null) {
-      return Text(title!, overflow: TextOverflow.ellipsis);
+      return Align(alignment: Alignment.centerLeft, child: _fittedTitle());
     }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Transform.translate(offset: const Offset(0, 2), child: titleLeading!),
         const SizedBox(width: 8),
-        Flexible(child: Text(title!, overflow: TextOverflow.ellipsis)),
+        Flexible(child: _fittedTitle()),
       ],
     );
   }

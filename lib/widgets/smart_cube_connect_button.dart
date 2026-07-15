@@ -138,7 +138,10 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
         final messenger = ScaffoldMessenger.of(context);
         final msg = AppLocalizations.of(context)!.smartCubeConnectedToast;
         Navigator.pop(context);
-        messenger.showSnackBar(SnackBar(content: Text(msg)));
+        messenger.showSnackBar(SnackBar(
+          content: Text(msg),
+          duration: const Duration(milliseconds: 1500),
+        ));
       }
     } catch (e) {
       if (mounted) {

@@ -94,12 +94,36 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
   final Map<String, DiscoveredCube> _found = {};
   StreamSubscription<DiscoveredCube>? _scanSub;
   bool _connecting = false;
+  bool _closing = false;
   String? _error;
+
+  CubeConnection get _conn => _mgr.connection.value;
+  bool get _ready => _conn == CubeConnection.ready;
+  bool get _reconnecting =>
+      _conn == CubeConnection.reconnecting || _conn == CubeConnection.lost;
 
   @override
   void initState() {
     super.initState();
-    if (!_mgr.isConnected) _startScan();
+    _mgr.connection.addListener(_onConnectionChanged);
+    // The manager dials the known cube on its own while reconnecting; scanning
+    // over that would only race it.
+    if (!_ready && !_reconnecting) _startScan();
+  }
+
+  // The cube can connect on a path this sheet never started — the reconnect
+  // loop landing while we scan — so follow the manager, not just our own taps.
+  void _onConnectionChanged() {
+    if (!mounted || _closing) return;
+    if (_ready) {
+      _stopScan();
+      _connecting = false;
+      _error = null;
+    } else if (!_reconnecting && !_connecting && _scanSub == null) {
+      // The cube dropped for good under us: back to looking for one.
+      _startScan();
+    }
+    setState(() {});
   }
 
   void _startScan() {
@@ -117,6 +141,7 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
 
   @override
   void dispose() {
+    _mgr.connection.removeListener(_onConnectionChanged);
     _stopScan();
     super.dispose();
   }
@@ -188,15 +213,21 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              _mgr.isConnected ? l10n.smartCubeConnected : l10n.smartCubeConnectTitle,
+              _ready
+                  ? l10n.smartCubeConnected
+                  : _reconnecting
+                      ? l10n.smartCube
+                      : l10n.smartCubeConnectTitle,
               style: TextStyle(
                   color: p.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 16),
-            if (_mgr.isConnected)
+            if (_ready)
               _connectedBody(l10n, p)
+            else if (_reconnecting)
+              _reconnectingBody(l10n, p)
             else if (_connecting)
               _busy(l10n.smartCubeConnecting, p)
             else
@@ -222,6 +253,33 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
             Text(label, style: TextStyle(color: p.textMuted)),
           ],
         ),
+      );
+
+  Widget _reconnectingBody(AppLocalizations l10n, AppPalette p) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _busy(l10n.smartCubeReconnecting, p),
+        Text(l10n.smartCubeReconnectingHint,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: p.textFaint, fontSize: 13)),
+        const SizedBox(height: 20),
+        _disconnectButton(l10n),
+      ],
+    );
+  }
+
+  Widget _disconnectButton(AppLocalizations l10n) => OutlinedButton.icon(
+        onPressed: () async {
+          // Hold the current body while we dismiss: the manager drops to
+          // `disconnected` at once, and the sheet must not flash the scan view.
+          setState(() => _closing = true);
+          Navigator.pop(context);
+          await _mgr.disconnect();
+        },
+        icon: const Icon(Icons.bluetooth_disabled),
+        label: Text(l10n.smartCubeDisconnect),
       );
 
   Widget _scanBody(AppLocalizations l10n, AppPalette p) {
@@ -276,14 +334,7 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
           ],
         ),
         const SizedBox(height: 20),
-        OutlinedButton.icon(
-          onPressed: () async {
-            await _mgr.disconnect();
-            if (mounted) Navigator.pop(context);
-          },
-          icon: const Icon(Icons.bluetooth_disabled),
-          label: Text(l10n.smartCubeDisconnect),
-        ),
+        _disconnectButton(l10n),
       ],
     );
   }

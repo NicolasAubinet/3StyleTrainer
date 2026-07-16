@@ -76,9 +76,9 @@ void main() {
     expect(find.text('(2)'), findsOneWidget);
     // VU was requeued once and keeps its own row.
     expect(find.text('Requeued'), findsOneWidget);
-    // Counted on their own tile, and excluded from the times' stats.
-    expect(find.text('MISTAKES'), findsOneWidget);
-    expect(find.text('COMPLETED'), findsOneWidget);
+    // Counted as the Solved tile's parenthetical, and left out of the times.
+    expect(find.text('SOLVED'), findsOneWidget);
+    expect(find.text('6 (3)'), findsOneWidget);
   });
 
   testWidgets('tapping an errored case shows every attempt in full',
@@ -108,7 +108,7 @@ void main() {
     expect(find.text('Executed GA'), findsWidgets);
   });
 
-  testWidgets('cube run without mistakes: the tile stays, showing zero',
+  testWidgets('cube run without mistakes: the count stays, showing zero',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800)); // phone width
     await tester.pumpWidget(_host(
@@ -124,14 +124,14 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    // The layout doesn't change shape run to run: four tiles, mistakes at zero.
-    expect(find.text('MISTAKES'), findsOneWidget);
-    expect(find.text('0'), findsOneWidget);
+    // The tile doesn't change shape run to run: the count shows, at zero.
+    expect(find.text('SOLVED'), findsOneWidget);
+    expect(find.text('6 (0)'), findsOneWidget);
     // But no errors section: there is nothing to list.
     expect(find.text('ERRORS (0)'), findsNothing);
   });
 
-  testWidgets('four tiles on a phone: the values stay on one line',
+  testWidgets('three tiles on a phone: the values stay on one line',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     await tester.pumpWidget(_host(
@@ -154,12 +154,12 @@ void main() {
         .getTopLeft(find.descendant(
             of: find.byType(IntrinsicHeight), matching: find.text(value)))
         .dy;
-    final completed = valueTop('6');
-    expect(valueTop('5/6'), completed); // hit target — the label that wrapped
-    expect(valueTop('3'), completed); // mistakes
+    final solved = valueTop('6 (3)');
+    expect(valueTop('5/6'), solved); // hit target — the label that wrapped
+    expect(valueTop('0.82'), solved); // average
   });
 
-  testWidgets('no cube: no mistakes tile at all', (tester) async {
+  testWidgets('no cube: the solved tile drops the error count', (tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 900));
     await tester.pumpWidget(_host(
       SessionSummaryScreen(
@@ -173,7 +173,13 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.text('MISTAKES'), findsNothing);
+    // Only a cube detects errors, so a press-timed run shows a bare count —
+    // not even a "(0)".
+    expect(
+        find.descendant(
+            of: find.byType(IntrinsicHeight), matching: find.text('6')),
+        findsOneWidget);
+    expect(find.text('6 (0)'), findsNothing);
     expect(find.text('ERRORS (0)'), findsNothing);
   });
 

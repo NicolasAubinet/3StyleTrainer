@@ -594,7 +594,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // One line in a fixed box, shrunk to fit if need be. Four tiles are tight
+          // One line in a fixed box, shrunk to fit if need be. The tiles are tight
           // on a phone, and a label that wrapped (or merely scaled) would drag its
           // value out of line with the others'.
           SizedBox(

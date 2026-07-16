@@ -1,6 +1,7 @@
 import 'driver.dart';
 import 'drivers/gan_driver.dart';
 import 'drivers/moyu_v10_driver.dart';
+import 'drivers/qiyi_driver.dart';
 import 'model/connection.dart';
 import 'scanner.dart';
 import 'smart_cube.dart';
@@ -63,6 +64,7 @@ void _registerBuiltInDrivers() {
   _driversRegistered = true;
   CubeDriverRegistry.instance.register(MoyuV10Driver());
   CubeDriverRegistry.instance.register(GanDriver());
+  CubeDriverRegistry.instance.register(QiyiDriver());
 }
 
 /// Create a scanner wired to the built-in drivers. Pass a custom [transport] to

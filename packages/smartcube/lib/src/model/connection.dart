@@ -13,9 +13,10 @@ class DiscoveredCube {
   final String name;
   final CubeBrand brand;
 
-  /// `true` when this cube needs a MAC to derive its decryption key *and* the
-  /// MAC could not be obtained automatically (name-derivation / advertisement),
-  /// so the caller must supply one. QiYi/GoCube are always `false`.
+  /// `true` when this cube needs a MAC *and* it could not be obtained
+  /// automatically (name-derivation / advertisement), so the caller must supply
+  /// one. Note QiYi needs one too despite its fixed key — the MAC is what its
+  /// hello handshake carries.
   final bool needsMac;
 
   const DiscoveredCube({

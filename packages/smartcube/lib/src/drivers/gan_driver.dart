@@ -9,6 +9,7 @@ import '../smart_cube.dart';
 import '../transport/ble_transport.dart';
 import 'gan_gen2_parser.dart';
 import 'gan_gen3_parser.dart';
+import 'gan_gen4_parser.dart';
 import 'gan_protocol.dart';
 
 /// One GAN protocol generation, and how to recognise and speak it.
@@ -33,9 +34,7 @@ class GanGeneration {
 /// - **Gen2** — GAN 356 i3, i Carry / i Carry S, GAN12 ui, Mini ui FreePlay,
 ///   Monster Go 3Ai, and the MoYu AI 2023 (`AiCube`, same protocol, own key).
 /// - **Gen3** — GAN 356 i Carry 2.
-///
-/// Gen4 (`GAN12 ui Maglev`, `GAN14 ui FreePlay`) is rejected at connect with a
-/// clear message rather than half-supported.
+/// - **Gen4** — GAN12 ui Maglev, GAN14 ui FreePlay.
 class GanDriver extends CubeDriver {
   static const String gen2Service = '6e400001-b5a3-f393-e0a9-e50e24dc4179';
   static const String gen2CommandChrUuid =
@@ -48,6 +47,9 @@ class GanDriver extends CubeDriver {
   static const String gen3StateChrUuid = '8653000b-43e6-47b7-9cb0-5fc21d4ae340';
 
   static const String gen4Service = '00000010-0000-fff7-fff6-fff5fff4fff0';
+  static const String gen4CommandChrUuid =
+      '0000fff5-0000-1000-8000-00805f9b34fb';
+  static const String gen4StateChrUuid = '0000fff6-0000-1000-8000-00805f9b34fb';
 
   /// Tried in order against the cube's advertised services.
   static final List<GanGeneration> generations = [
@@ -62,6 +64,12 @@ class GanDriver extends CubeDriver {
       commandChrUuid: gen3CommandChrUuid,
       stateChrUuid: gen3StateChrUuid,
       build: (mac, {required moyuAi}) => GanGen3Parser(mac),
+    ),
+    GanGeneration(
+      service: gen4Service,
+      commandChrUuid: gen4CommandChrUuid,
+      stateChrUuid: gen4StateChrUuid,
+      build: (mac, {required moyuAi}) => GanGen4Parser(mac),
     ),
   ];
 
@@ -165,10 +173,6 @@ class GanCube implements SmartCube {
         .where((g) => byUuid.containsKey(normalizeUuid(g.service)))
         .firstOrNull;
     if (generation == null) {
-      if (byUuid.containsKey(normalizeUuid(GanDriver.gen4Service))) {
-        throw StateError(
-            'This GAN cube speaks the Gen4 protocol, which is not supported yet');
-      }
       throw StateError('No supported GAN service found');
     }
 

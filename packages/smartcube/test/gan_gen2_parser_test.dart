@@ -4,6 +4,7 @@ import 'package:smartcube/src/cube/cubie_cube.dart';
 import 'package:smartcube/src/driver.dart';
 import 'package:smartcube/src/drivers/gan_driver.dart';
 import 'package:smartcube/src/drivers/gan_gen2_parser.dart';
+import 'package:smartcube/src/drivers/gan_protocol.dart';
 import 'package:smartcube/src/model/cube_move.dart';
 
 void main() {

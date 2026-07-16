@@ -8,14 +8,34 @@ import '../model/cube_state.dart';
 import '../smart_cube.dart';
 import '../transport/ble_transport.dart';
 import 'gan_gen2_parser.dart';
+import 'gan_gen3_parser.dart';
+import 'gan_protocol.dart';
 
-/// Driver for GAN Gen2 smart cubes (GAN 356 i3, i Carry / i Carry S, GAN12 ui,
-/// GAN Mini ui FreePlay, Monster Go 3Ai) and the MoYu AI 2023, which speaks the
-/// same protocol under the `AiCube` name.
+/// One GAN protocol generation, and how to recognise and speak it.
+class GanGeneration {
+  final String service;
+  final String commandChrUuid;
+  final String stateChrUuid;
+  final GanProtocol Function(List<int> mac, {required bool moyuAi}) build;
+
+  const GanGeneration({
+    required this.service,
+    required this.commandChrUuid,
+    required this.stateChrUuid,
+    required this.build,
+  });
+}
+
+/// Driver for GAN smart cubes. The generation is not something the user picks —
+/// every GAN cube advertises the same names, so the protocol is chosen from
+/// whichever service the cube turns out to expose:
 ///
-/// Gen3 (`GAN 356 i Carry 2`) and Gen4 (`GAN12 ui Maglev`, `GAN14 ui FreePlay`)
-/// advertise the same names but different services; they are rejected at connect
-/// with a clear message rather than half-supported.
+/// - **Gen2** — GAN 356 i3, i Carry / i Carry S, GAN12 ui, Mini ui FreePlay,
+///   Monster Go 3Ai, and the MoYu AI 2023 (`AiCube`, same protocol, own key).
+/// - **Gen3** — GAN 356 i Carry 2.
+///
+/// Gen4 (`GAN12 ui Maglev`, `GAN14 ui FreePlay`) is rejected at connect with a
+/// clear message rather than half-supported.
 class GanDriver extends CubeDriver {
   static const String gen2Service = '6e400001-b5a3-f393-e0a9-e50e24dc4179';
   static const String gen2CommandChrUuid =
@@ -23,7 +43,27 @@ class GanDriver extends CubeDriver {
   static const String gen2StateChrUuid = '28be4cb6-cd67-11e9-a32f-2a2ae2dbcce4';
 
   static const String gen3Service = '8653000a-43e6-47b7-9cb0-5fc21d4ae340';
+  static const String gen3CommandChrUuid =
+      '8653000c-43e6-47b7-9cb0-5fc21d4ae340';
+  static const String gen3StateChrUuid = '8653000b-43e6-47b7-9cb0-5fc21d4ae340';
+
   static const String gen4Service = '00000010-0000-fff7-fff6-fff5fff4fff0';
+
+  /// Tried in order against the cube's advertised services.
+  static final List<GanGeneration> generations = [
+    GanGeneration(
+      service: gen2Service,
+      commandChrUuid: gen2CommandChrUuid,
+      stateChrUuid: gen2StateChrUuid,
+      build: (mac, {required moyuAi}) => GanGen2Parser(mac, moyuAi: moyuAi),
+    ),
+    GanGeneration(
+      service: gen3Service,
+      commandChrUuid: gen3CommandChrUuid,
+      stateChrUuid: gen3StateChrUuid,
+      build: (mac, {required moyuAi}) => GanGen3Parser(mac),
+    ),
+  ];
 
   @override
   CubeBrand get brand => CubeBrand.gan;
@@ -52,12 +92,12 @@ class GanDriver extends CubeDriver {
       name: peripheral.name,
       brand: CubeBrand.gan,
     );
-    // The MoYu AI 2023 is a Gen2 cube with its own key.
-    final moyuAi = (adv.name ?? peripheral.name).startsWith('AiCube');
     final cube = GanCube._(
       device,
       peripheral,
-      GanGen2Parser(GanCipher.macBytes(mac), moyuAi: moyuAi),
+      GanCipher.macBytes(mac),
+      // The MoYu AI 2023 is a Gen2 cube with its own key.
+      moyuAi: (adv.name ?? peripheral.name).startsWith('AiCube'),
     );
     try {
       await cube._start();
@@ -77,9 +117,8 @@ class GanDriver extends CubeDriver {
   static String? deriveMac(CubeAdvertisement adv) {
     for (final entry in adv.manufacturerData.entries) {
       if (entry.key & 0xFF != 0x01) continue;
-      final data = entry.value.length > 9
-          ? entry.value.sublist(0, 9)
-          : entry.value;
+      final data =
+          entry.value.length > 9 ? entry.value.sublist(0, 9) : entry.value;
       if (data.length < 6) continue;
       return [
         for (var i = 1; i <= 6; i++)
@@ -96,13 +135,15 @@ class GanCube implements SmartCube {
   final DiscoveredCube device;
 
   final BlePeripheral _peripheral;
-  final GanGen2Parser _parser;
+  final List<int> _mac;
+  final bool _moyuAi;
 
   final _moveCtrl = StreamController<CubeMove>.broadcast();
   final _stateCtrl = StreamController<CubeState>.broadcast();
   final _resyncCtrl = StreamController<CubeState>.broadcast();
   final _connCtrl = StreamController<CubeConnection>.broadcast();
 
+  late final GanProtocol _protocol;
   late final BleCharacteristic _state;
   late final BleCharacteristic _command;
   StreamSubscription<List<int>>? _dataSub;
@@ -113,31 +154,34 @@ class GanCube implements SmartCube {
   CubeConnection _connection = CubeConnection.connecting;
   bool _resyncPending = false;
 
-  GanCube._(this.device, this._peripheral, this._parser);
+  GanCube._(this.device, this._peripheral, this._mac, {required bool moyuAi})
+      : _moyuAi = moyuAi;
 
   Future<void> _start() async {
     final services = await _peripheral.discoverServices();
-    final gen2 = normalizeUuid(GanDriver.gen2Service);
-    final service = services.firstWhere(
-      (s) => s.uuid == gen2,
-      orElse: () {
-        final uuids = services.map((s) => s.uuid).toSet();
-        if (uuids.contains(normalizeUuid(GanDriver.gen3Service)) ||
-            uuids.contains(normalizeUuid(GanDriver.gen4Service))) {
-          throw StateError(
-              'This GAN cube speaks the Gen3/Gen4 protocol, which is not supported yet');
-        }
-        throw StateError('GAN Gen2 service not found');
-      },
-    );
+    final byUuid = {for (final s in services) s.uuid: s};
+
+    final generation = GanDriver.generations
+        .where((g) => byUuid.containsKey(normalizeUuid(g.service)))
+        .firstOrNull;
+    if (generation == null) {
+      if (byUuid.containsKey(normalizeUuid(GanDriver.gen4Service))) {
+        throw StateError(
+            'This GAN cube speaks the Gen4 protocol, which is not supported yet');
+      }
+      throw StateError('No supported GAN service found');
+    }
+
+    final service = byUuid[normalizeUuid(generation.service)]!;
     _command = service.characteristics.firstWhere(
-      (c) => c.uuid == normalizeUuid(GanDriver.gen2CommandChrUuid),
+      (c) => c.uuid == normalizeUuid(generation.commandChrUuid),
       orElse: () => throw StateError('GAN command characteristic not found'),
     );
     _state = service.characteristics.firstWhere(
-      (c) => c.uuid == normalizeUuid(GanDriver.gen2StateChrUuid),
+      (c) => c.uuid == normalizeUuid(generation.stateChrUuid),
       orElse: () => throw StateError('GAN state characteristic not found'),
     );
+    _protocol = generation.build(_mac, moyuAi: _moyuAi);
 
     await _state.enableNotifications();
     _dataSub = _state.onValue.listen(_onData);
@@ -145,15 +189,20 @@ class GanCube implements SmartCube {
       if (!up) _setConnection(CubeConnection.lost);
     });
 
-    await _command.write(_parser.encodeRequest(GanGen2Parser.opHardware));
-    await _command.write(_parser.encodeRequest(GanGen2Parser.opBattery));
+    await _request(GanRequest.hardware);
+    await _request(GanRequest.battery);
     // Moves are ignored until this lands and anchors the model.
-    await _command.write(_parser.encodeRequest(GanGen2Parser.opFacelets));
+    await _request(GanRequest.facelets);
     _setConnection(CubeConnection.ready);
   }
 
+  Future<void> _request(GanRequest request) async {
+    final msg = _protocol.encodeRequest(request);
+    if (msg != null) await _command.write(msg);
+  }
+
   void _onData(List<int> raw) {
-    for (final e in _parser.parse(raw, DateTime.now().millisecondsSinceEpoch)) {
+    for (final e in _protocol.parse(raw, DateTime.now().millisecondsSinceEpoch)) {
       switch (e) {
         case GanStateEvent(:final state):
           _lastState = state;
@@ -166,6 +215,11 @@ class GanCube implements SmartCube {
           _moveCtrl.add(move);
           _lastState = stateAfter;
           _stateCtrl.add(stateAfter);
+        case GanHistoryRequestEvent(:final serial, :final count):
+          final msg = _protocol.encodeMoveHistory(serial, count);
+          // A write that fails is not worth reacting to: the next move event
+          // re-detects the same gap and asks again.
+          if (msg != null) _command.write(msg).catchError((_) {});
         case GanDesyncEvent():
           _resyncPending = true;
           _pullState();
@@ -183,13 +237,13 @@ class GanCube implements SmartCube {
   // so keep asking until it does — a request can be lost the same way a move was.
   void _pullState() {
     _anchorTimer?.cancel();
-    _command.write(_parser.encodeRequest(GanGen2Parser.opFacelets));
+    _request(GanRequest.facelets);
     _anchorTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!_parser.needsAnchor || _connection != CubeConnection.ready) {
+      if (!_protocol.needsAnchor || _connection != CubeConnection.ready) {
         t.cancel();
         return;
       }
-      _command.write(_parser.encodeRequest(GanGen2Parser.opFacelets));
+      _request(GanRequest.facelets);
     });
   }
 
@@ -222,7 +276,7 @@ class GanCube implements SmartCube {
     // Keep the anchor: if the cube is being turned while the pull is in flight,
     // the snapshot lands stale and is dropped, and the tracked model — which is
     // still following those moves — is the better answer anyway.
-    await _command.write(_parser.encodeRequest(GanGen2Parser.opFacelets));
+    await _request(GanRequest.facelets);
     return answer.timeout(const Duration(seconds: 2), onTimeout: () => _lastState);
   }
 
@@ -232,22 +286,22 @@ class GanCube implements SmartCube {
     // realign would be undone by its next facelets. Solved is the one state it can
     // be told to adopt; anything else can only move the model here.
     if (state.isSolved) {
-      await _command.write(_parser.encodeReset());
+      await _request(GanRequest.reset);
     }
-    _parser.setState(state);
+    _protocol.setState(state);
     _lastState = state;
   }
 
   @override
   Future<void> resetGyro() async {
-    // Gen2 exposes no gyro-reset opcode, and the trainer takes orientation from
-    // a setting rather than the gyro. No-op.
+    // No GAN generation exposes a gyro-reset opcode, and the trainer takes
+    // orientation from a setting rather than the gyro. No-op.
   }
 
   @override
   Future<int?> batteryLevel() async {
-    await _command.write(_parser.encodeRequest(GanGen2Parser.opBattery));
-    return _parser.batteryLevel;
+    await _request(GanRequest.battery);
+    return _protocol.batteryLevel;
   }
 
   @override

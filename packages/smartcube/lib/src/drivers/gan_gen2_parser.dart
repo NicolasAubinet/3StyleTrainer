@@ -2,47 +2,7 @@ import '../crypto/gan_cipher.dart';
 import '../cube/cubie_cube.dart';
 import '../model/cube_move.dart';
 import '../model/cube_state.dart';
-
-/// One decoded event from a GAN cube's notification stream.
-sealed class GanEvent {}
-
-/// The cube's own full state, which re-anchors move tracking.
-class GanStateEvent extends GanEvent {
-  final CubeState state;
-  GanStateEvent(this.state);
-}
-
-/// A single move plus the resulting full cube state.
-class GanMoveEvent extends GanEvent {
-  final CubeMove move;
-  final CubeState stateAfter;
-  GanMoveEvent(this.move, this.stateAfter);
-}
-
-/// More moves happened than a packet can carry, so the tracked model no longer
-/// matches the cube. Moves are ignored until fresh facelets re-anchor it.
-class GanDesyncEvent extends GanEvent {
-  /// Moves the cube reported that never reached the model.
-  final int lostMoves;
-  GanDesyncEvent(this.lostMoves);
-}
-
-class GanBatteryEvent extends GanEvent {
-  final int level;
-  GanBatteryEvent(this.level);
-}
-
-class GanInfoEvent extends GanEvent {
-  final String hardwareName;
-  final String hardwareVersion;
-  final String softwareVersion;
-  final bool gyroSupported;
-  GanInfoEvent(this.hardwareName, this.hardwareVersion, this.softwareVersion,
-      this.gyroSupported);
-}
-
-/// The cube asked to end the session (it is powering down).
-class GanDisconnectEvent extends GanEvent {}
+import 'gan_protocol.dart';
 
 /// Pure decoder + protocol parser for GAN Gen2 cubes — the GAN 356 i3, i Carry
 /// (S), GAN12 ui, GAN Mini ui FreePlay and Monster Go 3Ai, plus the MoYu AI 2023
@@ -50,7 +10,7 @@ class GanDisconnectEvent extends GanEvent {}
 ///
 /// Ported from `afedotov/gan-web-bluetooth` (MIT). No BLE/Flutter dependencies —
 /// feed it raw packets and it emits [GanEvent]s while tracking full cube state.
-class GanGen2Parser {
+class GanGen2Parser implements GanProtocol {
   /// Base key/IV for GAN Gen2/3/4 cubes.
   static const List<int> baseKey = [
     0x01, 0x02, 0x42, 0x28, 0x31, 0x91, 0x16, 0x07, //
@@ -78,7 +38,7 @@ class GanGen2Parser {
 
   /// Tells the cube its current position *is* solved. Unlike the other requests
   /// this is a fixed payload, not a bare opcode.
-  static const List<int> resetRequest = [
+  static const List<int> _resetRequest = [
     0x0A, 0x05, 0x39, 0x77, 0x00, 0x00, 0x01, 0x23, 0x45, 0x67, //
     0x89, 0xAB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   ];
@@ -109,30 +69,43 @@ class GanGen2Parser {
       : _cipher = GanCipher.forMac(moyuAi ? moyuAiKey : baseKey,
             moyuAi ? moyuAiIv : baseIv, macBytes);
 
+  @override
   int? get batteryLevel => _batteryLevel;
 
+  @override
   CubeState get currentState => CubeState(_cube.toFaceCube());
 
   /// `true` while the model is untrusted: moves are dropped until facelets
   /// re-anchor it (before the first state, or after a [GanDesyncEvent]).
+  @override
   bool get needsAnchor => _lastSerial == -1;
 
   /// Force the next facelets message to re-anchor (used after packet loss).
   void resetAnchor() => _lastSerial = -1;
 
-  /// Realign the tracked model to [state] without a physical resync.
+  @override
   void setState(CubeState state) => _cube.fromFacelet(state.facelets);
 
-  /// Build an encrypted request packet for [opcode].
-  List<int> encodeRequest(int opcode) {
+  @override
+  List<int> encodeRequest(GanRequest request) {
+    if (request == GanRequest.reset) {
+      return _cipher.encode(List<int>.of(_resetRequest));
+    }
     final req = List<int>.filled(20, 0);
-    req[0] = opcode;
+    req[0] = switch (request) {
+      GanRequest.facelets => opFacelets,
+      GanRequest.hardware => opHardware,
+      GanRequest.battery => opBattery,
+      GanRequest.reset => 0, // unreachable
+    };
     return _cipher.encode(req);
   }
 
-  /// Build the encrypted "you are solved" packet.
-  List<int> encodeReset() => _cipher.encode(List<int>.of(resetRequest));
+  @override
+  List<int>? encodeMoveHistory(int serial, int count) =>
+      null; // a Gen2 packet already carries the last 7 moves
 
+  @override
   List<GanEvent> parse(List<int> raw, int hostTimeMs) {
     final data = _cipher.decode(raw);
     final bits = StringBuffer();
@@ -143,12 +116,19 @@ class GanGen2Parser {
     int val(int start, int length) =>
         int.parse(s.substring(start, start + length), radix: 2);
 
+    // Guard every branch against a packet too short to hold what it reads: this
+    // runs on raw radio input, and a truncated notification must not throw.
+    bool has(int bitCount) => s.length >= bitCount;
+
+    if (!has(4)) return [];
     switch (val(0, 4)) {
       case 0x02:
-        return _parseMoves(val, hostTimeMs);
+        return _parseMoves(val, has, hostTimeMs);
       case 0x04:
+        if (!has(102)) return [];
         return _parseFacelets(val);
       case 0x05:
+        if (!has(105)) return [];
         final name = StringBuffer();
         for (var i = 0; i < 8; i++) {
           name.writeCharCode(val(i * 8 + 40, 8));
@@ -162,6 +142,7 @@ class GanGen2Parser {
           ),
         ];
       case 0x09:
+        if (!has(16)) return [];
         _batteryLevel = val(8, 8).clamp(0, 100);
         return [GanBatteryEvent(_batteryLevel!)];
       case 0x0D:
@@ -173,7 +154,9 @@ class GanGen2Parser {
     }
   }
 
-  List<GanEvent> _parseMoves(int Function(int, int) val, int hostTimeMs) {
+  List<GanEvent> _parseMoves(
+      int Function(int, int) val, bool Function(int) has, int hostTimeMs) {
+    if (!has(12)) return [];
     if (needsAnchor) return []; // no trusted model to apply moves to
 
     final serial = val(4, 8);
@@ -188,6 +171,8 @@ class GanGen2Parser {
       _lastSerial = -1;
       return [GanDesyncEvent(missed - _maxRecoverableMoves)];
     }
+
+    if (!has(47 + 16 * missed)) return [];
 
     // Move 0 is the newest; walk oldest-first so the model and clock advance in
     // the order the turns actually happened.

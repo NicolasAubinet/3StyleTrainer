@@ -159,6 +159,33 @@ void main() {
     expect(valueTop('0.82'), solved); // average
   });
 
+  // The reported case, end to end: one 2.76s solve against a 3s target used to
+  // draw an almost-empty bar, reading as if it were miles under target.
+  testWidgets('sets: a lone near-target solve fills up to just short of the tick',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 900));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: [const AlgTime(1, 2760, Alg("BA"), timestamp: 1)],
+        algType: AlgType.Corner,
+        targetTime: 3.0,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 2760,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    // One row → the bar's fill box, then its target tick.
+    final boxes = tester
+        .widgetList<FractionallySizedBox>(find.byType(FractionallySizedBox))
+        .toList();
+    expect(boxes, hasLength(2));
+    expect(boxes[1].widthFactor, 0.65); // the tick, for reference
+    expect(boxes[0].widthFactor, closeTo(0.598, 0.001)); // was 0.05
+  });
+
   testWidgets('no cube: the solved tile drops the error count', (tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 900));
     await tester.pumpWidget(_host(

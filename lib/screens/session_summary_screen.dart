@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,8 +21,37 @@ const int BUTTON_PRESS_DELAY_MS = 250;
 
 // Sets rows fill toward a fixed target tick; under-target fills stop short of it.
 const double _TARGET_TICK_FRAC = 0.65;
-// The session's fastest under-target case keeps this much fill, so it stays visible.
+// The fastest cases keep this much fill, so they stay visible.
 const double _METER_FLOOR_FRAC = 0.05;
+// Floor on the over-target span, as a fraction of the target: a case at
+// 1 + this multiple of the target fills the track, unless the session holds
+// something slower. Without it the session's slowest fills the track by
+// definition, so a lone case a hair over target pegs like a disastrous one.
+const double _METER_OVER_SPAN_FRAC = 0.5;
+
+/// Fraction of a Sets row's meter track to fill for [timeMs].
+///
+/// The target tick ([_TARGET_TICK_FRAC]) anchors the scale. Under-target times
+/// fill in proportion to the target itself, so 2.9s against a 3s target reads as
+/// nearly there whatever else the session holds; over-target ones spread between
+/// the tick and [slowestMs], so one bad case can't peg every other.
+///
+/// Deliberately absolute below the tick: anchoring the low end on the session's
+/// *fastest* pinned every best case to the floor however near target it was, and
+/// left a single-time run with no signal at all (5% under target, 100% over,
+/// whatever the time). Standing within the session is the colour's job
+/// (`_distributionColor`), not the bar's.
+double meterFrac(int timeMs,
+    {required double targetMs, required int slowestMs}) {
+  if (targetMs <= 0) return _TARGET_TICK_FRAC;
+  if (timeMs >= targetMs) {
+    final span = max(slowestMs - targetMs, targetMs * _METER_OVER_SPAN_FRAC);
+    final f = ((timeMs - targetMs) / span).clamp(0.0, 1.0);
+    return _TARGET_TICK_FRAC + (1.0 - _TARGET_TICK_FRAC) * f;
+  }
+  final f = (timeMs / targetMs).clamp(0.0, 1.0);
+  return max(_METER_FLOOR_FRAC, _TARGET_TICK_FRAC * f);
+}
 
 enum _SortColumn { order, recognition, execution, time }
 
@@ -242,21 +272,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     return (0.15 + 0.70 * f).clamp(0.0, 1.0);
   }
 
-  // Sets success meter: the target tick anchors the scale. Over-target times
-  // spread between the tick and the session's slowest (which alone fills the
-  // track); under-target ones between the tick and the session's fastest.
-  double _meterFrac(int timeMs) {
-    if (_targetTime <= 0) return _TARGET_TICK_FRAC;
-    final targetMs = _targetTime * 1000;
-    if (timeMs >= targetMs) {
-      final span = _hiMs - targetMs;
-      final f = span <= 0 ? 1.0 : ((timeMs - targetMs) / span).clamp(0.0, 1.0);
-      return _TARGET_TICK_FRAC + (1.0 - _TARGET_TICK_FRAC) * f;
-    }
-    final span = targetMs - _loMs;
-    final f = span <= 0 ? 0.0 : ((timeMs - _loMs) / span).clamp(0.0, 1.0);
-    return _METER_FLOOR_FRAC + (_TARGET_TICK_FRAC - _METER_FLOOR_FRAC) * f;
-  }
+  double _meterFrac(int timeMs) => meterFrac(timeMs,
+      targetMs: _targetTime * 1000, slowestMs: _hiMs);
 
   String _formattedAverage() {
     if (widget.algTimes.isEmpty) return "–";

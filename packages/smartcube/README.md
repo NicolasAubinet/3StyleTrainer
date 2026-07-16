@@ -35,3 +35,8 @@ transport/  ── the ONLY flutter_blue_plus dependency (swappable for Web BT)
 GPL-3.0-or-later. Portions are ported to Dart from **csTimer**
 (https://github.com/cs0x7f/cstimer), which is GPL-3.0. Because Dart compiles the
 package into the host app, apps depending on `smartcube` are also GPL.
+
+The GAN Gen2 driver is ported from **gan-web-bluetooth**
+(https://github.com/afedotov/gan-web-bluetooth), which is MIT. Its notice is kept
+in `LICENSE-gan-web-bluetooth.txt` as that licence requires; MIT code may be
+redistributed under GPL-3.0.

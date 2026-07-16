@@ -165,6 +165,28 @@ class CubieCube {
     return true;
   }
 
+  /// Load the classic permutation/orientation vectors (the form GAN cubes report
+  /// their state in). Returns `false` if any piece is out of range — a corrupt
+  /// packet, since the last corner/edge of each is derived from a checksum.
+  bool fromPermutation(List<int> cp, List<int> co, List<int> ep, List<int> eo) {
+    if (cp.length != 8 || co.length != 8 || ep.length != 12 || eo.length != 12) {
+      return false;
+    }
+    for (var i = 0; i < 8; i++) {
+      if (cp[i] < 0 || cp[i] > 7 || co[i] < 0 || co[i] > 2) return false;
+    }
+    for (var i = 0; i < 12; i++) {
+      if (ep[i] < 0 || ep[i] > 11 || eo[i] < 0 || eo[i] > 1) return false;
+    }
+    for (var i = 0; i < 8; i++) {
+      ca[i] = cp[i] | co[i] << 3;
+    }
+    for (var i = 0; i < 12; i++) {
+      ea[i] = ep[i] << 1 | eo[i];
+    }
+    return true;
+  }
+
   /// Apply a single quarter turn in place.
   void applyMove(Face face, bool prime) {
     final tmp = CubieCube();

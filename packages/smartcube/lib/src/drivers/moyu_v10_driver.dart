@@ -9,7 +9,11 @@ import '../smart_cube.dart';
 import '../transport/ble_transport.dart';
 import 'moyu_v10_parser.dart';
 
-/// Driver for the MoYu WeiLong V10 AI (`WCU_MY32`).
+/// Driver for the MoYu WeiLong V10 AI (`WCU_MY32`). Claims the whole
+/// `WCU_MY3x` name family, so a WeiLong V11 (an uncharted `WCU_MY3x`) routes
+/// here too: if it shares the V10 service + protocol it just works (see
+/// [deriveMac] for the MAC handling); a different service fails loudly at
+/// [MoyuV10Cube._start]. See the V11 triage in docs/smart-cube-integration-plan.md §29.
 class MoyuV10Driver extends CubeDriver {
   static const String serviceUuid = '0783b03e-7735-b5a0-1760-a305d2795cb0';
   static const String readChrUuid = '0783b03e-7735-b5a0-1760-a305d2795cb1';
@@ -58,14 +62,33 @@ class MoyuV10Driver extends CubeDriver {
     return cube;
   }
 
-  /// Best-effort MAC discovery: from the device name (`WCU_MY32_XXXX` →
-  /// `CF:30:16:00:XX:XX`), else from advertisement manufacturer data (last 6
-  /// bytes, reversed). Returns `null` if neither is available.
+  /// Matches the `WCU_MY3x_XXXX` name family (V10 is `WCU_MY32`; a V11 is
+  /// expected to be another `WCU_MY3x`). Group 1 is the model token, group 2 the
+  /// 4 hex MAC-tail characters.
+  static final RegExp _namePattern =
+      RegExp(r'^WCU_(MY3[0-9])_([0-9A-Fa-f]{4})$');
+
+  /// Model tokens whose MAC OUI we have actually confirmed. Only these get a
+  /// name-derived MAC; an un-confirmed family member (e.g. a real V11 with an
+  /// unknown OUI) deliberately falls through rather than fabricating a wrong MAC
+  /// off the V10 OUI — a wrong MAC would connect straight into garbage. When a
+  /// V11's OUI is known, add its token here.
+  static const Map<String, String> _knownOuis = {'MY32': 'CF:30:16:00'};
+
+  /// Best-effort MAC discovery: (1) name-derived for a confirmed model
+  /// (`WCU_MY32_XXXX` → `CF:30:16:00:XX:XX`), works even on web; (2) advertisement
+  /// manufacturer data (last 6 bytes, reversed) — the real MAC for any model;
+  /// (3) `null` → the caller prompts for a manual MAC. An un-confirmed
+  /// `WCU_MY3x` name never yields a guessed MAC: manufacturer data (if present)
+  /// carries the true MAC, otherwise a manual entry is safer than a wrong OUI.
   static String? deriveMac(CubeAdvertisement adv) {
-    final name = adv.name ?? '';
-    if (RegExp(r'^WCU_MY32_[0-9A-Fa-f]{4}$').hasMatch(name)) {
-      final tail = name.substring(9).toUpperCase();
-      return 'CF:30:16:00:${tail.substring(0, 2)}:${tail.substring(2, 4)}';
+    final match = _namePattern.firstMatch(adv.name ?? '');
+    if (match != null) {
+      final oui = _knownOuis[match.group(1)];
+      if (oui != null) {
+        final tail = match.group(2)!.toUpperCase();
+        return '$oui:${tail.substring(0, 2)}:${tail.substring(2, 4)}';
+      }
     }
     for (final data in adv.manufacturerData.values) {
       if (data.length >= 6) {
@@ -108,7 +131,8 @@ class MoyuV10Cube implements SmartCube {
     final services = await _peripheral.discoverServices();
     final service = services.firstWhere(
       (s) => s.uuid == normalizeUuid(MoyuV10Driver.serviceUuid),
-      orElse: () => throw StateError('MoYu V10 service not found'),
+      orElse: () => throw StateError(
+          'MoYu V10 service not found (a V11 may use a different service UUID)'),
     );
     _read = service.characteristics.firstWhere(
       (c) => c.uuid == normalizeUuid(MoyuV10Driver.readChrUuid),

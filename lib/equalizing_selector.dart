@@ -3,35 +3,42 @@ import 'dart:math';
 import 'alg_provider.dart';
 import 'alg_structs.dart';
 
-/// Time-race case selector that keeps recorded-time counts converging toward
-/// even. Weighted sampling *with replacement* over the full valid-case pool,
-/// behind a recency cooldown:
+/// Time-race case selector that keeps recorded-time counts close to even.
 ///
-/// - **Cooldown (hard spacing):** the last [cooldownWindow] shown cases are
-///   ineligible, guaranteeing no back-to-back and no repeat within the window.
-///   Session-scoped and in-memory — not persisted across sessions.
-/// - **Weighting (soft balance):** among eligible cases, pick weighted-random
-///   by a gentle function of the record deficit. Only active while [recording];
-///   when off, counts are frozen so selection is uniform among eligible cases.
+/// **Base: a without-replacement cycle.** Each *pass* serves every eligible case
+/// at most once, so when counts are level everyone is served once per pass and
+/// they stay even — a case never recurs until the pool has cycled. This is the
+/// hard "no case is shown more than once per pass/session" guarantee.
 ///
-/// The mechanism is invisible to the user; time race has no cycle/pass notion.
+/// **Healing: over-represented cases sit out.** When a case is *behind* the pack
+/// (times deleted, added mid-life, or a run recorded while others didn't), the
+/// cases that are *ahead* of the current minimum sit out a pass with a bounded
+/// probability, so the laggard closes the gap over several sessions — while still
+/// being shown only once per pass. The most-behind case is served last in its
+/// pass, maximising the spacing between its once-per-pass appearances.
+///
+/// Healing is active only while [recording]; with it off, counts are frozen and
+/// every pass is a plain shuffled cycle. The mechanism is invisible to the user.
 class EqualizingSelector implements AlgProvider {
-  static const double NUDGE = 0.05;
-  static const int DEFICIT_CAP = 20;
-  static const int COOLDOWN_TARGET = 100;
+  /// Max probability that a single ahead-of-the-pack case sits out a pass.
+  /// Higher = laggards heal faster but show up a bit more often meanwhile.
+  static const double MAX_SITOUT_PROB = 0.5;
+
+  /// How fast the sit-out probability ramps with a case's surplus over the
+  /// current minimum (surplus of `MAX_SITOUT_PROB / SITOUT_RAMP` saturates it).
+  static const double SITOUT_RAMP = 0.15;
 
   final List<String> _algs;
   final Map<String, int> _counts;
   final Random _random;
 
-  /// When false (recording off / show-next-alg prefetch), counts are frozen
-  /// and selection is uniform among eligible cases.
+  /// When false (recording off / show-next-alg prefetch), counts are frozen and
+  /// each pass is a plain shuffled cycle (no sit-out healing).
   bool recording;
 
-  final int _cooldownWindow;
-  final _cooldownQueue = <String>[]; // FIFO of recently shown cases
-  final _inCooldown = <String>{}; // membership mirror of the queue
+  final _bag = <String>[]; // cases left to serve in the current pass
   final _skipped = <String>{}; // cases dropped for the rest of the session
+  String? _lastServed;
 
   EqualizingSelector({
     required List<String> algs,
@@ -40,91 +47,78 @@ class EqualizingSelector implements AlgProvider {
     Random? random,
   })  : _algs = List.of(algs),
         _counts = {for (final a in algs) a: counts[a] ?? 0},
-        _random = random ?? Random(),
-        _cooldownWindow = _computeWindow(algs.length);
-
-  /// Cases that must stay pickable, so weighting stays meaningful in small
-  /// pools: `max(8, 25% of pool)`.
-  static int _minEligible(int poolSize) => max(8, (poolSize * 0.25).floor());
-
-  /// `W = min(COOLDOWN_TARGET, poolSize - MIN_ELIGIBLE)`, floored at 0. Always
-  /// leaves at least one eligible case.
-  static int _computeWindow(int poolSize) =>
-      max(0, min(COOLDOWN_TARGET, poolSize - _minEligible(poolSize)));
-
-  int get cooldownWindow => _cooldownWindow;
+        _random = random ?? Random();
 
   int countOf(String alg) => _counts[alg] ?? 0;
 
   @override
   Alg? getNextAlg() {
-    if (_algs.isEmpty) {
-      return null;
-    }
-
-    var eligible = [
-      for (final a in _algs)
-        if (!_inCooldown.contains(a) && !_skipped.contains(a)) a,
-    ];
-    if (eligible.isEmpty) {
-      // Cooldown squeezed everything out; ignore it, but keep skips excluded.
-      eligible = [
-        for (final a in _algs)
-          if (!_skipped.contains(a)) a,
-      ];
-    }
-    if (eligible.isEmpty) {
-      // Every case skipped: nothing left to show this session.
-      return null;
-    }
-
-    final chosen =
-        recording ? _pickWeighted(eligible) : _pickUniform(eligible);
-
-    _cooldownQueue.add(chosen);
-    _inCooldown.add(chosen);
-    if (_cooldownQueue.length > _cooldownWindow) {
-      _inCooldown.remove(_cooldownQueue.removeAt(0));
-    }
+    if (_algs.isEmpty) return null;
+    if (_bag.isEmpty) _refillPass();
+    if (_bag.isEmpty) return null; // every case skipped
+    final chosen = _bag.removeAt(0);
+    _lastServed = chosen;
     return Alg(chosen);
   }
 
-  String _pickUniform(List<String> eligible) =>
-      eligible[_random.nextInt(eligible.length)];
+  /// Build the next pass: every eligible case once, minus ahead-of-the-pack
+  /// cases that sit this pass out (healing). Order is shuffled, the most-behind
+  /// case is served last, and the first case never repeats the last one served.
+  void _refillPass() {
+    final pool = [
+      for (final a in _algs)
+        if (!_skipped.contains(a)) a,
+    ];
+    if (pool.isEmpty) return;
 
-  String _pickWeighted(List<String> eligible) {
-    int ref = 0;
-    for (final c in _counts.values) {
-      if (c > ref) ref = c;
+    int minCount = 1 << 30;
+    for (final a in pool) {
+      final c = _counts[a] ?? 0;
+      if (c < minCount) minCount = c;
     }
 
-    final weights = <double>[];
-    double total = 0;
-    for (final a in eligible) {
-      final deficit = (ref - (_counts[a] ?? 0)).clamp(0, DEFICIT_CAP);
-      final weight = 1 + NUDGE * deficit;
-      weights.add(weight);
-      total += weight;
-    }
-
-    double r = _random.nextDouble() * total;
-    for (int i = 0; i < eligible.length; i++) {
-      r -= weights[i];
-      if (r < 0) {
-        return eligible[i];
+    final pass = <String>[];
+    for (final a in pool) {
+      if (!recording) {
+        pass.add(a);
+        continue;
+      }
+      final surplus = (_counts[a] ?? 0) - minCount;
+      final sitOut = min(MAX_SITOUT_PROB, SITOUT_RAMP * surplus);
+      if (surplus <= 0 || _random.nextDouble() >= sitOut) {
+        pass.add(a); // laggards (surplus 0) are always in
       }
     }
-    return eligible.last; // floating-point rounding guard
+
+    pass.shuffle(_random);
+    if (pass.length > 1) {
+      // Serve the most-behind case last, so its once-per-pass appearances are
+      // maximally spaced.
+      final li = pass.indexWhere((a) => (_counts[a] ?? 0) == minCount);
+      if (li >= 0 && li != pass.length - 1) {
+        pass.add(pass.removeAt(li));
+      }
+      // No back-to-back across the pass boundary.
+      if (pass.first == _lastServed) {
+        final j = 1 + _random.nextInt(pass.length - 1);
+        final t = pass[0];
+        pass[0] = pass[j];
+        pass[j] = t;
+      }
+    }
+    _bag
+      ..clear()
+      ..addAll(pass);
   }
 
-  /// Record a solve mid-session so weights stay fresh across a long "again"
+  /// Record a solve mid-session so healing stays fresh across a long "again"
   /// chain without re-querying the DB.
   void recordSolve(String alg) {
     _counts[alg] = (_counts[alg] ?? 0) + 1;
   }
 
-  /// The selector is session-continuous: counts and cooldown carry across an
-  /// "again", so reset is a no-op (there is no skip/without-replacement pool).
+  /// The selector is session-continuous: counts and the current pass carry
+  /// across an "again", so reset is a no-op.
   @override
   void reset({List<String> skippedAlgs = const []}) {}
 
@@ -132,19 +126,20 @@ class EqualizingSelector implements AlgProvider {
   @override
   double getProgression({int preFetchedAlgsCount = 0}) => 0;
 
-  // Sampling is with-replacement; just drop the cooldown so it can recur sooner.
+  /// Put an already-served case back so it reappears later this pass — but not
+  /// as the immediate next case (the caller draws the next one first).
   @override
   void requeue(String algName) {
-    if (_inCooldown.remove(algName)) {
-      _cooldownQueue.remove(algName);
-    }
+    _skipped.remove(algName);
+    if (_bag.contains(algName) || _bag.length < 2) return;
+    _bag.insert(1 + _random.nextInt(_bag.length), algName);
   }
 
-  // With-replacement, so the alg would otherwise recur: exclude it outright for
-  // the rest of the session.
+  /// Drop a case for the rest of the session.
   @override
   void skip(String algName) {
     _skipped.add(algName);
+    _bag.remove(algName);
   }
 
   @override

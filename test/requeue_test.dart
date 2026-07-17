@@ -34,6 +34,19 @@ void main() {
     expect(remaining.where((n) => n == a.name).length, 1);
   });
 
+  test('skip does not put a served alg back into the pool', () {
+    final p = CornersAlgProvider(setIndices: [0]);
+    final total = p.totalAlgs;
+    final first = p.getNextAlg()!; // removed from the pool
+
+    p.skip(first.name);
+
+    final remaining = _drain(p);
+    expect(remaining, isNot(contains(first.name)),
+        reason: 'a skipped case must not reappear in the same run');
+    expect(remaining.length, total - 1, reason: 'pool stays one short');
+  });
+
   test('requeue lifts the progression denominator back up', () {
     final p = CornersAlgProvider(setIndices: [0]);
     p.getNextAlg();

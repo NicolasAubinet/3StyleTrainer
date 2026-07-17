@@ -51,10 +51,11 @@ class AlgTime {
       recognitionMs == null ? null : timeMs - recognitionMs!;
 }
 
-enum AlgMistakeKind { wrongCase, requeued }
+enum AlgMistakeKind { wrongCase, requeued, skipped }
 
-// A case that went wrong in a cube-driven run: it was abandoned and put back in
-// the pool, so it has no honest time and never reaches the results history.
+// A case that went wrong in a cube-driven run: it was abandoned so it has no
+// honest time and never reaches the results history. A requeued case goes back
+// in the pool; a skipped one is dropped from the rest of the session.
 class AlgMistake {
   final int index;
   final Alg alg;

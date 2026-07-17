@@ -479,10 +479,16 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     );
   }
 
-  String _mistakeLabel(AlgMistake m, AppLocalizations l10n) =>
-      m.kind == AlgMistakeKind.wrongCase
-          ? l10n.mistakeExecuted(m.executed!)
-          : l10n.mistakeRequeued;
+  String _mistakeLabel(AlgMistake m, AppLocalizations l10n) {
+    switch (m.kind) {
+      case AlgMistakeKind.wrongCase:
+        return l10n.mistakeExecuted(m.executed!);
+      case AlgMistakeKind.skipped:
+        return l10n.mistakeSkipped;
+      case AlgMistakeKind.requeued:
+        return l10n.mistakeRequeued;
+    }
+  }
 
   // An errored case: the pair that was shown, how many times it went wrong, and
   // what the cube saw each time — the pair actually executed, or nothing

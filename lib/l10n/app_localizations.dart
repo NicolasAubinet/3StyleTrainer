@@ -190,6 +190,12 @@ abstract class AppLocalizations {
   /// **'Requeue case'**
   String get smartCubeRequeue;
 
+  /// No description provided for @smartCubeSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get smartCubeSkip;
+
   /// No description provided for @smartCubeReconnecting.
   ///
   /// In en, this message translates to:
@@ -1155,6 +1161,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Requeued'**
   String get mistakeRequeued;
+
+  /// No description provided for @mistakeSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get mistakeSkipped;
 
   /// No description provided for @mistakeNoMoves.
   ///

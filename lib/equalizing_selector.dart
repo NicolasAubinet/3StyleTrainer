@@ -31,6 +31,7 @@ class EqualizingSelector implements AlgProvider {
   final int _cooldownWindow;
   final _cooldownQueue = <String>[]; // FIFO of recently shown cases
   final _inCooldown = <String>{}; // membership mirror of the queue
+  final _skipped = <String>{}; // cases dropped for the rest of the session
 
   EqualizingSelector({
     required List<String> algs,
@@ -63,11 +64,18 @@ class EqualizingSelector implements AlgProvider {
 
     var eligible = [
       for (final a in _algs)
-        if (!_inCooldown.contains(a)) a,
+        if (!_inCooldown.contains(a) && !_skipped.contains(a)) a,
     ];
     if (eligible.isEmpty) {
-      // Only reachable in degenerate tiny pools; ignore the cooldown.
-      eligible = _algs;
+      // Cooldown squeezed everything out; ignore it, but keep skips excluded.
+      eligible = [
+        for (final a in _algs)
+          if (!_skipped.contains(a)) a,
+      ];
+    }
+    if (eligible.isEmpty) {
+      // Every case skipped: nothing left to show this session.
+      return null;
     }
 
     final chosen =
@@ -130,6 +138,13 @@ class EqualizingSelector implements AlgProvider {
     if (_inCooldown.remove(algName)) {
       _cooldownQueue.remove(algName);
     }
+  }
+
+  // With-replacement, so the alg would otherwise recur: exclude it outright for
+  // the rest of the session.
+  @override
+  void skip(String algName) {
+    _skipped.add(algName);
   }
 
   @override

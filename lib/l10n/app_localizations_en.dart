@@ -58,6 +58,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartCubeRequeue => 'Requeue case';
 
   @override
+  String get smartCubeSkip => 'Skip';
+
+  @override
   String get smartCubeReconnecting => 'Reconnecting to your cube…';
 
   @override
@@ -622,6 +625,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mistakeRequeued => 'Requeued';
+
+  @override
+  String get mistakeSkipped => 'Skipped';
 
   @override
   String get mistakeNoMoves => 'No moves recorded';

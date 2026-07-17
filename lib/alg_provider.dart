@@ -17,6 +17,11 @@ abstract class AlgProvider {
   /// Put an already-served alg back into the pool to reappear later in the run.
   void requeue(String algName);
 
+  /// Drop an already-served alg from the rest of this run so it won't reappear.
+  /// For without-replacement providers the alg is already out of the pool once
+  /// served, so this is a no-op; with-replacement selectors must exclude it.
+  void skip(String algName);
+
   /// Total algs this provider would serve (ignoring skipped algs).
   int get totalAlgs;
 }
@@ -327,6 +332,9 @@ class LetterPairProvider implements AlgProvider {
   }
 
   @override
+  void skip(String algName) {} // already removed when served
+
+  @override
   int get totalAlgs => originalLetterPairs.length;
 }
 
@@ -376,6 +384,9 @@ class CustomProvider implements AlgProvider {
       letterPairsToExecute.add(algName);
     }
   }
+
+  @override
+  void skip(String algName) {} // already removed when served
 
   @override
   int get totalAlgs => letterPairs.length;
@@ -463,6 +474,9 @@ class ParityAlgProvider implements AlgProvider {
       algsToExecute.add(Alg(algName));
     }
   }
+
+  @override
+  void skip(String algName) {} // already removed when served
 
   @override
   int get totalAlgs => originalAlgs.length;

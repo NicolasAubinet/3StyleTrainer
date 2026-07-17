@@ -354,8 +354,12 @@ class _TimerScreenState extends State<TimerScreen> {
     if (widget.algType != AlgType.Custom) {
       _persistMistake(shown, kind, executed, moves);
     }
+    // Skip drops the case from the rest of the run; every other error puts it
+    // back in the pool to be retried later.
+    final skipping = kind == AlgMistakeKind.skipped;
+    if (skipping) widget.algProvider.skip(shown);
     _advanceCubeCase(_currentFacelets,
-        requeueAfter: shown,
+        requeueAfter: skipping ? null : shown,
         keepFeedback:
             executed == null ? null : _CubeFeedback.wrongCase(executed));
     _flashAdvance(error: true);
@@ -364,7 +368,14 @@ class _TimerScreenState extends State<TimerScreen> {
 
   // Errors are worth keeping whatever the run's timing settings — unlike a time,
   // a wrong pair is a wrong pair. One row per case per run: a repeat slip on a
-  // case only refines the row, and a named wrong pair beats a bare requeue.
+  // case only refines the row, upward only — a named wrong pair beats a bare
+  // requeue or skip, and a terminal skip beats a requeue.
+  static const _mistakeRank = {
+    AlgMistakeKind.requeued: 0,
+    AlgMistakeKind.skipped: 1,
+    AlgMistakeKind.wrongCase: 2,
+  };
+
   void _persistMistake(
       String pair, AlgMistakeKind kind, String? executed, String? moves) async {
     final db = DatabaseManager();
@@ -377,8 +388,7 @@ class _TimerScreenState extends State<TimerScreen> {
       }
       return;
     }
-    if (kind == AlgMistakeKind.wrongCase &&
-        _mistakeKinds[pair] == AlgMistakeKind.requeued) {
+    if (_mistakeRank[kind]! > _mistakeRank[_mistakeKinds[pair]]!) {
       _mistakeKinds[pair] = kind;
       await db.updateMistake(_mistakeRows[pair]!, kind,
           executed: executed, moves: moves);
@@ -520,6 +530,14 @@ class _TimerScreenState extends State<TimerScreen> {
   void _requeueCubeCase() {
     if (!isReady || alg == null || _requeueBlocked) return;
     _onCubeError(alg!.name, AlgMistakeKind.requeued);
+  }
+
+  // Give up on the case: log it as a mistake and move on without putting it
+  // back, so a set can end without a deliberate wrong solve and time race won't
+  // show it again this session.
+  void _skipCubeCase() {
+    if (!isReady || alg == null || _requeueBlocked) return;
+    _onCubeError(alg!.name, AlgMistakeKind.skipped);
   }
 
   // A settings fix, not a mistake: the case is requeued but nothing is logged.
@@ -858,11 +876,27 @@ class _TimerScreenState extends State<TimerScreen> {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          child: OutlinedButton.icon(
-            onPressed:
-                _requeueBlocked || _reconnecting ? null : _requeueCubeCase,
-            icon: const Icon(Icons.replay),
-            label: Text(l10n.smartCubeRequeue),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _requeueBlocked || _reconnecting
+                      ? null
+                      : _requeueCubeCase,
+                  icon: const Icon(Icons.replay),
+                  label: Text(l10n.smartCubeRequeue),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed:
+                      _requeueBlocked || _reconnecting ? null : _skipCubeCase,
+                  icon: const Icon(Icons.skip_next),
+                  label: Text(l10n.smartCubeSkip),
+                ),
+              ),
+            ],
           ),
         ),
       ],

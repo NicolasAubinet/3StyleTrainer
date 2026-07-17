@@ -26,6 +26,20 @@ void main() {
       expect(EqualizingSelector(algs: pool(400)).cooldownWindow, 100);
     });
 
+    test('a skipped case never reappears this session', () {
+      final sel = EqualizingSelector(algs: pool(20), random: Random(3));
+      sel.skip('c7');
+      for (int i = 0; i < 5000; i++) {
+        expect(sel.getNextAlg()!.name, isNot('c7'));
+      }
+    });
+
+    test('getNextAlg returns null once every case is skipped', () {
+      final sel = EqualizingSelector(algs: pool(3));
+      sel..skip('c0')..skip('c1')..skip('c2');
+      expect(sel.getNextAlg(), isNull);
+    });
+
     test('recordSolve increments the count', () {
       final sel = EqualizingSelector(algs: pool(10), counts: {'c0': 3});
       expect(sel.countOf('c0'), 3);

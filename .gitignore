@@ -41,3 +41,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Captured smart-cube hardware traces. Kept local: they are large, personal
+# solve data, and the reconstruction regression test skips cleanly without them.
+packages/smartcube/test/fixtures/*.jsonl

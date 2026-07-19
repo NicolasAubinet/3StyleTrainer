@@ -129,6 +129,11 @@ Reconstruction reconstruct(
     }
     if (next.isEmpty) return Reconstruction(moves: raw, abstained: true);
     next.sort((a, b) => a.cost.compareTo(b.cost));
+    // Pruning blind spot, knowingly left: the cut is on raw cost, while the
+    // drift penalty is terminal and can only be applied once the parse ends, so
+    // a parse that returns home but sits past beamWidth here is lost. Harmless
+    // at the lengths this sees — a drilled case is a handful of motions and the
+    // beam does not saturate.
     frontier = next.length > beamWidth ? next.sublist(0, beamWidth) : next;
   }
 
@@ -172,13 +177,16 @@ Reconstruction reconstruct(
   );
 }
 
+/// Each reported turn as a plain outer turn in the solver's frame.
+List<SolverMove> _outerTurns(List<CubeMove> moves, FaceRotation rho) => [
+      for (final m in moves)
+        SolverMove.outer(toSolverFrame(m.face, rho), m.prime ? 3 : 1)
+    ];
+
 /// Every reported turn read as a plain outer turn, corrected into the solver's
 /// frame. What the replay showed before any of this existed.
 List<SolverMove> _rawReading(List<CubeMove> moves, FaceRotation rho) =>
-    collapseDoubles([
-      for (final m in moves)
-        SolverMove.outer(toSolverFrame(m.face, rho), m.prime ? 3 : 1)
-    ]);
+    collapseDoubles(_outerTurns(moves, rho));
 
 /// Group reported turns into the physical motions that produced them.
 ///
@@ -225,12 +233,7 @@ List<_Reading> _readMotion(
   // reconstruct() declines before reaching here; this only guards the
   // enumeration below from a combinatorial blow-up if that ever changes.
   if (n > kMaxTurnsPerMotion) {
-    return [
-      _Reading([
-        for (final r in motion)
-          SolverMove.outer(toSolverFrame(r.face, rho), r.prime ? 3 : 1)
-      ], kIdentity)
-    ];
+    return [_Reading(_outerTurns(motion, rho), kIdentity)];
   }
 
   final results = <_Reading>[];
@@ -310,7 +313,13 @@ List<_Reading> _readMotion(
   }
 
   recurse(<SolverMove>[], kIdentity);
-  return results;
+  // The same reading can be reached by different index pairings — `R L' R L'`
+  // enumerates `M M` twice. Duplicates only burn beam slots.
+  final seen = <String>{};
+  return [
+    for (final r in results)
+      if (seen.add('${movesToString(r.moves)}|${orientationKey(r.drift)}')) r
+  ];
 }
 
 double _moveCost(
@@ -319,10 +328,16 @@ double _moveCost(
   // The same LAYER twice in a row is what real algs never do. Deliberately not
   // the same axis: `U D'` is two different layers and a very common two-handed
   // pair, and penalising it hands every such pair to the slice reading.
+  //
+  // Two quarters of the same layer the SAME way are exempt: that is just how a
+  // double is executed, and collapseDoubles merges them into one half turn, so
+  // charging for them penalises the very execution style the collapser exists
+  // for — biasing a split `M M` against a single-motion `M2`.
   if (prev.isNotEmpty &&
       prev.last.kind == m.kind &&
       prev.last.face == m.face &&
-      prev.last.slice == m.slice) {
+      prev.last.slice == m.slice &&
+      !(m.amount != 2 && prev.last.amount == m.amount)) {
     c += w.consecutiveSameLayer;
   }
   // Conjugate / setup structure: X ... X' within a short span.

@@ -229,3 +229,41 @@ Decomposition decompose(Move m) {
       return Decomposition([], rotationDrift(m.id, m.amount));
   }
 }
+
+/// Two simultaneous turns on opposite faces reach the cube in an arbitrary
+/// order — it cannot know which landed first, so neither can we. Sort adjacent
+/// opposite-face outer pairs before comparing, or every one is a false miss.
+List<Move> canonical(List<Move> alg) {
+  final out = List<Move>.from(alg);
+  for (var i = 0; i + 1 < out.length; i++) {
+    final a = out[i], b = out[i + 1];
+    if (a.kind == MoveKind.outer &&
+        b.kind == MoveKind.outer &&
+        oppositeFace[a.id] == b.id &&
+        a.id > b.id) {
+      out[i] = b;
+      out[i + 1] = a;
+    }
+  }
+  return out;
+}
+
+/// [canonical], plus collapsing a double executed as two quarter turns: the
+/// cube cannot tell `M' M'` from `M2` and neither should a comparison.
+List<Move> canonicalCollapsed(List<Move> alg) {
+  final out = <Move>[];
+  for (final m in canonical(alg)) {
+    if (out.isNotEmpty) {
+      final p = out.last;
+      if (p.kind == m.kind &&
+          p.id == m.id &&
+          p.amount == m.amount &&
+          m.amount != 2) {
+        out[out.length - 1] = Move(m.kind, m.id, 2);
+        continue;
+      }
+    }
+    out.add(m);
+  }
+  return out;
+}

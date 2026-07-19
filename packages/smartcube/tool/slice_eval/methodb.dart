@@ -7,6 +7,9 @@ import 'methods.dart' show matchSlice, matchSliceHalf;
 import 'stats.dart';
 import 'synth.dart';
 
+/// Must track `kMotionGapMs` in lib/src/reconstruct/reconstruction.dart, which
+/// carries the measurement behind the value. Deliberately a separate copy: this
+/// harness exists to judge the shipped parser, so it must not import it.
 const int kMotionGapMs = 60;
 
 /// Group reported quarter turns into one physical motion each.
@@ -159,13 +162,11 @@ List<_Reading> readMotion(List<Reported> motion, List<int> rho, BWeights w) {
 
     // (e) four quarters, 2+2 on opposite faces -> a half slice
     if (n == 4 && !used.any((u) => u)) {
-      final faces = motion.map((r) => r.face).toList();
-      final distinct = faces.toSet().toList();
-      if (distinct.length == 2 && faces.where((f) => f == distinct[0]).length == 2) {
-        final m = matchSliceHalf(cur[distinct[0]], cur[distinct[1]]);
-        if (m != null) {
-          results.add(_Reading([...acc, m], compose(decompose(m).drift, drift)));
-        }
+      final m = matchSliceHalf([
+        for (final r in motion) (face: cur[r.face], prime: r.prime)
+      ]);
+      if (m != null) {
+        results.add(_Reading([...acc, m], compose(decompose(m).drift, drift)));
       }
     }
   }

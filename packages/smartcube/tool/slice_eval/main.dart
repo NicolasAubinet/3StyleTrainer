@@ -11,24 +11,6 @@ import 'synth.dart';
 
 const int kSeeds = 25;
 
-/// Two simultaneous turns on opposite faces reach the cube in an arbitrary
-/// order — the cube cannot know which came first, so neither can we. Sort
-/// adjacent opposite-face outer pairs before comparing.
-List<Move> canonical(List<Move> alg) {
-  final out = List<Move>.from(alg);
-  for (var i = 0; i + 1 < out.length; i++) {
-    final a = out[i], b = out[i + 1];
-    if (a.kind == MoveKind.outer &&
-        b.kind == MoveKind.outer &&
-        oppositeFace[a.id] == b.id &&
-        a.id > b.id) {
-      out[i] = b;
-      out[i + 1] = a;
-    }
-  }
-  return out;
-}
-
 String canonStr(List<Move> a) => algToString(canonical(a));
 
 class Score {

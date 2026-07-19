@@ -12,21 +12,6 @@ final _c = <String, Stats>{};
 Stats loo(String h) =>
     _c.putIfAbsent(h, () => Stats.fit(allAlgs().where((a) => a != h).toList()));
 
-List<Move> canonical(List<Move> alg) {
-  final out = List<Move>.from(alg);
-  for (var i = 0; i + 1 < out.length; i++) {
-    final a = out[i], b = out[i + 1];
-    if (a.kind == MoveKind.outer &&
-        b.kind == MoveKind.outer &&
-        oppositeFace[a.id] == b.id &&
-        a.id > b.id) {
-      out[i] = b;
-      out[i + 1] = a;
-    }
-  }
-  return out;
-}
-
 String cs(List<Move> a) => algToString(canonical(a));
 
 void main() {

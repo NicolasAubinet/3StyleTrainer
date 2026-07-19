@@ -41,12 +41,27 @@ Move? matchSlice(int f1, int d1, int f2, int d2) {
   return null;
 }
 
-Move? matchSliceHalf(int f1, int f2) {
-  if (oppositeFace[f1] != f2) return null;
+/// The half slice four solver-frame quarter turns form, or null.
+///
+/// Takes directions, not just faces: both turns on each face must go the SAME
+/// way, or `F B B F'` reads as `S2` — a phantom drift that relabels every move
+/// after it. Mirrors halfSliceForTurns in the shipped parser.
+Move? matchSliceHalf(List<({int face, bool prime})> turns) {
+  if (turns.length != 4) return null;
+  final byFace = <int, List<bool>>{};
+  for (final t in turns) {
+    byFace.putIfAbsent(t.face, () => []).add(t.prime);
+  }
+  if (byFace.length != 2) return null;
+  final faces = byFace.keys.toList();
+  if (oppositeFace[faces[0]] != faces[1]) return null;
+  for (final dirs in byFace.values) {
+    if (dirs.length != 2 || dirs[0] != dirs[1]) return null;
+  }
   for (var id = 0; id < 3; id++) {
     final dec = decomposeSlice(id, 2);
     final a = dec.sensed[0].face, b = dec.sensed[1].face;
-    if ((a == f1 && b == f2) || (a == f2 && b == f1)) {
+    if ((a == faces[0] && b == faces[1]) || (a == faces[1] && b == faces[0])) {
       return Move(MoveKind.slice, id, 2);
     }
   }
@@ -73,20 +88,17 @@ List<Move> methodA(List<Reported> obs, [MethodAConfig cfg = const MethodAConfig(
 
     // 4-cluster half slice?
     if (i + 3 < obs.length && obs[i + 3].tMs - a.tMs <= kSliceWindowMs) {
-      final faces = [obs[i].face, obs[i + 1].face, obs[i + 2].face, obs[i + 3].face];
-      final distinct = faces.toSet().toList();
-      if (distinct.length == 2 &&
-          faces.where((f) => f == distinct[0]).length == 2 &&
-          oppositeFace[rho[distinct[0]]] == rho[distinct[1]]) {
-        final m = matchSliceHalf(rho[distinct[0]], rho[distinct[1]]);
-        if (m != null) {
-          final drift = decompose(m).drift;
-          if (_acceptA(cfg, obs, i + 4, compose(drift, rho))) {
-            out.add(m);
-            rho = compose(drift, rho);
-            i += 4;
-            continue;
-          }
+      final m = matchSliceHalf([
+        for (var k = i; k < i + 4; k++)
+          (face: rho[obs[k].face], prime: obs[k].prime)
+      ]);
+      if (m != null) {
+        final drift = decompose(m).drift;
+        if (_acceptA(cfg, obs, i + 4, compose(drift, rho))) {
+          out.add(m);
+          rho = compose(drift, rho);
+          i += 4;
+          continue;
         }
       }
     }
@@ -306,13 +318,11 @@ MethodBResult methodB(List<Reported> obs, Weights w, {int beam = 400}) {
 
       // 5. slice half (4-cluster)
       if (i + 3 < obs.length && obs[i + 3].tMs - a.tMs <= kSliceWindowMs) {
-        final faces = [obs[i].face, obs[i + 1].face, obs[i + 2].face, obs[i + 3].face];
-        final distinct = faces.toSet().toList();
-        if (distinct.length == 2 &&
-            faces.where((f) => f == distinct[0]).length == 2) {
-          final m = matchSliceHalf(p.rho[distinct[0]], p.rho[distinct[1]]);
-          if (m != null) push(4, m, decompose(m).drift);
-        }
+        final m = matchSliceHalf([
+          for (var k = i; k < i + 4; k++)
+            (face: p.rho[obs[k].face], prime: obs[k].prime)
+        ]);
+        if (m != null) push(4, m, decompose(m).drift);
       }
     }
   }

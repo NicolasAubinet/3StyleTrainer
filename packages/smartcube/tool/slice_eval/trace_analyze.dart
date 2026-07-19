@@ -238,36 +238,7 @@ final knownOrientation = <String, List<int>>{};
 /// The label with its take suffix removed.
 String _algOf(String key) => key.substring(0, key.lastIndexOf('#'));
 
-/// Two simultaneous turns on opposite faces reach the cube in an arbitrary
-/// order — it cannot know which landed first, so neither can we. Sort adjacent
-/// opposite-face outer pairs before comparing, or every one is a false miss.
-String _canon(List<Move> alg) {
-  final out = List<Move>.from(alg);
-  for (var i = 0; i + 1 < out.length; i++) {
-    final a = out[i], b = out[i + 1];
-    if (a.kind == MoveKind.outer &&
-        b.kind == MoveKind.outer &&
-        oppositeFace[a.id] == b.id &&
-        a.id > b.id) {
-      out[i] = b;
-      out[i + 1] = a;
-    }
-  }
-  // A double turned as two quarter turns is the same move. The cube cannot
-  // tell them apart and neither should the comparison: `M' M'` == `M2`.
-  final collapsed = <Move>[];
-  for (final m in out) {
-    if (collapsed.isNotEmpty) {
-      final p = collapsed.last;
-      if (p.kind == m.kind && p.id == m.id && p.amount == m.amount && m.amount != 2) {
-        collapsed[collapsed.length - 1] = Move(m.kind, m.id, 2);
-        continue;
-      }
-    }
-    collapsed.add(m);
-  }
-  return algToString(collapsed);
-}
+String _canon(List<Move> alg) => algToString(canonicalCollapsed(alg));
 
 /// The central diagnostic: the distribution of inter-move gaps. Gaps are taken
 /// WITHIN a take only — the pause between two takes is not a solving gap.

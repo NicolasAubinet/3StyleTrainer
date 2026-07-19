@@ -13,3 +13,6 @@ export 'src/scanner_impl.dart' show createCubeScanner, DefaultCubeScanner;
 export 'src/transport/ble_transport.dart';
 export 'src/cube/cubie_cube.dart' show CubieCube;
 export 'src/reconstruct/frame_algebra.dart';
+export 'src/reconstruct/move_prior.dart';
+export 'src/reconstruct/reconstruction.dart';
+export 'src/reconstruct/solver_move.dart';

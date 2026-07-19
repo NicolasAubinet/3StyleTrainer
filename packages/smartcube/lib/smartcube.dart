@@ -12,3 +12,4 @@ export 'src/driver.dart';
 export 'src/scanner_impl.dart' show createCubeScanner, DefaultCubeScanner;
 export 'src/transport/ble_transport.dart';
 export 'src/cube/cubie_cube.dart' show CubieCube;
+export 'src/reconstruct/frame_algebra.dart';

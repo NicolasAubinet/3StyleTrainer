@@ -4,6 +4,7 @@ import '../driver.dart';
 import '../model/connection.dart';
 import '../model/cube_move.dart';
 import '../model/cube_state.dart';
+import '../reconstruct/move_prior.dart';
 import '../smart_cube.dart';
 import '../transport/ble_transport.dart';
 import 'qiyi_parser.dart';
@@ -95,6 +96,9 @@ class QiyiDriver extends CubeDriver {
 /// A connected QiYi cube, translating parser events into the [SmartCube]
 /// streams.
 class QiyiCube implements SmartCube {
+  @override
+  TimingQuality get timingQuality => TimingQuality.perMoveClock;
+
   @override
   final DiscoveredCube device;
 

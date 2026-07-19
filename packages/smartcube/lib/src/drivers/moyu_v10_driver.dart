@@ -5,6 +5,7 @@ import '../driver.dart';
 import '../model/connection.dart';
 import '../model/cube_move.dart';
 import '../model/cube_state.dart';
+import '../reconstruct/move_prior.dart';
 import '../smart_cube.dart';
 import '../transport/ble_transport.dart';
 import 'moyu_v10_parser.dart';
@@ -104,6 +105,9 @@ class MoyuV10Driver extends CubeDriver {
 
 /// A connected MoYu V10, translating parser events into the [SmartCube] streams.
 class MoyuV10Cube implements SmartCube {
+  @override
+  TimingQuality get timingQuality => TimingQuality.perMoveClock;
+
   @override
   final DiscoveredCube device;
 

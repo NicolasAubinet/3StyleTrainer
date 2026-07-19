@@ -14,6 +14,7 @@ import '../practice_type.dart';
 import '../settings.dart';
 import '../smart_cube/cube_orientation.dart';
 import '../smart_cube/cube_run.dart';
+import '../smart_cube/move_reconstruction.dart';
 import '../smart_cube/orientation_diagnostics.dart';
 import '../smart_cube/three_style_geometry.dart';
 import '../smart_cube_manager.dart';
@@ -98,7 +99,10 @@ class _TimerScreenState extends State<TimerScreen> {
   // Moves turned since the current case started, in the user's holding frame —
   // what a botched attempt actually did. Capped so a long flail can't grow
   // without bound.
-  final List<String> _caseMoves = [];
+  // Kept as raw CubeMoves, not notation: the slice reconstruction needs the
+  // timestamps to tell a slice from two turns done at once, and the frame
+  // correction is applied once over the whole sequence rather than per move.
+  final List<CubeMove> _caseMoves = [];
   static const int _MAX_STORED_MOVES = 120;
 
   // How long the cube must sit still before a non-completing state is judged a
@@ -348,7 +352,8 @@ class _TimerScreenState extends State<TimerScreen> {
   // on (red flash), baselining the next case on wherever the cube now is. The
   // message carries over so it can still be read once the next case is up.
   void _onCubeError(String shown, AlgMistakeKind kind, {String? executed}) {
-    final moves = _caseMoves.isEmpty ? null : _caseMoves.join(" ");
+    final moves = MoveReconstruction.describe(_caseMoves,
+        cube: SmartCubeManager().cube);
     mistakes.add(AlgMistake(mistakes.length + 1, Alg(shown), kind,
         executed: executed, moves: moves));
     if (widget.algType != AlgType.Custom) {
@@ -403,14 +408,7 @@ class _TimerScreenState extends State<TimerScreen> {
     if (!mounted || !isReady || _awaitingResync) return;
     // Still turning: whatever the last state looked like, it wasn't the end.
     _feedbackTimer?.cancel();
-    if (_caseMoves.length < _MAX_STORED_MOVES) {
-      final face = CubeOrientation.normaliseFace(
-        move.face.name,
-        top: Settings().getCubeTopColour(),
-        front: Settings().getCubeFrontColour(),
-      );
-      _caseMoves.add(move.prime ? "$face'" : face);
-    }
+    if (_caseMoves.length < _MAX_STORED_MOVES) _caseMoves.add(move);
     // First move of a case ends recognition; refresh the phase indicator.
     final started = _cubeRun?.onMove() != null;
     // Turning again means the carried-over error message has served its purpose.

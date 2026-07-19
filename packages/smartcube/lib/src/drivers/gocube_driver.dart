@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../driver.dart';
+import '../reconstruct/move_prior.dart';
 import '../model/connection.dart';
 import '../model/cube_move.dart';
 import '../model/cube_state.dart';
@@ -12,6 +13,12 @@ import 'gocube_parser.dart';
 /// same unencrypted Nordic-UART protocol. No MAC, no crypto, no handshake — the
 /// cube streams moves on its own; the app only asks for the initial state.
 class GoCubeDriver extends CubeDriver {
+  // GoCube discards the per-move duration byte and batches moves into one
+  // notification, so turns in the same packet share a timestamp (see the
+  // GoCube protocol notes). There is no usable per-move clock.
+  @override
+  TimingQuality get timingQuality => TimingQuality.none;
+
   static const String serviceUuid = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
   static const String writeChrUuid = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
   static const String readChrUuid = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
@@ -51,6 +58,9 @@ class GoCubeDriver extends CubeDriver {
 
 /// A connected GoCube, translating parser events into the [SmartCube] streams.
 class GoCubeCube implements SmartCube {
+  @override
+  TimingQuality get timingQuality => TimingQuality.none;
+
   /// GoCube carries no move counter, so a dropped notification can't be seen per
   /// packet — only a fresh state can catch the drift. Re-request state every this
   /// many moves to bound how far the model can wander (csTimer's rule).

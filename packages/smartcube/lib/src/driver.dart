@@ -1,4 +1,5 @@
 import 'model/connection.dart';
+import 'reconstruct/move_prior.dart';
 import 'smart_cube.dart';
 import 'transport/ble_transport.dart';
 
@@ -31,6 +32,14 @@ abstract class CubeDriver {
 
   /// Service UUIDs this driver claims, for name-less devices.
   List<String> get serviceUuids;
+
+  /// How much this cube's per-move timestamps can be trusted.
+  ///
+  /// Slice reconstruction groups turns into physical motions by timing, so a
+  /// cube without a real per-move clock cannot support it. Declared per driver
+  /// because the reconstruction's own confidence cannot detect bad timing — it
+  /// stays high while the answer degrades.
+  TimingQuality get timingQuality => TimingQuality.perMoveClock;
 
   bool matches(CubeAdvertisement adv) {
     final name = adv.name;

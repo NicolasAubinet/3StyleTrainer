@@ -1,6 +1,7 @@
 import 'model/connection.dart';
 import 'model/cube_move.dart';
 import 'model/cube_state.dart';
+import 'reconstruct/move_prior.dart';
 
 /// A connected smart cube. Brand-agnostic: consumers subscribe to [moves] and
 /// [states] and never touch BLE or per-brand protocol.
@@ -9,6 +10,12 @@ abstract class SmartCube {
 
   /// Quarter-turn events, in order, with fitted timestamps.
   Stream<CubeMove> get moves;
+
+  /// How much this cube's per-move timestamps can be trusted. Consumers that
+  /// group turns by timing — slice reconstruction — must check this: a cube
+  /// without a real clock cannot support it, and no amount of confidence in
+  /// the result would reveal that.
+  TimingQuality get timingQuality => TimingQuality.perMoveClock;
 
   /// Full-state snapshots — emitted on connect and after every applied move.
   Stream<CubeState> get states;

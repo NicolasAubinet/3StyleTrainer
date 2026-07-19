@@ -94,6 +94,35 @@ void main() {
     expect(rotationGroup().length, 24);
   });
 
+  group('halfSliceForTurns', () {
+    // Regression: the parser used to check only "two faces, 2+2" and would read
+    // F B B F' as S2 -- wrong notation, and a phantom drift that relabels every
+    // move after it. The synthetic corpus could never produce a mixed-direction
+    // pair, so only real-shaped input exposed it.
+    ({Face face, bool prime}) t(String s) =>
+        (face: Face.values.byName(s[0]), prime: s.endsWith("'"));
+
+    test('recognises a genuine half slice, either way round', () {
+      expect(halfSliceForTurns([t('R'), t('R'), t("L'"), t("L'")]), Slice.M);
+      expect(halfSliceForTurns([t("R'"), t("R'"), t('L'), t('L')]), Slice.M);
+      expect(halfSliceForTurns([t('U'), t('U'), t("D'"), t("D'")]), Slice.E);
+      expect(halfSliceForTurns([t("F'"), t("F'"), t('B'), t('B')]), Slice.S);
+    });
+
+    test('rejects a pair that does not turn the same way', () {
+      expect(halfSliceForTurns([t('F'), t('B'), t('B'), t("F'")]), isNull);
+      expect(halfSliceForTurns([t('R'), t("R'"), t('L'), t('L')]), isNull);
+      expect(halfSliceForTurns([t('R'), t('R'), t('L'), t("L'")]), isNull);
+      expect(halfSliceForTurns([t('R'), t("R'"), t('L'), t("L'")]), isNull);
+    });
+
+    test('rejects adjacent faces and wrong counts', () {
+      expect(halfSliceForTurns([t('R'), t('R'), t('U'), t('U')]), isNull);
+      expect(halfSliceForTurns([t('R'), t('R'), t("L'")]), isNull);
+      expect(halfSliceForTurns([t('R'), t('R'), t('R'), t('R')]), isNull);
+    });
+  });
+
   group('sliceForPair', () {
     test('recognises every quarter-turn slice, in either order', () {
       for (final s in Slice.values) {

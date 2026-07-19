@@ -96,7 +96,7 @@ void main() {
         ["R'"],
         ["U'"],
       ]);
-      expect(MoveReconstruction.describe(moves, cube: cube),
+      expect(MoveReconstruction.describe(moves, cube: cube)?.notation,
           "M' U R U' M U R' U'");
     });
 
@@ -108,18 +108,32 @@ void main() {
         ['U', "D'"],
         ["R'"],
       ]);
-      expect(MoveReconstruction.describe(moves, cube: cube), "R U D' R'");
+      final out = MoveReconstruction.describe(moves, cube: cube)!;
+      expect(out.notation, "R U D' R'");
+      expect(out.reconstructed, isTrue);
     });
 
-    test('a cube with no clock falls back to plain face turns', () {
+    test('a cube with no clock falls back to plain face turns, and says so', () {
       final moves = stream([
         ["R'", 'L'],
         ['F'],
       ]);
       final out = MoveReconstruction.describe(moves,
           cube: _FakeCube(sc.TimingQuality.none))!;
-      expect(out, isNot(contains('M')));
-      expect(out, "R' L F");
+      expect(out.notation, "R' L F");
+      expect(out.reconstructed, isFalse,
+          reason: 'a raw reading must not be presented as a reconstruction');
+      expect(out.why, isNotNull);
+    });
+
+    test('a coarse clock is not passed off as a confident reading', () {
+      final moves = stream([
+        ["R'", 'L'],
+        ['F'],
+      ]);
+      final out = MoveReconstruction.describe(moves,
+          cube: _FakeCube(sc.TimingQuality.coarse))!;
+      expect(out.reconstructed, isFalse);
     });
 
     test('no connected cube is treated as no clock, not as a good one', () {
@@ -127,7 +141,9 @@ void main() {
         ["R'", 'L'],
         ['F'],
       ]);
-      expect(MoveReconstruction.describe(moves, cube: null), "R' L F");
+      final out = MoveReconstruction.describe(moves, cube: null)!;
+      expect(out.notation, "R' L F");
+      expect(out.reconstructed, isFalse);
     });
   });
 }

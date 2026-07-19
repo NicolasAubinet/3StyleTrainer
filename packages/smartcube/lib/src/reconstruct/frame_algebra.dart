@@ -190,6 +190,38 @@ Decomposition decomposeRotation(int axis, int amount) {
   return null;
 }
 
+/// One sensed turn as it arrived: a face and a direction.
+typedef SensedQuarter = ({Face face, bool prime});
+
+/// The half slice four sensed quarter turns form, or null.
+///
+/// Lives here rather than in the parser so the direction check cannot be
+/// forgotten: both turns on each face must go the SAME way, because that is
+/// what makes each pair a half turn. Without it `F B B F'` reads as `S2` — not
+/// merely wrong notation, but a phantom drift that relabels every move after
+/// it.
+Slice? halfSliceForTurns(List<SensedQuarter> turns) {
+  if (turns.length != 4) return null;
+  final byFace = <Face, List<bool>>{};
+  for (final t in turns) {
+    byFace.putIfAbsent(t.face, () => []).add(t.prime);
+  }
+  if (byFace.length != 2) return null;
+  final faces = byFace.keys.toList();
+  if (kOpposite[faces[0]] != faces[1]) return null;
+  for (final dirs in byFace.values) {
+    if (dirs.length != 2 || dirs[0] != dirs[1]) return null;
+  }
+  for (final s in Slice.values) {
+    final sensed = decomposeSlice(s, 2).sensed;
+    if ((sensed[0].face == faces[0] && sensed[1].face == faces[1]) ||
+        (sensed[0].face == faces[1] && sensed[1].face == faces[0])) {
+      return s;
+    }
+  }
+  return null;
+}
+
 /// Map a reported face into the solver frame under drift [rho].
 Face toSolverFrame(Face reported, FaceRotation rho) =>
     Face.values[rho[reported.index]];

@@ -104,11 +104,16 @@ class SynthConfig {
   });
 }
 
-List<List<int>> _quarters(int face, int amount) {
+/// A half turn is two quarters in whichever direction the hand actually went,
+/// so the pair may be CW or CCW. Emitting only CW meant no corpus stream ever
+/// contained a counter-clockwise double — which is how a parser bug that read
+/// any 2+2 face split as a half slice survived the whole evaluation.
+List<List<int>> _quarters(int face, int amount, Random rng) {
   if (amount == 2) {
+    final dir = rng.nextBool() ? 1 : 3;
     return [
-      [face, 1],
-      [face, 1],
+      [face, dir],
+      [face, dir],
     ];
   }
   return [
@@ -125,7 +130,7 @@ SynthResult synthesize(List<Move> alg, Random rng, [SynthConfig cfg = const Synt
     final rhoInv = invert(rho);
     final quarters = <List<int>>[];
     for (final st in dec.sensed) {
-      quarters.addAll(_quarters(rhoInv[st.face], st.amount));
+      quarters.addAll(_quarters(rhoInv[st.face], st.amount, rng));
     }
     if (quarters.isNotEmpty) {
       final isOuter = m.kind == MoveKind.outer;

@@ -352,8 +352,12 @@ class _TimerScreenState extends State<TimerScreen> {
   // on (red flash), baselining the next case on wherever the cube now is. The
   // message carries over so it can still be read once the next case is up.
   void _onCubeError(String shown, AlgMistakeKind kind, {String? executed}) {
-    final moves = MoveReconstruction.describe(_caseMoves,
-        cube: SmartCubeManager().cube);
+    // A raw reading is stored as-is: it is what the cube reported, just without
+    // slices recovered. Marking it in the string would leak into the DB and the
+    // summary; surfacing the distinction is a UI decision, not a storage one.
+    final replay =
+        MoveReconstruction.describe(_caseMoves, cube: SmartCubeManager().cube);
+    final moves = replay?.notation;
     mistakes.add(AlgMistake(mistakes.length + 1, Alg(shown), kind,
         executed: executed, moves: moves));
     if (widget.algType != AlgType.Custom) {

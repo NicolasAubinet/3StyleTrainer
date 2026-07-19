@@ -10,26 +10,6 @@ library;
 import '../model/cube_move.dart';
 import 'solver_move.dart';
 
-/// How much a driver's per-move timestamps can be trusted.
-///
-/// Motion segmentation — deciding which turns belong to one physical motion —
-/// is what separates a slice from two simultaneous outer turns. It needs gaps
-/// between motions to be distinguishable from spreads within one.
-enum TimingQuality {
-  /// A real per-move clock. Measured on a MoYu V10: gaps within a motion sit
-  /// under 20ms, gaps between motions over 90ms, with a clean valley between.
-  perMoveClock,
-
-  /// Timestamps exist but are coarse or noisy (batched per notification, heavy
-  /// jitter). Around 100ms granularity, accuracy falls to roughly 77% and — the
-  /// dangerous part — confidence stays high while it does.
-  coarse,
-
-  /// No usable per-move timing at all. GoCube discards its per-move duration
-  /// byte, so moves in one packet share a timestamp.
-  none,
-}
-
 /// Scoring weights. Defaults were tuned on synthetic data with a held-out
 /// split; the ablations behind them are more trustworthy than the exact values.
 class ReconstructionWeights {

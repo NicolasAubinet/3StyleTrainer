@@ -4,7 +4,7 @@ import '../driver.dart';
 import '../model/connection.dart';
 import '../model/cube_move.dart';
 import '../model/cube_state.dart';
-import '../reconstruct/move_prior.dart';
+import '../reconstruct/timing_quality.dart';
 import '../smart_cube.dart';
 import '../transport/ble_transport.dart';
 import 'qiyi_parser.dart';

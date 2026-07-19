@@ -21,12 +21,23 @@ import '../model/cube_move.dart';
 import 'frame_algebra.dart';
 import 'move_prior.dart';
 import 'solver_move.dart';
+import 'timing_quality.dart';
 
 /// Turns closer together than this belong to one physical motion.
 ///
 /// Measured on a MoYu V10: within-motion spreads sit under 20ms and between
 /// motion gaps over 90ms, with an empty valley either side of 60ms.
 const int kMotionGapMs = 60;
+
+/// The longest one physical motion may last, start to finish. A four-turn half
+/// slice arrives inside ~55ms, so this is generous; its job is to stop a fast
+/// run of ordinary turns chaining into one unreadable blob.
+const int kMotionSpanMs = 90;
+
+/// More turns than any single motion can plausibly contain. A hand can turn two
+/// layers at once, or four for a half slice — beyond that the grouping is not
+/// something this parser can reason about, so it declines instead of guessing.
+const int kMaxTurnsPerMotion = 4;
 
 class Reconstruction {
   /// The reconstruction, or the plain outer-face reading when [abstained].
@@ -87,6 +98,20 @@ Reconstruction reconstruct(
   }
 
   final motions = segmentMotions(moves);
+
+  // An over-long motion has exactly one reading, so nothing in the beam differs
+  // from it and the margin would come back as infinity — maximum confidence for
+  // a group we cannot actually parse. Worse, that reading declares no drift, so
+  // a slice hidden inside it would misframe the whole tail. Decline instead.
+  if (motions.any((m) => m.length > kMaxTurnsPerMotion)) {
+    return Reconstruction(
+      moves: raw,
+      abstained: true,
+      note: 'turns arrived too close together to tell apart; showing the raw '
+          'reading',
+    );
+  }
+
   var frontier = <_Partial>[_Partial(startOrientation, const [], 0)];
 
   for (final motion in motions) {
@@ -156,18 +181,24 @@ List<SolverMove> _rawReading(List<CubeMove> moves, FaceRotation rho) =>
     ]);
 
 /// Group reported turns into the physical motions that produced them.
+///
+/// Two bounds, not one. The per-gap check alone lets a fast run of turns chain
+/// into an arbitrarily long "motion" — six turns 50ms apart became a single
+/// motion, and real captures do contain gaps in that range. A physical motion
+/// is at most a hand's worth of simultaneous turns, so cap its total span too.
 List<List<CubeMove>> segmentMotions(List<CubeMove> moves,
-    {int gapMs = kMotionGapMs}) {
+    {int gapMs = kMotionGapMs, int spanMs = kMotionSpanMs}) {
   final out = <List<CubeMove>>[];
   for (final m in moves) {
-    final gap = out.isEmpty
-        ? null
-        : m.cubeTimestamp.inMilliseconds -
-            out.last.last.cubeTimestamp.inMilliseconds;
-    if (gap == null || gap > gapMs) {
-      out.add([m]);
-    } else {
+    final t = m.cubeTimestamp.inMilliseconds;
+    final fitsGap = out.isNotEmpty &&
+        t - out.last.last.cubeTimestamp.inMilliseconds <= gapMs;
+    final fitsSpan =
+        out.isNotEmpty && t - out.last.first.cubeTimestamp.inMilliseconds <= spanMs;
+    if (fitsGap && fitsSpan) {
       out.last.add(m);
+    } else {
+      out.add([m]);
     }
   }
   return out;
@@ -191,7 +222,9 @@ class _Partial {
 List<_Reading> _readMotion(
     List<CubeMove> motion, FaceRotation rho, ReconstructionWeights w) {
   final n = motion.length;
-  if (n > 4) {
+  // reconstruct() declines before reaching here; this only guards the
+  // enumeration below from a combinatorial blow-up if that ever changes.
+  if (n > kMaxTurnsPerMotion) {
     return [
       _Reading([
         for (final r in motion)
@@ -262,36 +295,22 @@ List<_Reading> _readMotion(
       }
     }
 
-    // Four turns, 2+2 on opposite faces — a half slice such as M2.
+    // Four turns, 2+2 on opposite faces, each pair turned the same way — a
+    // half slice such as M2. halfSliceForTurns owns the direction check.
     if (n == 4 && !used.any((u) => u)) {
-      final faces = motion.map((r) => r.face).toList();
-      final distinct = faces.toSet().toList();
-      if (distinct.length == 2 &&
-          faces.where((f) => f == distinct[0]).length == 2) {
-        final s = _halfSliceFor(
-            toSolverFrame(distinct[0], cur), toSolverFrame(distinct[1], cur));
-        if (s != null) {
-          final m = SolverMove.slice(s, 2);
-          results.add(_Reading([...acc, m], compose(m.drift, drift)));
-        }
+      final s = halfSliceForTurns([
+        for (final r in motion)
+          (face: toSolverFrame(r.face, cur), prime: r.prime)
+      ]);
+      if (s != null) {
+        final m = SolverMove.slice(s, 2);
+        results.add(_Reading([...acc, m], compose(m.drift, drift)));
       }
     }
   }
 
   recurse(<SolverMove>[], kIdentity);
   return results;
-}
-
-Slice? _halfSliceFor(Face a, Face b) {
-  if (kOpposite[a] != b) return null;
-  for (final s in Slice.values) {
-    final sensed = decomposeSlice(s, 2).sensed;
-    if ((sensed[0].face == a && sensed[1].face == b) ||
-        (sensed[0].face == b && sensed[1].face == a)) {
-      return s;
-    }
-  }
-  return null;
 }
 
 double _moveCost(

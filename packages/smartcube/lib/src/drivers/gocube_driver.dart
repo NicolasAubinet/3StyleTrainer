@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import '../driver.dart';
-import '../reconstruct/move_prior.dart';
 import '../model/connection.dart';
 import '../model/cube_move.dart';
 import '../model/cube_state.dart';
+import '../reconstruct/timing_quality.dart';
 import '../smart_cube.dart';
 import '../transport/ble_transport.dart';
 import 'gocube_parser.dart';
@@ -13,12 +13,6 @@ import 'gocube_parser.dart';
 /// same unencrypted Nordic-UART protocol. No MAC, no crypto, no handshake — the
 /// cube streams moves on its own; the app only asks for the initial state.
 class GoCubeDriver extends CubeDriver {
-  // GoCube discards the per-move duration byte and batches moves into one
-  // notification, so turns in the same packet share a timestamp (see the
-  // GoCube protocol notes). There is no usable per-move clock.
-  @override
-  TimingQuality get timingQuality => TimingQuality.none;
-
   static const String serviceUuid = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
   static const String writeChrUuid = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
   static const String readChrUuid = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';

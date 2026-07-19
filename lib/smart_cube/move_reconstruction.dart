@@ -35,20 +35,46 @@ class MoveReconstruction {
               .index
       ];
 
-  /// Reconstruct [moves] into solver notation, or `null` when there is nothing
-  /// worth showing.
+  /// Reconstruct [moves] into solver notation, or `null` when nothing was
+  /// turned.
   ///
-  /// Returns the plain outer-face reading (what the replay always showed) when
-  /// the cube's timing cannot support grouping turns into motions, or when two
-  /// readings are too close to call. Being unsure is fine; being confidently
-  /// wrong about what the user did is not.
-  static String? describe(List<sc.CubeMove> moves, {required sc.SmartCube? cube}) {
+  /// [ReplayMoves.reconstructed] is false when this is the plain outer-face
+  /// reading — the cube's clock could not support grouping turns into motions,
+  /// or two readings were too close to call. The notation is still honest in
+  /// that case, it just claims less: slices are left as the face pairs the cube
+  /// reported. Callers should not present the two identically.
+  static ReplayMoves? describe(
+    List<sc.CubeMove> moves, {
+    required sc.SmartCube? cube,
+  }) {
     if (moves.isEmpty) return null;
     final result = sc.reconstruct(
       moves,
       startOrientation: orientationFromSettings(),
       timing: cube?.timingQuality ?? sc.TimingQuality.none,
     );
-    return result.notation;
+    return ReplayMoves(
+      notation: result.notation,
+      reconstructed: !result.abstained && !result.degraded,
+      why: result.note,
+    );
   }
+}
+
+/// What a botched case's turns looked like, and how much to trust the reading.
+class ReplayMoves {
+  final String notation;
+
+  /// False when [notation] is the raw face-by-face reading rather than a
+  /// reconstruction — no slices were recovered and none should be inferred.
+  final bool reconstructed;
+
+  /// Why the reconstruction held back, when it did.
+  final String? why;
+
+  const ReplayMoves({
+    required this.notation,
+    required this.reconstructed,
+    this.why,
+  });
 }

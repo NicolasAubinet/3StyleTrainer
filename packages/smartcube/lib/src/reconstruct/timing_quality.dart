@@ -11,9 +11,10 @@
 library;
 
 enum TimingQuality {
-  /// A real per-move clock. Measured on a MoYu V10: turns within one motion
-  /// land under 20ms apart, separate motions over 90ms, with a clean valley
-  /// between (see [kMotionGapMs]).
+  /// A real per-move clock: turns within one motion arrive close enough
+  /// together to be told from separate motions. The measured distribution and
+  /// the threshold it justifies live on `kMotionGapMs` in reconstruction.dart —
+  /// kept in one place so a re-measurement cannot update only half of it.
   perMoveClock,
 
   /// Timestamps exist but are coarse or noisy — batched per notification, or

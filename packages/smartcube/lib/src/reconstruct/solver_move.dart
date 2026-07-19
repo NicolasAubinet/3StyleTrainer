@@ -48,17 +48,6 @@ class SolverMove {
         MoveKind.wide => decomposeWide(face!, amount).drift,
       };
 
-  /// The axis this move turns, for "is this the same layer as that one" checks.
-  /// A slice shares its axis with the two faces it sits between.
-  int get axis => switch (kind) {
-        MoveKind.slice => slice!.index,
-        _ => switch (face!) {
-            Face.R || Face.L => Slice.M.index,
-            Face.U || Face.D => Slice.E.index,
-            Face.F || Face.B => Slice.S.index,
-          },
-      };
-
   SolverMove withAmount(int a) => switch (kind) {
         MoveKind.outer => SolverMove.outer(face!, a),
         MoveKind.wide => SolverMove.wide(face!, a),

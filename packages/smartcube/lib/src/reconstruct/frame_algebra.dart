@@ -168,6 +168,10 @@ Decomposition decomposeWide(Face face, int amount) {
 }
 
 /// Whole-cube rotations sense as **nothing at all**.
+///
+/// No caller in the parser — [MoveKind] has no rotation, so one can never be
+/// emitted. Kept because this file is the written algebra a port follows, and
+/// "a rotation is invisible to the cube" is part of it.
 Decomposition decomposeRotation(int axis, int amount) {
   final base = [kRotX, kRotY, kRotZ][axis];
   return Decomposition(

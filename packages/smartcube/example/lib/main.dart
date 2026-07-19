@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:smartcube/smartcube.dart';
 
+import 'trace_page.dart';
+
 void main() => runApp(const SmartCubeExampleApp());
 
 class SmartCubeExampleApp extends StatelessWidget {
@@ -93,6 +95,14 @@ class _CubePageState extends State<CubePage> {
       appBar: AppBar(
         title: const Text('smartcube'),
         actions: [
+          if (connected)
+            IconButton(
+              tooltip: '§31 validation (sign triage / trace capture)',
+              icon: const Icon(Icons.science_outlined),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => TracePage(_cube!),
+              )),
+            ),
           if (connected)
             Padding(
               padding: const EdgeInsets.only(right: 12),

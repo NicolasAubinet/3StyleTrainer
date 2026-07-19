@@ -11,6 +11,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcube/smartcube.dart';
+import 'package:smartcube/src/reconstruct/frame_algebra.dart';
+import 'package:smartcube/src/reconstruct/solver_move.dart';
 
 // ---------------------------------------------------------------------------
 // Notation parsing (test-local — the module deals in moves, not text)

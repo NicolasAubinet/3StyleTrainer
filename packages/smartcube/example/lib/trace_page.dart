@@ -13,6 +13,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:smartcube/smartcube.dart';
+// The sign triage validates the frame algebra itself, so it reaches past the
+// package's public surface to the conventions under test.
+// ignore: implementation_imports
+import 'package:smartcube/src/reconstruct/frame_algebra.dart';
 
 class TracePage extends StatefulWidget {
   final SmartCube cube;

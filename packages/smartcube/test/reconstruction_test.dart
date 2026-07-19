@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcube/smartcube.dart';
+import 'package:smartcube/src/reconstruct/reconstruction.dart';
 
 // 15ms apart: a real single motion. Wider spacing would split into separate
 // motions and the direction tests below would pass without exercising anything.

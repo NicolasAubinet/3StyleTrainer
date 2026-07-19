@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcube/smartcube.dart';
+import 'package:smartcube/src/reconstruct/frame_algebra.dart';
 
 /// Pins the §31a drift table. The *sensed pair* column is hardware-validated
 /// (§25); the *drift* column was confirmed by the §31g sign triage. These

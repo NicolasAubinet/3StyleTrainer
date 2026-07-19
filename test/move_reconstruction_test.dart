@@ -1,5 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcube/smartcube.dart' as sc;
+// Checks the app's orientation mapping against the frame algebra's own
+// definitions, which are deliberately not part of the package's public surface.
+// ignore: implementation_imports
+import 'package:smartcube/src/reconstruct/frame_algebra.dart' as sc;
 import 'package:three_style_trainer/smart_cube/cube_orientation.dart';
 import 'package:three_style_trainer/smart_cube/move_reconstruction.dart';
 

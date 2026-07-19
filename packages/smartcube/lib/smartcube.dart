@@ -12,8 +12,14 @@ export 'src/driver.dart';
 export 'src/scanner_impl.dart' show createCubeScanner, DefaultCubeScanner;
 export 'src/transport/ble_transport.dart';
 export 'src/cube/cubie_cube.dart' show CubieCube;
-export 'src/reconstruct/frame_algebra.dart';
-export 'src/reconstruct/move_prior.dart';
-export 'src/reconstruct/timing_quality.dart';
-export 'src/reconstruct/reconstruction.dart';
-export 'src/reconstruct/solver_move.dart';
+// Slice reconstruction. Only what a caller needs to run it and read the answer
+// — the frame algebra underneath (compose, decomposeSlice, toSolverFrame, the
+// rotation constants) stays internal on purpose. Its drift conventions are
+// pinned to measured hardware, so publishing them would freeze them, and the
+// package's own tests and example import src/reconstruct/... directly instead.
+export 'src/reconstruct/frame_algebra.dart' show FaceRotation, Slice, kIdentity;
+export 'src/reconstruct/move_prior.dart' show ReconstructionWeights;
+export 'src/reconstruct/timing_quality.dart' show TimingQuality;
+export 'src/reconstruct/reconstruction.dart' show Reconstruction, reconstruct;
+export 'src/reconstruct/solver_move.dart'
+    show MoveKind, SolverMove, movesToString;

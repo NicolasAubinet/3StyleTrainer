@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcube/smartcube.dart';
+// ignore: implementation_imports
+import 'package:smartcube/src/reconstruct/frame_algebra.dart';
 import 'package:smartcube_example/trace_page.dart';
 
 /// A cube we can push arbitrary reported moves into.

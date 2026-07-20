@@ -17,6 +17,8 @@
 /// confidently wrong replay misleads the user about what they did.
 library;
 
+import 'dart:math' show max;
+
 import '../model/cube_move.dart';
 import 'frame_algebra.dart';
 import 'move_prior.dart';
@@ -38,6 +40,10 @@ const int kMotionSpanMs = 90;
 /// layers at once, or four for a half slice — beyond that the grouping is not
 /// something this parser can reason about, so it declines instead of guessing.
 const int kMaxTurnsPerMotion = 4;
+
+/// The widest separation across which two motions may still be fused: past
+/// this, two deliberate turns is the honest reading of a sloppy slice.
+const int kMaxFusionGapMs = 500;
 
 class Reconstruction {
   /// The reconstruction, or the plain outer-face reading when [abstained].
@@ -81,7 +87,11 @@ Reconstruction reconstruct(
   required FaceRotation startOrientation,
   required TimingQuality timing,
   ReconstructionWeights weights = const ReconstructionWeights(),
-  double abstainBelowMargin = 1.0,
+  // Lowered from 1.0 with soft segmentation: correct answers now land in the
+  // 0.55-0.75 band that 1.0 would discard (plan §31j).
+  double abstainBelowMargin = 0.5,
+  // Do NOT narrow this to buy back latency: dropping the runner-up inflates
+  // the margin — at 64 a decline became a confident wrong answer (plan §31j).
   int beamWidth = 250,
 }) {
   final raw = _rawReading(moves, startOrientation);
@@ -112,30 +122,55 @@ Reconstruction reconstruct(
     );
   }
 
-  var frontier = <_Partial>[_Partial(startOrientation, const [], 0)];
+  // Motions are atoms, never split; the search instead chooses how many
+  // adjacent motions to fuse, priced by motionFusionCost rather than gated —
+  // a hard gate leaves a split slice with no correct parse in the beam (§31j).
+  final at = List<List<_Partial>>.generate(motions.length + 1, (_) => []);
+  at[0] = [_Partial(startOrientation, const [], 0)];
 
-  for (final motion in motions) {
-    final next = <_Partial>[];
-    for (final p in frontier) {
-      for (final reading in _readMotion(motion, p.rho, weights)) {
-        var cost = p.cost;
-        final acc = List<SolverMove>.from(p.moves);
-        for (final m in reading.moves) {
-          cost += _moveCost(weights, acc, m);
-          acc.add(m);
+  for (var i = 0; i < motions.length; i++) {
+    if (at[i].isEmpty) continue;
+    at[i].sort((a, b) => a.cost.compareTo(b.cost));
+    // Pruning blind spot, knowingly left: the drift penalty is terminal, so a
+    // parse that returns home but sits past beamWidth here is lost. Fusion
+    // does saturate the beam now, but at 250 nothing observed falls off.
+    if (at[i].length > beamWidth) at[i] = at[i].sublist(0, beamWidth);
+
+    final window = <CubeMove>[];
+    var fusionCost = 0.0;
+    for (var k = 1; i + k <= motions.length; k++) {
+      if (k > 1) {
+        final join = motions[i + k - 1].first.cubeTimestamp.inMilliseconds -
+            motions[i + k - 2].last.cubeTimestamp.inMilliseconds;
+        if (join > kMaxFusionGapMs) break;
+        // Clamped: a kMotionSpanMs split can leave a sub-60ms join, and
+        // unclamped this would pay a bonus for re-fusing what that cap split.
+        // Do NOT add a cost cutoff to bound the work either — pruning the
+        // runner-up manufactures confidence (tried at 5.0 nats; plan §31j).
+        fusionCost += weights.motionFusionCost *
+            max(0, join - kMotionGapMs) /
+            kMotionGapMs;
+      }
+      window.addAll(motions[i + k - 1]);
+      if (window.length > kMaxTurnsPerMotion) break;
+      // Copied — the buffer keeps growing across k.
+      final motion = List<CubeMove>.unmodifiable(window);
+      for (final p in at[i]) {
+        for (final reading in _readMotion(motion, p.rho, weights)) {
+          var cost = p.cost + fusionCost;
+          final acc = List<SolverMove>.from(p.moves);
+          for (final m in reading.moves) {
+            cost += _moveCost(weights, acc, m);
+            acc.add(m);
+          }
+          at[i + k].add(_Partial(compose(reading.drift, p.rho), acc, cost));
         }
-        next.add(_Partial(compose(reading.drift, p.rho), acc, cost));
       }
     }
-    if (next.isEmpty) return Reconstruction(moves: raw, abstained: true);
-    next.sort((a, b) => a.cost.compareTo(b.cost));
-    // Pruning blind spot, knowingly left: the cut is on raw cost, while the
-    // drift penalty is terminal and can only be applied once the parse ends, so
-    // a parse that returns home but sits past beamWidth here is lost. Harmless
-    // at the lengths this sees — a drilled case is a handful of motions and the
-    // beam does not saturate.
-    frontier = next.length > beamWidth ? next.sublist(0, beamWidth) : next;
   }
+
+  final frontier = at[motions.length];
+  if (frontier.isEmpty) return Reconstruction(moves: raw, abstained: true);
 
   // Net drift should return to where it started — but softly. One M2 leaves the
   // core rotated by 180 degrees, and M2-method solvers live with that.

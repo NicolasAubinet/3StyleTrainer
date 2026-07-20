@@ -44,6 +44,13 @@ class ReconstructionWeights {
   /// them, and allowing them costs accuracy on the cases that matter.
   final bool allowWideMoves;
 
+  /// Cost of reading two motions [kMotionGapMs] apart as one, per further
+  /// [kMotionGapMs] of separation. Timing prices the grouping rather than
+  /// gating it: a sticky slice lands its halves 120-350ms apart (measured,
+  /// MoYu V10) and a hard gate makes the correct parse unreachable. Lower
+  /// favours slices, higher favours separate turns (plan §31j).
+  final double motionFusionCost;
+
   const ReconstructionWeights({
     // Fitted from the corpus in tool/slice_eval. Transcribed exactly — these
     // are -log probabilities and the parse is sensitive to their ratios, so do
@@ -58,6 +65,7 @@ class ReconstructionWeights {
     this.conjugateBonus = 1.0,
     this.driftPenalty = 2.0,
     this.allowWideMoves = false,
+    this.motionFusionCost = 1.0,
   });
 
   double costOf(SolverMove m) {

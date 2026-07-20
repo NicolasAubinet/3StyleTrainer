@@ -45,3 +45,5 @@ app.*.map.json
 # Captured smart-cube hardware traces. Kept local: they are large, personal
 # solve data, and the reconstruction regression test skips cleanly without them.
 packages/smartcube/test/fixtures/*.jsonl
+# Where the example app's trace capture writes them in the first place.
+cube_traces/

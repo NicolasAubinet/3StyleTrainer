@@ -92,6 +92,14 @@ class SynthConfig {
   /// Extra uniform noise added to every timestamp, in ms.
   final int jitterMs;
 
+  /// Probability a slice is executed sloppily — one half sensed immediately,
+  /// the other only once the dragged layer is pushed back (measured 122-347ms
+  /// apart on a MoYu V10). Without this the corpus cannot represent the §31j
+  /// failure, and any sweep on it prefers hard segmentation by construction.
+  final double pSloppySlice;
+  final int sloppySliceMinMs;
+  final int sloppySliceMaxMs;
+
   const SynthConfig({
     this.pSimultaneousOuterPair = 0.6,
     this.gapMinMs = 95,
@@ -101,6 +109,9 @@ class SynthConfig {
     this.simulPairSpreadMs = 22,
     this.quantizeMs = 0,
     this.jitterMs = 0,
+    this.pSloppySlice = 0.0,
+    this.sloppySliceMinMs = 120,
+    this.sloppySliceMaxMs = 300,
   });
 }
 
@@ -134,8 +145,14 @@ SynthResult synthesize(List<Move> alg, Random rng, [SynthConfig cfg = const Synt
     }
     if (quarters.isNotEmpty) {
       final isOuter = m.kind == MoveKind.outer;
+      final sloppy = m.kind == MoveKind.slice &&
+          cfg.pSloppySlice > 0 &&
+          rng.nextDouble() < cfg.pSloppySlice;
       final spread = m.kind == MoveKind.slice
-          ? cfg.sliceSpreadMs
+          ? (sloppy
+              ? cfg.sloppySliceMinMs +
+                  rng.nextInt(cfg.sloppySliceMaxMs - cfg.sloppySliceMinMs + 1)
+              : cfg.sliceSpreadMs)
           : (quarters.length > 1 ? cfg.halfTurnSpreadMs : 0);
       groups.add(_Group(
         quarters,

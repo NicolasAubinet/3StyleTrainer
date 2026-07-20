@@ -2,6 +2,8 @@
 /// beam-search over the 24-orientation frame group, scoring each motion's
 /// possible interpretations with fitted log-probabilities (plan §31b/c).
 
+import 'dart:math' show max;
+
 import 'algebra.dart';
 import 'methods.dart' show matchSlice, matchSliceHalf;
 import 'stats.dart';
@@ -44,6 +46,18 @@ class BWeights {
   final bool allowWide;
   final AfterSlice afterSlice;
   final bool useFacePrior;
+
+  /// Let the search choose the grouping instead of committing upfront — hard
+  /// segmentation makes a split slice unparseable (plan §31j).
+  final bool softSegmentation;
+
+  /// Cost of fusing motions [kMotionGapMs] apart, per further [kMotionGapMs];
+  /// what stops the search inventing slices from genuinely separate turns.
+  final double timingPenalty;
+
+  /// Beyond this the fusion is refused outright, to bound the search.
+  final int maxMotionSpanMs;
+
   const BWeights({
     this.consecutiveSameFace = 3.0,
     this.conjugateBonus = 1.0,
@@ -52,6 +66,9 @@ class BWeights {
     this.allowWide = true,
     this.afterSlice = AfterSlice.off,
     this.useFacePrior = true,
+    this.softSegmentation = false,
+    this.timingPenalty = 1.0,
+    this.maxMotionSpanMs = 500,
   });
 
   BWeights copyWith({
@@ -61,6 +78,9 @@ class BWeights {
     bool? allowWide,
     AfterSlice? afterSlice,
     bool? useFacePrior,
+    bool? softSegmentation,
+    double? timingPenalty,
+    int? maxMotionSpanMs,
   }) =>
       BWeights(
         consecutiveSameFace: consecutiveSameFace,
@@ -70,6 +90,9 @@ class BWeights {
         allowWide: allowWide ?? this.allowWide,
         afterSlice: afterSlice ?? this.afterSlice,
         useFacePrior: useFacePrior ?? this.useFacePrior,
+        softSegmentation: softSegmentation ?? this.softSegmentation,
+        timingPenalty: timingPenalty ?? this.timingPenalty,
+        maxMotionSpanMs: maxMotionSpanMs ?? this.maxMotionSpanMs,
       );
 }
 
@@ -245,27 +268,79 @@ class BResult {
   const BResult(this.best, this.margin, [this.cost = 0.0]);
 }
 
-BResult methodBv2(List<Reported> obs, Stats st, BWeights w,
-    {int beam = 250, List<int>? initial}) {
-  final motions = segmentMotions(obs);
+/// Timing fixes the grouping upfront, then the beam scores readings within it.
+List<_P> _searchHard(
+    List<Reported> obs, Stats st, BWeights w, int beam, List<int>? initial) {
   var frontier = <_P>[_P(initial ?? identity, const [], 0.0)];
-
-  for (final motion in motions) {
+  for (final motion in segmentMotions(obs)) {
     final next = <_P>[];
     for (final p in frontier) {
       for (final r in readMotion(motion, p.rho, w)) {
-        var cost = p.cost;
-        final moves = List<Move>.from(p.moves);
-        for (final m in r.moves) {
-          cost += moveCost(st, w, moves, m);
-          moves.add(m);
-        }
-        next.add(_P(compose(r.drift, p.rho), moves, cost));
+        next.add(_extend(p, r, st, w, 0.0));
       }
     }
     next.sort((a, b) => a.cost.compareTo(b.cost));
     frontier = next.length > beam ? next.sublist(0, beam) : next;
   }
+  return frontier;
+}
+
+/// Grouping is part of the search, asymmetrically: sub-[kMotionGapMs] turns
+/// stay forced into one motion (splitting them would wreck the simultaneous
+/// outer pair), while adjacent motions MAY be fused at a timing cost. The
+/// trade is inherent — fusable split slices mean fusable separate turns; the
+/// dial is [BWeights.timingPenalty] (plan §31j).
+List<_P> _searchSoft(
+    List<Reported> obs, Stats st, BWeights w, int beam, List<int>? initial) {
+  final atoms = segmentMotions(obs);
+  final n = atoms.length;
+  final at = List<List<_P>>.generate(n + 1, (_) => <_P>[]);
+  at[0] = [_P(initial ?? identity, const [], 0.0)];
+
+  for (var i = 0; i < n; i++) {
+    if (at[i].isEmpty) continue;
+    // Deduping clone paths here was tried: byte-identical output, so beam
+    // crowding is not why the adversarial group drops (plan §31j).
+    at[i].sort((a, b) => a.cost.compareTo(b.cost));
+    if (at[i].length > beam) at[i] = at[i].sublist(0, beam);
+
+    final window = <Reported>[];
+    var tCost = 0.0;
+    for (var k = 1; i + k <= n; k++) {
+      if (k > 1) {
+        final join = atoms[i + k - 1].first.tMs - atoms[i + k - 2].last.tMs;
+        if (join > w.maxMotionSpanMs) break;
+        // Clamped, matching the lib: a span-split can leave a sub-60ms join,
+        // and unclamped this would pay a bonus for re-fusing it.
+        tCost += w.timingPenalty * max(0, join - kMotionGapMs) / kMotionGapMs;
+      }
+      window.addAll(atoms[i + k - 1]);
+      if (window.length > 4) break;
+      for (final p in at[i]) {
+        for (final r in readMotion(window, p.rho, w)) {
+          at[i + k].add(_extend(p, r, st, w, tCost));
+        }
+      }
+    }
+  }
+  return at[n];
+}
+
+_P _extend(_P p, _Reading r, Stats st, BWeights w, double timingCost) {
+  var cost = p.cost + timingCost;
+  final moves = List<Move>.from(p.moves);
+  for (final m in r.moves) {
+    cost += moveCost(st, w, moves, m);
+    moves.add(m);
+  }
+  return _P(compose(r.drift, p.rho), moves, cost);
+}
+
+BResult methodBv2(List<Reported> obs, Stats st, BWeights w,
+    {int beam = 250, List<int>? initial}) {
+  final frontier = w.softSegmentation
+      ? _searchSoft(obs, st, w, beam, initial)
+      : _searchHard(obs, st, w, beam, initial);
 
   if (frontier.isEmpty) return const BResult([], 0.0, double.infinity);
   // Net drift must return to where it STARTED, not to the identity — the cube

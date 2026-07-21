@@ -117,6 +117,41 @@ void main() {
       expect(out.reconstructed, isTrue);
     });
 
+    test('a wrong-case execution gets the solve-path treatment', () {
+      // The owner's A-parity sighting: `f U R U R2 U' D' R U R' D R2 U2 f'`
+      // executed against a different shown case. Wrong-case detection fires on
+      // the other pair's full expected state, so the centres are provably home
+      // — completed: true is physically justified and the wide f recovers.
+      final moves = stream([
+        ['B'], ['L'], ['U'], ['L'], ['U', 'U'], ["L'"], ["R'"], ['U'], ['L'],
+        ["U'"], ['R'], ["U'", "U'"], ["L'", "L'"], ["B'"],
+      ]);
+      final solve =
+          MoveReconstruction.describe(moves, cube: cube, completed: true)!;
+      expect(solve.notation, "Fw U R U R2 U' D' R U R' D R2 U2 Fw'");
+      expect(solve.reconstructed, isTrue);
+      // A requeue/skip has no completion guarantee: wides stay off and the
+      // stream reads as the outer turns the cube sensed.
+      final aborted = MoveReconstruction.describe(moves, cube: cube)!;
+      expect(aborted.notation, "B L U L U2 L' R' U L U' R U2 L2 B'");
+    });
+
+    test('a slice pairing cannot skip over a cross-axis turn', () {
+      // The owner's Q-parity bug: `S U' R U R2 F R f' U R U R' U'` replayed as
+      // `S U' R U R2 S' U2 R U R' U'` — an S' whose "halves" were the separate
+      // F and f' with a U in between, which is a physically DIFFERENT
+      // transformation (executing it scrambles). A fused window must not pair
+      // quarters across a non-commuting turn.
+      final moves = stream([
+        ["F'", 'B'], ["L'"], ['U'], ['L'], ['U', 'U'], ['F'], ['U'], ["B'"],
+        ['U'], ['R'], ['U'], ["R'"], ["U'"],
+      ]);
+      final r =
+          MoveReconstruction.describe(moves, cube: cube, completed: true)!;
+      expect(r.notation, "S U' R U R2 F R Fw' U R U R' U'");
+      expect(r.reconstructed, isTrue);
+    });
+
     test('a cube with no clock falls back to plain face turns, and says so', () {
       final moves = stream([
         ["R'", 'L'],

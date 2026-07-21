@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:smartcube/smartcube.dart' as sc;
 
 import '../settings.dart';
@@ -43,15 +44,60 @@ class MoveReconstruction {
   /// or two readings were too close to call. The notation is still honest in
   /// that case, it just claims less: slices are left as the face pairs the cube
   /// reported. Callers should not present the two identically.
+  ///
+  /// [completed] means the case was detected solved — a physical guarantee:
+  /// Δ_pair never moves centres, so a completed case ends in its starting
+  /// orientation, which safely admits wide moves (a spurious wide leaves the
+  /// frame unclosed and dies) and rejects any parse claiming leftover drift.
+  /// Never set it for a botched attempt.
   static ReplayMoves? describe(
     List<sc.CubeMove> moves, {
     required sc.SmartCube? cube,
+    bool completed = false,
   }) {
     if (moves.isEmpty) return null;
-    final result = sc.reconstruct(
+    return _reconstruct(_ReconstructRequest(
       moves,
-      startOrientation: orientationFromSettings(),
-      timing: cube?.timingQuality ?? sc.TimingQuality.none,
+      orientationFromSettings(),
+      cube?.timingQuality ?? sc.TimingQuality.none,
+      completed,
+    ));
+  }
+
+  /// [describe], off the UI thread. The beam search costs tens of
+  /// milliseconds — a visible hitch on a phone when run at the exact moment a
+  /// case completes and the next one should appear. Settings are read here, on
+  /// the calling isolate, for the same staleness reason as above.
+  static Future<ReplayMoves?> describeAsync(
+    List<sc.CubeMove> moves, {
+    required sc.SmartCube? cube,
+    bool completed = false,
+  }) {
+    if (moves.isEmpty) return Future.value(null);
+    return compute(
+        _reconstruct,
+        _ReconstructRequest(
+          moves,
+          orientationFromSettings(),
+          cube?.timingQuality ?? sc.TimingQuality.none,
+          completed,
+        ));
+  }
+
+  static ReplayMoves? _reconstruct(_ReconstructRequest r) {
+    final result = sc.reconstruct(
+      r.moves,
+      startOrientation: r.orientation,
+      timing: r.timing,
+      // The solve path also scores outer-after-slice transitions with the
+      // conditional face distribution — safe only where the closed-drift
+      // filter holds, decisive there (it is what recovers bracketing-wide
+      // setups like u ... u'). Both paths sit at the default 0.5 threshold:
+      // re-measured bands put every true hardware parse at 0.55+ and no wrong
+      // winner anywhere, so the old 0.75 solve fence is no longer needed.
+      weights: sc.ReconstructionWeights(
+          allowWideMoves: r.completed, useAfterSlicePrior: r.completed),
+      requireClosedDrift: r.completed,
     );
     return ReplayMoves(
       notation: result.notation,
@@ -59,6 +105,17 @@ class MoveReconstruction {
       why: result.note,
     );
   }
+}
+
+/// Everything the reconstruction needs, captured on the main isolate.
+class _ReconstructRequest {
+  final List<sc.CubeMove> moves;
+  final sc.FaceRotation orientation;
+  final sc.TimingQuality timing;
+  final bool completed;
+
+  const _ReconstructRequest(
+      this.moves, this.orientation, this.timing, this.completed);
 }
 
 /// What a botched case's turns looked like, and how much to trust the reading.

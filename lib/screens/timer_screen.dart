@@ -16,6 +16,7 @@ import '../smart_cube/cube_orientation.dart';
 import '../smart_cube/cube_run.dart';
 import '../smart_cube/move_reconstruction.dart';
 import '../smart_cube/orientation_diagnostics.dart';
+import '../smart_cube/solve_trace.dart';
 import '../smart_cube/three_style_geometry.dart';
 import '../smart_cube_manager.dart';
 import '../theme/app_palette.dart';
@@ -121,17 +122,14 @@ class _TimerScreenState extends State<TimerScreen> {
   async.Timer? _requeueDebounce;
 
   // Records one solved case: appends to the session list and, for recording
-  // runs, writes the DB row and nudges the selector. Shared by both timing modes.
-  void _recordSolve(Alg solved, int elapsedMilliseconds,
-      {int? recognitionMs, ReplayMoves? replay}) {
+  // runs, writes the DB row and nudges the selector. Shared by both timing
+  // modes. Cube runs patch the replay into the row once it is reconstructed.
+  void _recordSolve(Alg solved, int elapsedMilliseconds, {int? recognitionMs}) {
     // The solve's timestamp; for recorded runs the same value is written to the
     // DB row, so the summary can delete that exact row.
     final int timestamp = DateTime.now().millisecondsSinceEpoch;
     times.add(AlgTime(times.length + 1, elapsedMilliseconds, solved,
-        timestamp: timestamp,
-        recognitionMs: recognitionMs,
-        moves: replay?.notation,
-        movesReconstructed: replay?.reconstructed ?? true));
+        timestamp: timestamp, recognitionMs: recognitionMs));
     if (_isRecordingRun) {
       DatabaseManager().insertResult(
           widget.algType, solved.name, elapsedMilliseconds,
@@ -359,16 +357,35 @@ class _TimerScreenState extends State<TimerScreen> {
     // A raw reading is stored as-is: it is what the cube reported, just without
     // slices recovered. Marking it in the string would leak into the DB and the
     // summary; surfacing the distinction is a UI decision, not a storage one.
-    final replay =
-        MoveReconstruction.describe(_caseMoves, cube: SmartCubeManager().cube);
-    final moves = replay?.notation;
-    mistakes.add(AlgMistake(mistakes.length + 1, Alg(shown), kind,
-        executed: executed,
-        moves: moves,
-        movesReconstructed: replay?.reconstructed ?? true));
-    if (widget.algType != AlgType.Custom) {
-      _persistMistake(shown, kind, executed, moves);
-    }
+    //
+    // A wrong-case detection IS a completed execution — it fires on the other
+    // pair's full expected state, whose centres are provably home (Δ_pair
+    // never moves them) — so the solve-path physics apply and wides are
+    // recoverable. Requeue/skip carry no such guarantee.
+    //
+    // Reconstructed off the UI thread (see describeAsync); the mistake row is
+    // patched and persisted when the replay lands — the summary reads it later.
+    final caseMoves = List<CubeMove>.of(_caseMoves);
+    mistakes.add(
+        AlgMistake(mistakes.length + 1, Alg(shown), kind, executed: executed));
+    final slot = mistakes.length - 1;
+    MoveReconstruction.describeAsync(caseMoves,
+            cube: SmartCubeManager().cube,
+            completed: kind == AlgMistakeKind.wrongCase)
+        .then((replay) {
+      _traceCase('$shown!${kind.name}', replay?.notation, moves: caseMoves);
+      if (replay != null) {
+        final m = mistakes[slot];
+        mistakes[slot] = AlgMistake(m.index, m.alg, m.kind,
+            executed: m.executed,
+            moves: replay.notation,
+            movesReconstructed: replay.reconstructed);
+      }
+      if (widget.algType != AlgType.Custom) {
+        _persistMistake(shown, kind, executed, replay?.notation);
+      }
+      if (mounted) setState(() {});
+    });
     // Skip drops the case from the rest of the run; every other error puts it
     // back in the pool to be retried later.
     final skipping = kind == AlgMistakeKind.skipped;
@@ -412,6 +429,18 @@ class _TimerScreenState extends State<TimerScreen> {
 
   void _setFeedback(_CubeFeedback fb) {
     if (fb != _feedback) setState(() => _feedback = fb);
+  }
+
+  // Best-effort capture of what the cube reported for a finished case, so a
+  // strange live reconstruction can be replayed offline (cube_traces/). Takes
+  // the moves explicitly: by the time the async replay lands, _caseMoves
+  // already belongs to the next case.
+  void _traceCase(String label, String? result,
+      {required List<CubeMove> moves}) {
+    SolveTrace().log(label, moves,
+        top: Settings().getCubeTopColour().name,
+        front: Settings().getCubeFrontColour().name,
+        result: result);
   }
 
   void _onCubeMove(CubeMove move) {
@@ -495,21 +524,37 @@ class _TimerScreenState extends State<TimerScreen> {
     if (finished == null) return;
     final spoiled = _caseSpoiled; // starting the next case clears the flag
     stopwatch.stop();
-    // Session-only: lets the summary show what a solve's turns looked like
-    // (was the detection right, were there reverted wrong moves), same as the
-    // error rows. Never written to the DB.
-    final replay = spoiled
-        ? null
-        : MoveReconstruction.describe(_caseMoves,
-            cube: SmartCubeManager().cube);
+    final caseMoves = List<CubeMove>.of(_caseMoves);
     setState(() {
       _orientationConfirmed = true; // a clean solve proves the orientation
       _feedback = null;
       if (!spoiled) {
         _recordSolve(finished, split.total.inMilliseconds,
-            recognitionMs: split.recognition.inMilliseconds, replay: replay);
+            recognitionMs: split.recognition.inMilliseconds);
       }
     });
+    // Session-only: lets the summary show what a solve's turns looked like
+    // (was the detection right, were there reverted wrong moves), same as the
+    // error rows. Never written to the DB. Reconstructed off the UI thread
+    // (see describeAsync) and patched into the recorded row when it lands.
+    if (spoiled) {
+      _traceCase(finished.name, null, moves: caseMoves);
+    } else {
+      final slot = times.length - 1;
+      MoveReconstruction.describeAsync(caseMoves,
+              cube: SmartCubeManager().cube, completed: true)
+          .then((replay) {
+        _traceCase(finished.name, replay?.notation, moves: caseMoves);
+        if (replay == null) return;
+        final t = times[slot];
+        times[slot] = AlgTime(t.index, t.timeMs, t.alg,
+            timestamp: t.timestamp,
+            recognitionMs: t.recognitionMs,
+            moves: replay.notation,
+            movesReconstructed: replay.reconstructed);
+        if (mounted) setState(() {});
+      });
+    }
     // A resync cost the case its honest time: no mistake, but no time either —
     // so back in the pool rather than dropped from the run.
     _advanceCubeCase(_cubeRun!.expectedFacelets ?? _currentFacelets,

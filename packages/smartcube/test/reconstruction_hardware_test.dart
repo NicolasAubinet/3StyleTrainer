@@ -31,6 +31,10 @@ SolverMove parseMove(String tok) {
   if (t.length == 2 && t[1] == 'w') {
     return SolverMove.wide(Face.values.byName(t[0]), amount);
   }
+  // Classic lowercase wide notation (u = Uw), as blddb and the owner write it.
+  if (t.length == 1 && 'rludfb'.contains(t)) {
+    return SolverMove.wide(Face.values.byName(t.toUpperCase()), amount);
+  }
   if (t.length == 1 && 'MES'.contains(t)) {
     return SolverMove.slice(Slice.values.byName(t), amount);
   }
@@ -121,22 +125,11 @@ List<({Face face, bool prime, bool half})> _sortCommuting(
   return out;
 }
 
-/// Adjacent opposite-face turns commute; the cube cannot know which of two
-/// simultaneous turns landed first, so neither can the comparison.
-String canonical(List<SolverMove> moves) {
-  final out = List<SolverMove>.from(moves);
-  for (var i = 0; i + 1 < out.length; i++) {
-    final a = out[i], b = out[i + 1];
-    if (a.kind == MoveKind.outer &&
-        b.kind == MoveKind.outer &&
-        kOpposite[a.face!] == b.face &&
-        a.face!.index > b.face!.index) {
-      out[i] = b;
-      out[i + 1] = a;
-    }
-  }
-  return movesToString(collapseDoubles(out));
-}
+/// Moves on one axis commute — each layer rotates independently — so parses
+/// that net to the same per-layer rotations (`U E` vs `E U`, `Rw M' R'` vs
+/// `M2`) are the same physical claim. Compare net spellings.
+String canonical(List<SolverMove> moves) =>
+    movesToString(simplifyAxisRuns(moves, canonical: true));
 
 // ---------------------------------------------------------------------------
 

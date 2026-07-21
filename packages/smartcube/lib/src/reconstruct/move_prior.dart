@@ -1,10 +1,12 @@
 /// The scoring priors for reconstruction, as negative log probabilities.
 ///
-/// **This is the weakest part of the method and the strongest term in it.**
-/// Removing the face-frequency prior drops whole-sequence accuracy from ~93% to
-/// ~45%, and the numbers below are fitted from a hand-written corpus of ~64
-/// blind sequences, not from a large real-world sample. Treat them as a
-/// starting point to be replaced by per-user statistics, not as constants.
+/// **This is the strongest term in the method** — removing the face-frequency
+/// prior drops whole-sequence accuracy from ~93% to ~45%. The costs below are
+/// fitted from blddb's manmade alg database (github.com/nbwzx/blddb, GPL-3.0):
+/// ~13k human 3-style algorithms weighted by how many solvers use each,
+/// rotation-containing algs excluded (a rotation emits nothing, so no parse of
+/// a sensed stream can contain one). Fitting is tool/slice_eval/blddb.dart.
+/// Per-user statistics from recorded solves would still be better.
 library;
 
 import '../model/cube_move.dart';
@@ -44,6 +46,21 @@ class ReconstructionWeights {
   /// them, and allowing them costs accuracy on the cases that matter.
   final bool allowWideMoves;
 
+  /// Score an outer turn that FOLLOWS a slice with [afterSliceFaceCost]
+  /// instead of [faceCost]. Real algs pair slices with U/R/L and almost never
+  /// with F/B/D, and relabelled misreadings do the opposite — so the
+  /// conditional distribution separates them where the marginal cannot.
+  ///
+  /// **Solve path only.** Decisive there, but WITHOUT the closed-drift filter
+  /// it misreads execution styles whose slice pairings differ from the
+  /// population's (measured: edge cases drop 100 -> 93.8 exact on the mistake
+  /// path). Off by default.
+  final bool useAfterSlicePrior;
+
+  /// -log P(face | previous move was a slice), indexed by [Face]. Only
+  /// consulted when [useAfterSlicePrior] is set.
+  final List<double> afterSliceFaceCost;
+
   /// Cost of reading two motions [kMotionGapMs] apart as one, per further
   /// [kMotionGapMs] of separation. Timing prices the grouping rather than
   /// gating it: a sticky slice lands its halves 120-350ms apart (measured,
@@ -52,19 +69,23 @@ class ReconstructionWeights {
   final double motionFusionCost;
 
   const ReconstructionWeights({
-    // Fitted from the corpus in tool/slice_eval. Transcribed exactly — these
-    // are -log probabilities and the parse is sensitive to their ratios, so do
-    // not round them by hand.
-    this.faceCost = const [0.9272, 2.2219, 2.5435, 1.0204, 3.0204, 4.8122],
-    this.outerCost = 0.2032,
-    this.sliceCost = 1.8662,
-    this.wideCost = 3.5354,
-    this.halfCost = 2.3369,
-    this.quarterCost = 0.1016,
+    // Fitted from blddb by tool/slice_eval/blddb.dart. Transcribed exactly —
+    // these are -log probabilities and the parse is sensitive to their ratios,
+    // so do not round them by hand.
+    this.faceCost = const [1.1693, 1.8595, 2.4657, 0.9045, 3.3882, 4.5836],
+    this.outerCost = 0.1997,
+    this.sliceCost = 1.9357,
+    this.wideCost = 3.3048,
+    this.halfCost = 2.1835,
+    this.quarterCost = 0.1195,
     this.consecutiveSameLayer = 3.0,
     this.conjugateBonus = 1.0,
     this.driftPenalty = 2.0,
     this.allowWideMoves = false,
+    this.useAfterSlicePrior = false,
+    this.afterSliceFaceCost = const [
+      1.1624, 3.7162, 1.5303, 0.8370, 4.6209, 5.6333 // U D L R F B, blddb
+    ],
     this.motionFusionCost = 1.0,
   });
 

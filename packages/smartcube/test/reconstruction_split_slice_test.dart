@@ -10,10 +10,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcube/smartcube.dart';
-import 'package:smartcube/src/reconstruct/frame_algebra.dart';
 import 'package:smartcube/src/reconstruct/reconstruction.dart'
     show kMotionGapMs, segmentMotions;
-import 'package:smartcube/src/reconstruct/solver_move.dart';
 
 import 'reconstruction_hardware_test.dart'
     show canonical, findOrientation, parseAlg;

@@ -63,6 +63,28 @@ const corpus = <CorpusGroup>[
     "Rw' U' R U' R' U2 Rw",
     "Lw U L' U' Lw' F L F'",
   ]),
+  // Real blind edge algs with wides, from blddb (github.com/nbwzx/blddb,
+  // GPL-3.0) — the most-used human algs, usage-weighted, rotations excluded
+  // (a rotation emits nothing, so no parse of the stream can contain it).
+  // The last two are the §31k owner algs; both appear in blddb verbatim.
+  CorpusGroup('blind wides (blddb)', [
+    "R U' R' U M' U' R U r'",
+    "r U' R' U M U' R U R'",
+    "r U R' U' M U R U' R'",
+    "l D l' S' l D' l' S",
+    "l' U L U' M U L' U' L",
+    "l' U R E' R2 E R U' l",
+    "u' R' E' R2 E R' u",
+    "u' R E R2 E' R u",
+    "u L E L2 E' L u'",
+    "U' r' E' r2 E' r' U",
+    "U r' S r2 S r' U'",
+    "r U' r' S' r U r' S",
+    "S r U' r' S' r U r'",
+    "D' l D l' S' l D' l' S D",
+    "u L' E' L2 E L' u'",
+    "E R E' R' U' R E R' u",
+  ]),
   // The hard case: adjacent opposite-face outer pairs, which the synthesizer
   // executes as ONE two-handed motion most of the time — timing-identical to a
   // slice, but not a slice.

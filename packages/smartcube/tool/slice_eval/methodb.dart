@@ -103,8 +103,14 @@ class _Reading {
   const _Reading(this.moves, this.drift);
 }
 
-/// Enumerate readings of one motion under drift [rho].
-List<_Reading> readMotion(List<Reported> motion, List<int> rho, BWeights w) {
+/// Enumerate readings of one motion under drift [rho]. [atoms] labels each
+/// quarter with the atomic (~60ms) motion it arrived in (null = one true
+/// motion, where arrival order is arbitrary and pairing free, §31h). In a
+/// fused window a pairing may skip only SAME-axis quarters, which commute;
+/// skipping a cross-axis quarter claims an execution the observed order rules
+/// out (the Q-parity bug).
+List<_Reading> readMotion(List<Reported> motion, List<int> rho, BWeights w,
+    [List<int>? atoms]) {
   final n = motion.length;
   if (n > 4) {
     // Too long to partition; read every quarter as an outer turn.
@@ -114,6 +120,20 @@ List<_Reading> readMotion(List<Reported> motion, List<int> rho, BWeights w) {
       ], identity)
     ];
   }
+  int axisOf(int face) => const [0, 0, 1, 1, 2, 2][face];
+  bool mayPair(int i, int j) {
+    if (atoms == null || atoms[j] - atoms[i] <= 1) return true;
+    final axis = axisOf(motion[i].face);
+    for (var q = 0; q < n; q++) {
+      if (atoms[q] > atoms[i] &&
+          atoms[q] < atoms[j] &&
+          axisOf(motion[q].face) != axis) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   final results = <_Reading>[];
   final used = List<bool>.filled(n, false);
 
@@ -150,7 +170,7 @@ List<_Reading> readMotion(List<Reported> motion, List<int> rho, BWeights w) {
     used[first] = false;
 
     for (var j = first + 1; j < n; j++) {
-      if (used[j]) continue;
+      if (used[j] || !mayPair(first, j)) continue;
       final b = motion[j];
       final fb = cur[b.face];
       final db = b.prime ? 3 : 1;
@@ -183,7 +203,9 @@ List<_Reading> readMotion(List<Reported> motion, List<int> rho, BWeights w) {
       }
     }
 
-    // (e) four quarters, 2+2 on opposite faces -> a half slice
+    // (e) four quarters, 2+2 on opposite faces -> a half slice. No atom
+    // constraint: everything is consumed, and a valid half slice's quarters
+    // all share one axis anyway.
     if (n == 4 && !used.any((u) => u)) {
       final m = matchSliceHalf([
         for (final r in motion) (face: cur[r.face], prime: r.prime)
@@ -239,7 +261,11 @@ double moveCost(Stats st, BWeights w, List<Move> prev, Move m) {
       c += w.consecutiveSameFace;
     }
   }
-  for (var k = prev.length - 1, span = 0; k >= 0 && span < 5; k--, span++) {
+  // Wides get a longer lookback: a wide is a setup move, so its undo brackets
+  // the whole conjugate (`u ... u'` spans 5-9 moves), where outer/slice
+  // cancellations sit close together. 5 stays 5 for those — tuned.
+  final maxSpan = m.kind == MoveKind.wide ? 12 : 5;
+  for (var k = prev.length - 1, span = 0; k >= 0 && span < maxSpan; k--, span++) {
     final p = prev[k];
     if (p.kind == m.kind && _faceOf(p) == _faceOf(m)) {
       final inv = (p.amount == inverseAmount(m.amount)) ||
@@ -265,7 +291,10 @@ class BResult {
   /// Total cost of the winning parse. Comparable ACROSS runs, so it is what
   /// selects between candidate initial orientations (margin is not).
   final double cost;
-  const BResult(this.best, this.margin, [this.cost = 0.0]);
+
+  /// Top distinct parses with their costs, cheapest first (diagnostics).
+  final List<(String, double)> top;
+  const BResult(this.best, this.margin, [this.cost = 0.0, this.top = const []]);
 }
 
 /// Timing fixes the grouping upfront, then the beam scores readings within it.
@@ -305,6 +334,7 @@ List<_P> _searchSoft(
     if (at[i].length > beam) at[i] = at[i].sublist(0, beam);
 
     final window = <Reported>[];
+    final windowAtoms = <int>[];
     var tCost = 0.0;
     for (var k = 1; i + k <= n; k++) {
       if (k > 1) {
@@ -315,9 +345,10 @@ List<_P> _searchSoft(
         tCost += w.timingPenalty * max(0, join - kMotionGapMs) / kMotionGapMs;
       }
       window.addAll(atoms[i + k - 1]);
+      windowAtoms.addAll(List.filled(atoms[i + k - 1].length, k - 1));
       if (window.length > 4) break;
       for (final p in at[i]) {
-        for (final r in readMotion(window, p.rho, w)) {
+        for (final r in readMotion(window, p.rho, w, windowAtoms)) {
           at[i + k].add(_extend(p, r, st, w, tCost));
         }
       }
@@ -337,12 +368,23 @@ _P _extend(_P p, _Reading r, Stats st, BWeights w, double timingCost) {
 }
 
 BResult methodBv2(List<Reported> obs, Stats st, BWeights w,
-    {int beam = 250, List<int>? initial}) {
-  final frontier = w.softSegmentation
+    {int beam = 250, List<int>? initial, bool requireHomeDrift = false}) {
+  var frontier = w.softSegmentation
       ? _searchSoft(obs, st, w, beam, initial)
       : _searchHard(obs, st, w, beam, initial);
 
   if (frontier.isEmpty) return const BResult([], 0.0, double.infinity);
+
+  // A completed case ends with the centres home (Δ_pair never moves them), so
+  // for solve replays an unclosed parse is infeasible — filter BEFORE the
+  // margin is measured. An empty filtered set means the vocabulary cannot
+  // close the stream; fall through rather than crash (the lib abstains there).
+  if (requireHomeDrift) {
+    final home = rotKey(initial ?? identity);
+    final closed =
+        frontier.where((p) => rotKey(p.rho) == home).toList();
+    if (closed.isNotEmpty) frontier = closed;
+  }
   // Net drift must return to where it STARTED, not to the identity — the cube
   // is rarely held in its own canonical orientation (§31h).
   final home = rotKey(initial ?? identity);
@@ -354,12 +396,23 @@ BResult methodBv2(List<Reported> obs, Stats st, BWeights w,
 
   final best = scored.first;
   var margin = double.infinity;
-  final bestStr = algToString(best.moves);
+  // Margin against the best MATERIALLY different parse: canonicalCollapsed
+  // equates commuting same-axis reorderings and split doubles, which are the
+  // same physical claim in different notation — measuring the margin between
+  // two spellings of one hypothesis reports false ambiguity (a 0.00 "tie").
+  final bestStr = algToString(canonicalCollapsed(best.moves));
   for (final s in scored.skip(1)) {
-    if (algToString(s.moves) != bestStr) {
+    if (algToString(canonicalCollapsed(s.moves)) != bestStr) {
       margin = s.cost - best.cost;
       break;
     }
   }
-  return BResult(best.moves, margin, best.cost);
+  final top = <(String, double)>[];
+  for (final s in scored) {
+    final str = algToString(canonicalCollapsed(s.moves));
+    if (top.any((t) => t.$1 == str)) continue;
+    top.add((str, s.cost - best.cost));
+    if (top.length >= 6) break;
+  }
+  return BResult(best.moves, margin, best.cost, top);
 }

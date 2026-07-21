@@ -230,20 +230,42 @@ Decomposition decompose(Move m) {
   }
 }
 
-/// Two simultaneous turns on opposite faces reach the cube in an arbitrary
-/// order — it cannot know which landed first, so neither can we. Sort adjacent
-/// opposite-face outer pairs before comparing, or every one is a false miss.
+/// The rotation axis a move turns about: 0 = U/D/E, 1 = L/R/M, 2 = F/B/S.
+int moveAxis(Move m) {
+  switch (m.kind) {
+    case MoveKind.outer:
+    case MoveKind.wide:
+      return const [0, 0, 1, 1, 2, 2][m.id];
+    case MoveKind.slice:
+      return const [1, 0, 2][m.id]; // M E S
+    case MoveKind.rotation:
+      return m.id;
+  }
+}
+
+/// Moves on one axis commute — each layer rotates independently — so parses
+/// differing only in the order of adjacent same-axis moves make the same
+/// physical claim, and within one motion the arrival order is arbitrary anyway
+/// (§31h). Sort every maximal same-axis run into a fixed order before
+/// comparing, or each such pair is a false miss (and a false 0.00 margin).
 List<Move> canonical(List<Move> alg) {
   final out = List<Move>.from(alg);
-  for (var i = 0; i + 1 < out.length; i++) {
-    final a = out[i], b = out[i + 1];
-    if (a.kind == MoveKind.outer &&
-        b.kind == MoveKind.outer &&
-        oppositeFace[a.id] == b.id &&
-        a.id > b.id) {
-      out[i] = b;
-      out[i + 1] = a;
+  var i = 0;
+  while (i < out.length) {
+    var j = i + 1;
+    while (j < out.length && moveAxis(out[j]) == moveAxis(out[i])) {
+      j++;
     }
+    if (j - i > 1) {
+      final run = out.sublist(i, j)
+        ..sort((a, b) {
+          if (a.kind != b.kind) return a.kind.index - b.kind.index;
+          if (a.id != b.id) return a.id - b.id;
+          return a.amount - b.amount;
+        });
+      out.setRange(i, j, run);
+    }
+    i = j;
   }
   return out;
 }

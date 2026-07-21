@@ -16,36 +16,39 @@ class Stats {
   const Stats(this.faceCost, this.outerCost, this.sliceCost, this.wideCost,
       this.halfCost, this.quarterCost, this.afterSliceFaceCost);
 
-  static Stats fit(List<String> algs) {
+  static Stats fit(List<String> algs) =>
+      fitWeighted([for (final s in algs) (parseAlg(s), 1.0)]);
+
+  /// Fit from parsed algs with per-alg weights (e.g. blddb user counts).
+  static Stats fitWeighted(List<(List<Move>, double)> algs) {
     final face = List<double>.filled(6, 1.0);
     final afterSlice = List<double>.filled(6, 1.0);
     var outer = 1.0, slice = 1.0, wide = 1.0, half = 1.0, quarter = 1.0;
 
-    for (final s in algs) {
-      final alg = parseAlg(s);
+    for (final (alg, wt) in algs) {
       for (var i = 0; i < alg.length; i++) {
         final m = alg[i];
         switch (m.kind) {
           case MoveKind.outer:
-            outer++;
-            face[m.id]++;
+            outer += wt;
+            face[m.id] += wt;
             break;
           case MoveKind.slice:
-            slice++;
+            slice += wt;
             break;
           case MoveKind.wide:
-            wide++;
+            wide += wt;
             break;
           case MoveKind.rotation:
             break;
         }
         if (m.amount == 2) {
-          half++;
+          half += wt;
         } else {
-          quarter++;
+          quarter += wt;
         }
         if (i > 0 && alg[i - 1].kind == MoveKind.slice && m.kind == MoveKind.outer) {
-          afterSlice[m.id]++;
+          afterSlice[m.id] += wt;
         }
       }
     }
@@ -71,7 +74,8 @@ class Stats {
   String describe() {
     String f(double v) => v.toStringAsFixed(2);
     return 'face[U D L R F B] = ${faceCost.map(f).join(' ')}\n'
-        '  kind: outer ${f(outerCost)}  slice ${f(sliceCost)}  wide ${f(wideCost)}\n'
+        '  kind: outer ${f(outerCost)}  slice ${f(sliceCost)}  wide ${f(wideCost)}'
+        '  half ${f(halfCost)}  quarter ${f(quarterCost)}\n'
         '  afterSlice[U D L R F B] = ${afterSliceFaceCost.map(f).join(' ')}';
   }
 }

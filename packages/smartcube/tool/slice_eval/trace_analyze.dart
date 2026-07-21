@@ -15,6 +15,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'algebra.dart';
+import 'blddb.dart';
 import 'methodb.dart';
 import 'stats.dart';
 import 'synth.dart';
@@ -30,9 +31,30 @@ class Row {
   Row(this.label, this.take, this.face, this.prime, this.cubeMs, this.hostMs);
 }
 
+// --wide admits wide moves into the hypothesis space (§31k experiments).
+// --soft uses soft segmentation, matching the shipped parser (§31j).
+// --blddb scores with the blddb-fitted prior instead of the corpus fit (§31i.G).
+bool _allowWide = false;
+bool _homeDrift = false;
+bool _soft = false;
+bool _top = false;
+bool _afterSlice = false;
+Stats? _blddbStats;
+
 void main(List<String> args) {
+  _allowWide = args.contains("--wide");
+  _homeDrift = args.contains("--home");
+  _soft = args.contains("--soft");
+  _top = args.contains("--top");
+  _afterSlice = args.contains("--afterslice");
+  if (args.contains("--blddb")) _blddbStats = fitBlddb().stats;
+  args = [
+    for (final a in args)
+      if (!a.startsWith("--")) a
+  ];
   if (args.isEmpty) {
-    print('usage: dart run trace_analyze.dart <trace.jsonl> [more.jsonl ...]');
+    print('usage: dart run trace_analyze.dart '
+        '[--wide] [--home] [--soft] [--blddb] <trace.jsonl> ...');
     exit(2);
   }
   final rows = <Row>[];
@@ -333,22 +355,36 @@ void _reconstruct(Map<String, List<Row>> byTake) {
     final stream = [
       for (final r in rows) Reported(r.face, r.prime, r.cubeMs)
     ];
-    final st = Stats.fit(allAlgs().where((a) => a != label).toList());
+    final st = _blddbStats ??
+        Stats.fit(allAlgs().where((a) => a != label).toList());
     // ★ The starting frame is SUPPLIED, not inferred. Inferring it from the
     // move stream is not identifiable: the parse is only determined up to a
     // rotation, and the face-frequency prior simply prefers whichever rotation
     // lands the moves on R and U. In the trainer this comes from the §13
     // orientation setting; here it comes from the execution check.
-    final res = methodBv2(stream, st, const BWeights(allowWide: false),
+    final res = methodBv2(
+        stream,
+        st,
+        BWeights(
+            allowWide: _allowWide,
+            softSegmentation: _soft,
+            afterSlice: _afterSlice ? AfterSlice.fitted : AfterSlice.off),
+        requireHomeDrift: _homeDrift,
         initial: knownOrientation[key] ?? identity);
     n++;
     final got = _canon(res.best);
     final want = _canon(truth);
     if (got == want) {
       ok++;
+      print('  ok    $want   (margin ${res.margin.toStringAsFixed(2)})');
     } else {
       print('  MISS  want $want');
       print('        got  $got   (margin ${res.margin.toStringAsFixed(2)})');
+    }
+    if (_top) {
+      for (final t in res.top) {
+        print('          +${t.$2.toStringAsFixed(2)}  ${t.$1}');
+      }
     }
   });
   if (n == 0) return print('  (no labelled algs)');

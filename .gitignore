@@ -47,3 +47,6 @@ app.*.map.json
 packages/smartcube/test/fixtures/*.jsonl
 # Where the example app's trace capture writes them in the first place.
 cube_traces/
+# blddb alg database snapshots (fetched by tool/slice_eval/blddb.dart's data
+# source, https://v2.blddb.net/data/) — 6MB of JSON, re-fetchable at will.
+packages/smartcube/tool/slice_eval/data/

@@ -122,12 +122,16 @@ class _TimerScreenState extends State<TimerScreen> {
 
   // Records one solved case: appends to the session list and, for recording
   // runs, writes the DB row and nudges the selector. Shared by both timing modes.
-  void _recordSolve(Alg solved, int elapsedMilliseconds, {int? recognitionMs}) {
+  void _recordSolve(Alg solved, int elapsedMilliseconds,
+      {int? recognitionMs, ReplayMoves? replay}) {
     // The solve's timestamp; for recorded runs the same value is written to the
     // DB row, so the summary can delete that exact row.
     final int timestamp = DateTime.now().millisecondsSinceEpoch;
     times.add(AlgTime(times.length + 1, elapsedMilliseconds, solved,
-        timestamp: timestamp, recognitionMs: recognitionMs));
+        timestamp: timestamp,
+        recognitionMs: recognitionMs,
+        moves: replay?.notation,
+        movesReconstructed: replay?.reconstructed ?? true));
     if (_isRecordingRun) {
       DatabaseManager().insertResult(
           widget.algType, solved.name, elapsedMilliseconds,
@@ -359,7 +363,9 @@ class _TimerScreenState extends State<TimerScreen> {
         MoveReconstruction.describe(_caseMoves, cube: SmartCubeManager().cube);
     final moves = replay?.notation;
     mistakes.add(AlgMistake(mistakes.length + 1, Alg(shown), kind,
-        executed: executed, moves: moves));
+        executed: executed,
+        moves: moves,
+        movesReconstructed: replay?.reconstructed ?? true));
     if (widget.algType != AlgType.Custom) {
       _persistMistake(shown, kind, executed, moves);
     }
@@ -489,12 +495,19 @@ class _TimerScreenState extends State<TimerScreen> {
     if (finished == null) return;
     final spoiled = _caseSpoiled; // starting the next case clears the flag
     stopwatch.stop();
+    // Session-only: lets the summary show what a solve's turns looked like
+    // (was the detection right, were there reverted wrong moves), same as the
+    // error rows. Never written to the DB.
+    final replay = spoiled
+        ? null
+        : MoveReconstruction.describe(_caseMoves,
+            cube: SmartCubeManager().cube);
     setState(() {
       _orientationConfirmed = true; // a clean solve proves the orientation
       _feedback = null;
       if (!spoiled) {
         _recordSolve(finished, split.total.inMilliseconds,
-            recognitionMs: split.recognition.inMilliseconds);
+            recognitionMs: split.recognition.inMilliseconds, replay: replay);
       }
     });
     // A resync cost the case its honest time: no mistake, but no time either —

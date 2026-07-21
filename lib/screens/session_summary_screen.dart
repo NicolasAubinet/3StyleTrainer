@@ -569,6 +569,49 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     );
   }
 
+  // A one-line disclaimer under moves the parser did not fully reconstruct:
+  // the notation is the raw face-by-face reading, so slices appear as the
+  // opposite-face turn pairs the cube reported.
+  Widget _rawNote(AppPalette p, AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Text(l10n.rawMovesNote,
+          style: TextStyle(
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: p.textFaint)),
+    );
+  }
+
+  // The moves of one clean solve, on tap of its time row.
+  void _showSolveMoves(AlgTime algTime) {
+    final p = context.palette;
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(algTime.alg.name, style: _mono(20, p.textPrimary)),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SelectableText(
+              algTime.moves!,
+              style: _mono(14, p.textMuted, weight: FontWeight.w400),
+            ),
+            if (!algTime.movesReconstructed) _rawNote(p, l10n),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Every attempt on this case: what it was read as, and the moves in full.
   void _showMistakeMoves(List<AlgMistake> group, AppLocalizations l10n) {
     final p = context.palette;
@@ -592,6 +635,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                   m.moves ?? l10n.mistakeNoMoves,
                   style: _mono(14, p.textMuted, weight: FontWeight.w400),
                 ),
+                if (m.moves != null && !m.movesReconstructed) _rawNote(p, l10n),
                 const SizedBox(height: 14),
               ],
             ],
@@ -830,10 +874,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   Widget _algRow(AlgTime algTime, AppPalette p) {
     final color = _rowColor(algTime.timeMs, p);
 
-    final card = GlassPanel(
-      radius: 10,
-      padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
-      child: Column(
+    final body = Column(
         children: [
           LayoutBuilder(builder: (context, constraints) {
             final showPills =
@@ -874,6 +915,28 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
             tickFrac: _isTimeRace ? null : _TARGET_TICK_FRAC,
           ),
         ],
+      );
+
+    // Cube-driven solves carry their moves (session-only); tap to see them.
+    // A tap on a swiped-open row folds it back instead.
+    final card = GlassPanel(
+      radius: 10,
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: algTime.moves == null
+            ? null
+            : () {
+                if (_openRow.value != null) {
+                  _openRow.value = null;
+                  return;
+                }
+                _showSolveMoves(algTime);
+              },
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+          child: body,
+        ),
       ),
     );
 

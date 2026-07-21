@@ -1174,6 +1174,12 @@ abstract class AppLocalizations {
   /// **'No moves recorded'**
   String get mistakeNoMoves;
 
+  /// No description provided for @rawMovesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw reading — slices not reconstructed'**
+  String get rawMovesNote;
+
   /// No description provided for @pillFastest.
   ///
   /// In en, this message translates to:

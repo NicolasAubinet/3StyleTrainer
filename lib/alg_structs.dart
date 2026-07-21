@@ -42,9 +42,18 @@ class AlgTime {
   final int timestamp;
   // Recognition part of a smart-cube split; null for press-timed solves.
   final int? recognitionMs;
+  // The moves of this solve in the user's holding frame; session-only, never
+  // persisted. Null for press-timed solves.
+  final String? moves;
+  // False when [moves] is the raw face-by-face reading rather than a
+  // reconstruction — slices were not recovered and none should be inferred.
+  final bool movesReconstructed;
 
   const AlgTime(this.index, this.timeMs, this.alg,
-      {required this.timestamp, this.recognitionMs});
+      {required this.timestamp,
+      this.recognitionMs,
+      this.moves,
+      this.movesReconstructed = true});
 
   // Execution part of the split (total − recognition); null when unsplit.
   int? get executionMs =>
@@ -66,8 +75,12 @@ class AlgMistake {
   // The moves actually turned on this attempt, in the user's holding frame
   // (e.g. "R U R' U'"). Empty when the cube saw none.
   final String? moves;
+  // False when [moves] is a raw reading (no slices recovered); session-only,
+  // deliberately not persisted with the moves string.
+  final bool movesReconstructed;
 
-  const AlgMistake(this.index, this.alg, this.kind, {this.executed, this.moves});
+  const AlgMistake(this.index, this.alg, this.kind,
+      {this.executed, this.moves, this.movesReconstructed = true});
 }
 
 // Aggregated times for a single alg, built from the results history. The split

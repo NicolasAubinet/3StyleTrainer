@@ -233,6 +233,7 @@
   "mistakeRequeued": "Requeued",
   "mistakeSkipped": "Skipped",
   "mistakeNoMoves": "No moves recorded",
+  "rawMovesNote": "Raw reading — slices not reconstructed",
   "pillFastest": "Fastest",
   "pillSlowest": "Slowest",
   "undo": "Undo",

@@ -633,6 +633,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mistakeNoMoves => 'No moves recorded';
 
   @override
+  String get rawMovesNote => 'Raw reading — slices not reconstructed';
+
+  @override
   String get pillFastest => 'Fastest';
 
   @override

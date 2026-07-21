@@ -42,6 +42,19 @@ List<AlgTime> _splitTimes() => [
       const AlgTime(5, 910, Alg("VU"), timestamp: 5, recognitionMs: 500),
     ];
 
+// Cube-driven solves carrying their session-only moves: one reconstructed,
+// one raw (parser declined), one press-timed with none.
+List<AlgTime> _movesTimes() => [
+      const AlgTime(1, 770, Alg("BA"),
+          timestamp: 1, recognitionMs: 300, moves: "M U M' U'"),
+      const AlgTime(2, 790, Alg("XT"),
+          timestamp: 2,
+          recognitionMs: 260,
+          moves: "R L' U R' L U'",
+          movesReconstructed: false),
+      const AlgTime(3, 800, Alg("AG"), timestamp: 3),
+    ];
+
 // A wrong-pair execution, a manual requeue, and a case botched twice — as a
 // cube-driven run logs them.
 List<AlgMistake> _sampleMistakes() => [
@@ -106,6 +119,74 @@ void main() {
     expect(find.text("R U R' U'"), findsOneWidget);
     expect(find.text("L' U2 L F R F' D2"), findsWidgets);
     expect(find.text('Executed GA'), findsWidgets);
+  });
+
+  testWidgets('tapping a solved row shows its moves; raw readings say so',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 900));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _movesTimes(),
+        cubeDriven: true,
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 12000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+
+    // A reconstructed solve: moves in the dialog, no raw disclaimer.
+    await tester.tap(find.text('BA'));
+    await tester.pumpAndSettle();
+    expect(find.text("M U M' U'"), findsOneWidget);
+    expect(find.textContaining('Raw reading'), findsNothing);
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    // A declined parse: the raw reading, marked as such.
+    await tester.tap(find.text('XT'));
+    await tester.pumpAndSettle();
+    expect(find.text("R L' U R' L U'"), findsOneWidget);
+    expect(find.textContaining('Raw reading'), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    // A press-timed solve carries no moves: tapping opens nothing.
+    await tester.tap(find.text('AG'));
+    await tester.pumpAndSettle();
+    expect(find.text('Close'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a raw mistake reading is marked in the attempts dialog',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 900));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _sampleTimes(),
+        mistakes: const [
+          AlgMistake(1, Alg("AG"), AlgMistakeKind.wrongCase,
+              executed: "GA",
+              moves: "R L' U R' L U'",
+              movesReconstructed: false),
+        ],
+        cubeDriven: true,
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 12000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text("R L' U R' L U'"), 120);
+    await tester.tap(find.text("R L' U R' L U'"));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Raw reading'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('cube run without mistakes: the count stays, showing zero',

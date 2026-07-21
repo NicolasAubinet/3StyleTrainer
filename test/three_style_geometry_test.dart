@@ -168,6 +168,16 @@ void main() {
     test('audio-syllable pairs resolve to edges', () {
       expect(ThreeStyleGeometry.detectAlgType(['be', 'pré']), AlgType.Edge);
     }, skip: USE_EDGE_AUDIO_SYLLABLES ? false : 'audio scheme disabled');
+
+    test('alias spellings do not disqualify a custom set', () {
+      // The owner writes DB as "sc" as well as "gn"; one unparseable pair
+      // would silently turn cube-driving off for the whole set.
+      expect(ThreeStyleGeometry.detectAlgType(['sce', 'gne', 'be']),
+          AlgType.Edge);
+      expect(
+          ThreeStyleGeometry.expectedAfterPair(solved, 'sce', AlgType.Edge),
+          ThreeStyleGeometry.expectedAfterPair(solved, 'gne', AlgType.Edge));
+    }, skip: USE_EDGE_AUDIO_SYLLABLES ? false : 'audio scheme disabled');
   });
 
   group('2-flips', () {

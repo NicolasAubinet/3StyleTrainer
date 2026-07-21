@@ -88,15 +88,30 @@ class AudioEdgeScheme {
   /// SpeFFz position index of the buffer's primary (U-face) sticker.
   static int get bufferSpeffz => toSpeffz[bufferIndices.first];
 
+  /// Alternative spellings the owner also writes on their sheet. Parse-only:
+  /// [format] and generated pairs keep the canonical consonant.
+  static const Map<String, int> consonantAliases = {
+    'sc': 22, // sc = gn (the DB sticker)
+  };
+
   /// The (consonant, vowel) indices a pair name denotes, or null. Longest-prefix
   /// consonant split; unambiguous since no vowel starts a consonant continuation.
   static (int, int)? parse(String pair) {
+    (int, int)? tryConsonant(String c, int ci) {
+      if (!pair.startsWith(c)) return null;
+      final vi = vowels.indexOf(pair.substring(c.length));
+      return (vi >= 0 && vowels[vi] != '?') ? (ci, vi) : null;
+    }
+
     for (int ci = 0; ci < consonants.length; ci++) {
       final c = consonants[ci];
-      if (c == '?' || !pair.startsWith(c)) continue;
-      final rest = pair.substring(c.length);
-      final vi = vowels.indexOf(rest);
-      if (vi >= 0 && vowels[vi] != '?') return (ci, vi);
+      if (c == '?') continue;
+      final hit = tryConsonant(c, ci);
+      if (hit != null) return hit;
+    }
+    for (final alias in consonantAliases.entries) {
+      final hit = tryConsonant(alias.key, alias.value);
+      if (hit != null) return hit;
     }
     return null;
   }

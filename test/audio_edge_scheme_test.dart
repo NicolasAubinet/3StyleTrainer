@@ -70,5 +70,14 @@ void main() {
       expect(AudioEdgeScheme.parse(''), isNull);
       expect(AudioEdgeScheme.parse('b'), isNull); // consonant only
     });
+
+    test('alias spellings parse to the same sticker as the canonical one', () {
+      // The owner writes DB as both "gn" and "sc"; custom sets may use either.
+      expect(AudioEdgeScheme.parse('sce'), AudioEdgeScheme.parse('gne'));
+      expect(AudioEdgeScheme.parse('sce'), (22, 1)); // gn/sc + e = UF-DB-UB
+      expect(AudioEdgeScheme.parse('scou'), AudioEdgeScheme.parse('gnou'));
+      // The alias must not shadow the real "s" consonant (the RF sticker).
+      expect(AudioEdgeScheme.parse('se'), (14, 1));
+    });
   });
 }

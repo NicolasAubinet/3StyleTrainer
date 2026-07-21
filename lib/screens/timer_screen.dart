@@ -366,18 +366,22 @@ class _TimerScreenState extends State<TimerScreen> {
     // Reconstructed off the UI thread (see describeAsync); the mistake row is
     // patched and persisted when the replay lands — the summary reads it later.
     final caseMoves = List<CubeMove>.of(_caseMoves);
-    mistakes.add(
-        AlgMistake(mistakes.length + 1, Alg(shown), kind, executed: executed));
+    final row =
+        AlgMistake(mistakes.length + 1, Alg(shown), kind, executed: executed);
+    mistakes.add(row);
     final slot = mistakes.length - 1;
     MoveReconstruction.describeAsync(caseMoves,
             cube: SmartCubeManager().cube,
             completed: kind == AlgMistakeKind.wrongCase)
         .then((replay) {
       _traceCase('$shown!${kind.name}', replay?.notation, moves: caseMoves);
-      if (replay != null) {
-        final m = mistakes[slot];
-        mistakes[slot] = AlgMistake(m.index, m.alg, m.kind,
-            executed: m.executed,
+      // The run may have restarted while the replay was in flight; only patch
+      // the slot if it still holds our row.
+      if (replay != null &&
+          slot < mistakes.length &&
+          identical(mistakes[slot], row)) {
+        mistakes[slot] = AlgMistake(row.index, row.alg, row.kind,
+            executed: row.executed,
             moves: replay.notation,
             movesReconstructed: replay.reconstructed);
       }
@@ -541,15 +545,18 @@ class _TimerScreenState extends State<TimerScreen> {
       _traceCase(finished.name, null, moves: caseMoves);
     } else {
       final slot = times.length - 1;
+      final row = times[slot];
       MoveReconstruction.describeAsync(caseMoves,
               cube: SmartCubeManager().cube, completed: true)
           .then((replay) {
         _traceCase(finished.name, replay?.notation, moves: caseMoves);
         if (replay == null) return;
-        final t = times[slot];
-        times[slot] = AlgTime(t.index, t.timeMs, t.alg,
-            timestamp: t.timestamp,
-            recognitionMs: t.recognitionMs,
+        // The run may have restarted while the replay was in flight; only
+        // patch the slot if it still holds our row.
+        if (slot >= times.length || !identical(times[slot], row)) return;
+        times[slot] = AlgTime(row.index, row.timeMs, row.alg,
+            timestamp: row.timestamp,
+            recognitionMs: row.recognitionMs,
             moves: replay.notation,
             movesReconstructed: replay.reconstructed);
         if (mounted) setState(() {});

@@ -816,28 +816,6 @@ class _TimerScreenState extends State<TimerScreen> {
     return false;
   }
 
-  TextSpan getAlgTextSpan(ThemeData theme, String algChar, TextStyle style) {
-    Set<String> greenCharacters = {'é', 'É'};
-    Set<String> redCharacters = {'è', 'È'};
-
-    if (greenCharacters.contains(algChar)) {
-      return TextSpan(
-        text: algChar,
-        style: style.copyWith(color: Colors.green),
-      );
-    } else if (redCharacters.contains(algChar)) {
-      return TextSpan(
-        text: algChar,
-        style: style.copyWith(color: Colors.orange),
-      );
-    } else {
-      return TextSpan(
-        text: algChar,
-        style: style,
-      );
-    }
-  }
-
   // Wall-clock time from countdown finish to session end (0 if not started).
   int _elapsedSessionMs() {
     if (timerStartTime == null) {
@@ -907,23 +885,14 @@ class _TimerScreenState extends State<TimerScreen> {
             children: [
               for (var nextAlg in nextAlgs)
                 RichText(
-                    text: TextSpan(
-                        children: nextAlg.name.characters
-                            .map((e) => getAlgTextSpan(
-                                theme,
-                                e,
-                                theme.textTheme.displaySmall!.copyWith(
-                                    color: p.textFaint, letterSpacing: 2)))
-                            .toList())),
+                    text: algTextSpan(
+                        nextAlg.name,
+                        theme.textTheme.displaySmall!
+                            .copyWith(color: p.textFaint, letterSpacing: 2))),
               const SizedBox(height: 8),
               RichText(
-                text: TextSpan(
-                  children: (alg != null ? alg!.name : "--")
-                      .characters
-                      .map((e) =>
-                          getAlgTextSpan(theme, e, theme.textTheme.displayLarge!))
-                      .toList(),
-                ),
+                text: algTextSpan(alg != null ? alg!.name : "--",
+                    theme.textTheme.displayLarge!),
               ),
               const SizedBox(height: 12),
               Text(
@@ -1097,25 +1066,14 @@ class _TimerScreenState extends State<TimerScreen> {
                         children: [
                           for (var nextAlg in nextAlgs)
                             RichText(
-                                text: TextSpan(
-                                    children: nextAlg.name.characters
-                                        .map((e) => getAlgTextSpan(
-                                            theme,
-                                            e,
-                                            theme.textTheme.displaySmall!
-                                                .copyWith(
-                                                    color: p.textFaint,
-                                                    letterSpacing: 2)))
-                                        .toList())),
+                                text: algTextSpan(
+                                    nextAlg.name,
+                                    theme.textTheme.displaySmall!.copyWith(
+                                        color: p.textFaint, letterSpacing: 2))),
                           const SizedBox(height: 8),
                           RichText(
-                            text: TextSpan(
-                              children: (alg != null ? alg!.name : "--")
-                                  .characters
-                                  .map((e) => getAlgTextSpan(
-                                      theme, e, theme.textTheme.displayLarge!))
-                                  .toList(),
-                            ),
+                            text: algTextSpan(alg != null ? alg!.name : "--",
+                                theme.textTheme.displayLarge!),
                           ),
                           const SizedBox(height: 20),
                           Text(

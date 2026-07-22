@@ -284,13 +284,15 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
           children: [
             SizedBox(
               width: _algCellWidth,
-              child: Text(stats.alg,
-                  maxLines: 1,
-                  style: TextStyle(
-                      fontFamily: MONO_FONT,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: p.textPrimary)),
+              child: Text.rich(
+                  algTextSpan(
+                      stats.alg,
+                      TextStyle(
+                          fontFamily: MONO_FONT,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: p.textPrimary)),
+                  maxLines: 1),
             ),
             Expanded(
               child: Column(

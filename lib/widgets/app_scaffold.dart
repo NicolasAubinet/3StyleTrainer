@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
+import '../utils.dart';
 
 /// Scaffold with the palette's gradient background and a transparent app bar.
 /// Every screen uses this so the background is consistent across the app.
@@ -26,10 +27,12 @@ class AppScaffold extends StatelessWidget {
 
   // Scale the title down to fit rather than clipping it, so a name like
   // "3-Style Trainer" stays whole on narrow screens instead of ellipsizing.
+  // Titles carrying audio-scheme vowels (a pair as the case-details title) get
+  // the é/è colouring; everything else renders unchanged.
   Widget _fittedTitle() => FittedBox(
         fit: BoxFit.scaleDown,
         alignment: Alignment.centerLeft,
-        child: Text(title!, maxLines: 1),
+        child: Text.rich(algTextSpan(title!, const TextStyle()), maxLines: 1),
       );
 
   Widget _buildTitle() {

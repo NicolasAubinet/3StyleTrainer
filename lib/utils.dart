@@ -1,5 +1,27 @@
+import 'package:flutter/material.dart';
+
 import 'l10n/app_localizations.dart';
 import 'smart_cube/cube_orientation.dart';
+
+/// An alg name as a span with the audio-scheme vowel colouring: é/É render
+/// green and è/È orange (closed/open vowel sounds — a visual aid only).
+TextSpan algTextSpan(String text, TextStyle style) {
+  const greenCharacters = {'é', 'É'};
+  const orangeCharacters = {'è', 'È'};
+  return TextSpan(
+    children: [
+      for (final c in text.characters)
+        TextSpan(
+          text: c,
+          style: greenCharacters.contains(c)
+              ? style.copyWith(color: Colors.green)
+              : orangeCharacters.contains(c)
+                  ? style.copyWith(color: Colors.orange)
+                  : style,
+        ),
+    ],
+  );
+}
 
 String timeToString(int timeMs, {int fractionDigits = 1}) {
   double floatValue = timeMs / 1000;

@@ -160,8 +160,10 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(
-        content: Text(l10n.deletedTime(
-            algTime.alg.name, timeToString(algTime.timeMs, fractionDigits: 2))),
+        content: Text.rich(algTextSpan(
+            l10n.deletedTime(
+                algTime.alg.name, timeToString(algTime.timeMs, fractionDigits: 2)),
+            const TextStyle())),
         action: SnackBarAction(
           label: l10n.undo,
           onPressed: () {
@@ -525,10 +527,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                               _mono(12, p.textFaint, weight: FontWeight.w400)),
                     ),
                     const SizedBox(width: 6),
-                    Text(group.first.alg.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: _mono(17, p.bad)),
+                    Text.rich(algTextSpan(group.first.alg.name, _mono(17, p.bad)),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
                     if (group.length > 1)
                       Padding(
                         padding: const EdgeInsets.only(left: 5),
@@ -538,15 +538,16 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                       ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        detail,
+                      child: Text.rich(
+                        algTextSpan(
+                            detail,
+                            TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: p.textMuted)),
                         textAlign: TextAlign.right,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: p.textMuted),
                       ),
                     ),
                   ],
@@ -590,7 +591,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(algTime.alg.name, style: _mono(20, p.textPrimary)),
+        title: Text.rich(algTextSpan(algTime.alg.name, _mono(20, p.textPrimary))),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -618,18 +619,20 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(group.first.alg.name, style: _mono(20, p.textPrimary)),
+        title: Text.rich(
+            algTextSpan(group.first.alg.name, _mono(20, p.textPrimary))),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final m in group) ...[
-                Text(_mistakeLabel(m, l10n),
-                    style: TextStyle(
+                Text.rich(algTextSpan(
+                    _mistakeLabel(m, l10n),
+                    TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: p.bad)),
+                        color: p.bad))),
                 const SizedBox(height: 4),
                 SelectableText(
                   m.moves ?? l10n.mistakeNoMoves,
@@ -972,10 +975,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
       child: Row(
         children: [
           Flexible(
-            child: Text(algTime.alg.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: _mono(17, p.textPrimary)),
+            child: Text.rich(algTextSpan(algTime.alg.name, _mono(17, p.textPrimary)),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
           if (isFastest) _rowPill(p, l10n.pillFastest, p.good),
           if (isSlowest) _rowPill(p, l10n.pillSlowest, p.bad),

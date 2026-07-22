@@ -43,6 +43,10 @@ abstract class CubeDriver {
   /// be derived from the advertisement (name / manufacturer data).
   bool needsExplicitMac(CubeAdvertisement adv) => false;
 
+  /// Human-readable model label when the driver can tell more precisely than
+  /// [brand]. Null → callers fall back to the brand name.
+  String? modelName(CubeAdvertisement adv) => null;
+
   /// Bring up a connected [SmartCube] over an already-open [peripheral].
   Future<SmartCube> connect(
     BlePeripheral peripheral,

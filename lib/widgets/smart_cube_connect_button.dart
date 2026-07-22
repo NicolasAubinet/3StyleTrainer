@@ -300,9 +300,9 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.view_in_ar, color: p.accent),
-            title: Text(d.name.isEmpty ? d.id : d.name,
+            title: Text(d.modelName ?? d.brand.name,
                 style: TextStyle(color: p.textPrimary)),
-            subtitle: Text(d.brand.name,
+            subtitle: Text(d.name.isEmpty ? d.id : d.name,
                 style: TextStyle(color: p.textFaint, fontSize: 12)),
             trailing: Icon(Icons.chevron_right, color: p.textFaint),
             onTap: () => _connect(d),

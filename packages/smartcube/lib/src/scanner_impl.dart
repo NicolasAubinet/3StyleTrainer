@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'driver.dart';
 import 'drivers/gan_driver.dart';
 import 'drivers/gocube_driver.dart';
@@ -16,8 +18,12 @@ class DefaultCubeScanner implements CubeScanner {
   final BleTransport _transport;
   final Map<String, CubeAdvertisement> _adv = {};
   final Map<String, CubeDriver> _drivers = {};
+  final _advCtrl = StreamController<CubeAdvertisement>.broadcast();
 
   DefaultCubeScanner(this._transport);
+
+  @override
+  Stream<CubeAdvertisement> get advertisements => _advCtrl.stream;
 
   @override
   Stream<DiscoveredCube> scan() {
@@ -28,6 +34,7 @@ class DefaultCubeScanner implements CubeScanner {
         serviceUuids: r.serviceUuids,
         manufacturerData: r.manufacturerData,
       );
+      _advCtrl.add(adv);
       final driver = CubeDriverRegistry.instance.driverFor(adv);
       if (driver == null) return const <DiscoveredCube>[];
       _adv[r.deviceId] = adv;
@@ -37,6 +44,7 @@ class DefaultCubeScanner implements CubeScanner {
           id: r.deviceId,
           name: r.name,
           brand: driver.brand,
+          modelName: driver.modelName(adv),
           needsMac: driver.needsExplicitMac(adv),
         ),
       ];

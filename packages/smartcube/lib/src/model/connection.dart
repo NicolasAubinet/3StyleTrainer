@@ -13,6 +13,11 @@ class DiscoveredCube {
   final String name;
   final CubeBrand brand;
 
+  /// Human-readable model label when the driver can tell more precisely than
+  /// [brand] (e.g. MoYu V10 vs V11, which share a name but differ in MAC OUI).
+  /// Null when the driver has nothing better — callers fall back to the brand.
+  final String? modelName;
+
   /// `true` when this cube needs a MAC *and* it could not be obtained
   /// automatically (name-derivation / advertisement), so the caller must supply
   /// one. Note QiYi needs one too despite its fixed key — the MAC is what its
@@ -23,6 +28,7 @@ class DiscoveredCube {
     required this.id,
     required this.name,
     required this.brand,
+    this.modelName,
     this.needsMac = false,
   });
 

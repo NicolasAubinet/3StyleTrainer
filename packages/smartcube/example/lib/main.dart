@@ -30,7 +30,9 @@ class CubePage extends StatefulWidget {
 class _CubePageState extends State<CubePage> {
   final CubeScanner _scanner = createCubeScanner();
   StreamSubscription<DiscoveredCube>? _scanSub;
+  StreamSubscription<CubeAdvertisement>? _advSub;
   final Map<String, DiscoveredCube> _found = {};
+  final Map<String, CubeAdvertisement> _unmatched = {};
 
   SmartCube? _cube;
   CubeConnection _connection = CubeConnection.disconnected;
@@ -44,8 +46,15 @@ class _CubePageState extends State<CubePage> {
       });
 
   Future<void> _startScan() async {
-    setState(_found.clear);
+    setState(() {
+      _found.clear();
+      _unmatched.clear();
+    });
     await _scanSub?.cancel();
+    await _advSub?.cancel();
+    _advSub = _scanner.advertisements.listen((adv) {
+      setState(() => _unmatched[adv.id] = adv);
+    });
     _scanSub = _scanner.scan().listen((cube) {
       setState(() => _found[cube.id] = cube);
     }, onError: (Object e) => _addLog('scan error: $e'));
@@ -54,7 +63,8 @@ class _CubePageState extends State<CubePage> {
   Future<void> _connect(DiscoveredCube d) async {
     await _scanner.stopScan();
     await _scanSub?.cancel();
-    _addLog('connecting to ${d.name}…');
+    await _advSub?.cancel();
+    _addLog('connecting to ${d.name} (${d.id})…');
     try {
       final cube = await _scanner.connect(d);
       _cube = cube;
@@ -84,6 +94,7 @@ class _CubePageState extends State<CubePage> {
   @override
   void dispose() {
     _scanSub?.cancel();
+    _advSub?.cancel();
     _cube?.disconnect();
     super.dispose();
   }
@@ -126,19 +137,68 @@ class _CubePageState extends State<CubePage> {
     );
   }
 
+  static String _hex(List<int> bytes) =>
+      bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+
   Widget _scanView() {
-    if (_found.isEmpty) {
+    if (_found.isEmpty && _unmatched.isEmpty) {
       return const Center(child: Text('Tap Scan, then power on your cube.'));
     }
-    return ListView(
+    final others = _unmatched.values
+        .where((a) => !_found.containsKey(a.id))
+        .toList()
+      ..sort((a, b) => (a.name ?? '').isEmpty == (b.name ?? '').isEmpty
+          ? (a.name ?? '').compareTo(b.name ?? '')
+          : ((a.name ?? '').isEmpty ? 1 : -1));
+    final list = ListView(
       children: [
         for (final d in _found.values)
           ListTile(
             leading: const Icon(Icons.view_in_ar),
             title: Text(d.name.isEmpty ? '(unnamed)' : d.name),
-            subtitle: Text('${d.brand.name}${d.needsMac ? " · MAC needed" : ""}'),
+            subtitle: Text(
+                '${d.modelName ?? d.brand.name} · ${d.id}${d.needsMac ? " · MAC needed" : ""}'),
             onTap: () => _connect(d),
           ),
+        if (others.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text('Other BLE devices (no driver matched)',
+                style: TextStyle(color: Colors.grey)),
+          ),
+          for (final a in others)
+            ListTile(
+              dense: true,
+              enabled: false,
+              leading: const Icon(Icons.bluetooth, color: Colors.grey),
+              title: Text((a.name ?? '').isEmpty ? '(unnamed)' : a.name!),
+              subtitle: Text([
+                a.id,
+                if (a.serviceUuids.isNotEmpty)
+                  'svc: ${a.serviceUuids.join(", ")}',
+                for (final e in a.manufacturerData.entries)
+                  'mfr 0x${e.key.toRadixString(16).padLeft(4, "0")}: ${_hex(e.value)}',
+              ].join('\n')),
+            ),
+        ],
+      ],
+    );
+    if (_log.isEmpty) return list;
+    return Column(
+      children: [
+        Expanded(child: list),
+        const Divider(height: 1),
+        SizedBox(
+          height: 120,
+          child: ListView.builder(
+            itemCount: _log.length,
+            itemBuilder: (_, i) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+              child: Text(_log[i],
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+            ),
+          ),
+        ),
       ],
     );
   }

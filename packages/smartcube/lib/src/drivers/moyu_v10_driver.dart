@@ -32,6 +32,19 @@ class MoyuV10Driver extends CubeDriver {
   @override
   bool needsExplicitMac(CubeAdvertisement adv) => deriveMac(adv) == null;
 
+  static const String _v10Oui = 'CF:30:16:00';
+  static const String _v11Oui = 'CF:30:16:02';
+
+  /// V10 and V11 advertise the same `WCU_MY32` name; only the MAC OUI tells
+  /// them apart (V10 `CF:30:16:00`, V11 `CF:30:16:02` — both hardware-confirmed).
+  @override
+  String? modelName(CubeAdvertisement adv) {
+    final mac = deriveMac(adv);
+    if (mac != null && mac.startsWith(_v11Oui)) return 'MoYu WeiLong V11';
+    if (mac != null && mac.startsWith(_v10Oui)) return 'MoYu WeiLong V10';
+    return 'MoYu WeiLong V10/V11';
+  }
+
   @override
   Future<SmartCube> connect(
     BlePeripheral peripheral,
@@ -46,6 +59,7 @@ class MoyuV10Driver extends CubeDriver {
       id: peripheral.id,
       name: peripheral.name,
       brand: CubeBrand.moyuV10,
+      modelName: modelName(adv),
     );
     final cube = MoyuV10Cube._(
       device,
@@ -69,34 +83,40 @@ class MoyuV10Driver extends CubeDriver {
   static final RegExp _namePattern =
       RegExp(r'^WCU_(MY3[0-9])_([0-9A-Fa-f]{4})$');
 
-  /// Model tokens whose MAC OUI we have actually confirmed. Only these get a
-  /// name-derived MAC; an un-confirmed family member (e.g. a real V11 with an
-  /// unknown OUI) deliberately falls through rather than fabricating a wrong MAC
-  /// off the V10 OUI — a wrong MAC would connect straight into garbage. When a
-  /// V11's OUI is known, add its token here.
-  static const Map<String, String> _knownOuis = {'MY32': 'CF:30:16:00'};
+  /// Model tokens whose MAC OUI we have actually confirmed, for the name-derived
+  /// fallback. ⚠ The V11 advertises the *same* `WCU_MY32` token but a
+  /// `CF:30:16:02` OUI (hardware-confirmed 2026-07-22), so the name alone cannot
+  /// distinguish the two — the table maps the token to the V10 OUI only as a
+  /// last resort where manufacturer data is unavailable (web).
+  static const Map<String, String> _knownOuis = {'MY32': _v10Oui};
 
-  /// Best-effort MAC discovery: (1) name-derived for a confirmed model
-  /// (`WCU_MY32_XXXX` → `CF:30:16:00:XX:XX`), works even on web; (2) advertisement
-  /// manufacturer data (last 6 bytes, reversed) — the real MAC for any model;
-  /// (3) `null` → the caller prompts for a manual MAC. An un-confirmed
-  /// `WCU_MY3x` name never yields a guessed MAC: manufacturer data (if present)
-  /// carries the true MAC, otherwise a manual entry is safer than a wrong OUI.
+  static final RegExp _macPattern =
+      RegExp(r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$');
+
+  /// Best-effort MAC discovery: (1) advertisement manufacturer data (last 6
+  /// bytes, reversed) — the cube's real MAC for any model; (2) the device id,
+  /// on platforms where it is the MAC (Windows, Android, Linux); (3) name-derived
+  /// (`WCU_MY32_XXXX` → `CF:30:16:00:XX:XX`), works even on web; (4) `null` →
+  /// the caller prompts for a manual MAC. The real-MAC sources win because the
+  /// name-derived OUI only holds for the V10: the V11 shares the `WCU_MY32`
+  /// name family but not the OUI, and a wrong MAC yields a wrong cipher key —
+  /// the cube "connects" and every packet decodes to garbage.
   static String? deriveMac(CubeAdvertisement adv) {
-    final match = _namePattern.firstMatch(adv.name ?? '');
-    if (match != null) {
-      final oui = _knownOuis[match.group(1)];
-      if (oui != null) {
-        final tail = match.group(2)!.toUpperCase();
-        return '$oui:${tail.substring(0, 2)}:${tail.substring(2, 4)}';
-      }
-    }
     for (final data in adv.manufacturerData.values) {
       if (data.length >= 6) {
         return [
           for (var i = 0; i < 6; i++)
             data[data.length - i - 1].toRadixString(16).padLeft(2, '0'),
         ].join(':').toUpperCase();
+      }
+    }
+    if (_macPattern.hasMatch(adv.id)) return adv.id.toUpperCase();
+    final match = _namePattern.firstMatch(adv.name ?? '');
+    if (match != null) {
+      final oui = _knownOuis[match.group(1)];
+      if (oui != null) {
+        final tail = match.group(2)!.toUpperCase();
+        return '$oui:${tail.substring(0, 2)}:${tail.substring(2, 4)}';
       }
     }
     return null;

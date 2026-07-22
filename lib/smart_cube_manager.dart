@@ -56,7 +56,7 @@ class SmartCubeManager {
     _device = device;
     _macAddress = macAddress;
     connection.value = CubeConnection.connecting;
-    cubeName.value = device.name;
+    cubeName.value = device.modelName ?? device.name;
     await _openCube();
   }
 

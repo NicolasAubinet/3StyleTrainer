@@ -285,13 +285,24 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         fractionDigits: 2);
   }
 
-  int get _underTargetCount => widget.algTimes
-      .where((a) => isUnderTargetTime(a.timeMs, _targetTime))
+  // Best attempt per case: with "Repeat until under target" one case can
+  // appear several times, and target stats are about cases, not attempts.
+  Map<String, int> get _bestTimeByAlg {
+    final best = <String, int>{};
+    for (final a in widget.algTimes) {
+      final t = best[a.alg.name];
+      if (t == null || a.timeMs < t) best[a.alg.name] = a.timeMs;
+    }
+    return best;
+  }
+
+  int get _underTargetCount => _bestTimeByAlg.values
+      .where((t) => isUnderTargetTime(t, _targetTime))
       .length;
 
   void _onRepeatTargetTimePressed() {
-    final allBelow = widget.algTimes
-        .every((a) => isUnderTargetTime(a.timeMs, _targetTime));
+    final allBelow = _bestTimeByAlg.values
+        .every((t) => isUnderTargetTime(t, _targetTime));
     if (allBelow) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(AppLocalizations.of(context)!
@@ -420,7 +431,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
             child: _isTimeRace
                 ? _spreadTile(p, l10n)
                 : _statTile(p, l10n.statHitTarget,
-                    value: "$_underTargetCount/${widget.algTimes.length}",
+                    value: "$_underTargetCount/${_bestTimeByAlg.length}",
                     valueColor: p.good),
           ),
         ],
@@ -428,12 +439,13 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     );
   }
 
-  // Solved count, with the error total folded in as a red parenthetical (only a
-  // cube detects errors, so it shows on cube-driven runs only).
+  // Solved count, with the error total folded in as a red parenthetical —
+  // on cube-driven runs (a cube detects errors) and whenever errors exist
+  // (review-mode skips happen without a cube too).
   Widget _solvedTile(AppPalette p, AppLocalizations l10n) {
     final solved = widget.algTimes.length;
     final mistakes = widget.mistakes.length;
-    final valueWidget = widget.cubeDriven
+    final valueWidget = widget.cubeDriven || mistakes > 0
         ? Text.rich(TextSpan(children: [
             TextSpan(text: solved.toString(), style: _mono(20, p.textPrimary)),
             TextSpan(

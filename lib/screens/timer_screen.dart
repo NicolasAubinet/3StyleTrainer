@@ -38,9 +38,16 @@ class TimerScreen extends StatefulWidget {
   final int algsShownInAdvance;
   final bool recordTimes;
 
+  /// Set-based runs only: a solve over the target puts the case back into the
+  /// run, so the session ends when every case has gone under target (or was
+  /// skipped, which logs an error).
+  final bool repeatUntilUnderTarget;
+
   TimerScreen(this.practiceType, this.targetTime, this.raceTime,
       this.algProvider, this.algType, this.algsShownInAdvance,
-      {this.skippedAlgs = const [], this.recordTimes = true});
+      {this.skippedAlgs = const [],
+      this.recordTimes = true,
+      this.repeatUntilUnderTarget = false});
 
   @override
   State<TimerScreen> createState() => _TimerScreenState();
@@ -163,55 +170,95 @@ class _TimerScreenState extends State<TimerScreen> {
       return;
     }
 
-    List<AlgTime> timesCopy = List.from(times);
-    int totalTimeMs = _elapsedSessionMs();
+    // The solve was recorded on tap-down; over target it goes back in the pool.
+    final AlgTime finished = times.last;
+    final overTarget =
+        _reviewActive && !isUnderTargetTime(finished.timeMs, _targetTime);
 
     setState(() {
       isPressed = false;
       stopwatch.reset();
-
-      Alg? nextAlg = _fetchNextAlg();
-      if (nextAlg != null) {
-        nextAlgs.insert(0, nextAlg);
-      }
-      alg = nextAlgs.isEmpty ? null : nextAlgs.removeLast();
-      if (alg == null) {
-        if (widget.practiceType.isSetBased) {
-          // Pool exhausted, stop
-          times.clear();
-          timerStartTime = null;
-        }
-      } else {
-        stopwatch.start();
-      }
+      _advancePressCase(requeueAfter: overTarget ? finished.alg.name : null);
     });
 
     if (alg == null) {
-      final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => _buildSummary(timesCopy, totalTimeMs)));
+      await _finishPressSession();
+    }
+  }
 
+  // Draw the next case; when [requeueAfter] is set, that case is re-inserted
+  // only after the draw, so it never comes straight back — unless it was the
+  // last one left (same rule as _startCubeCase).
+  void _advancePressCase({String? requeueAfter}) {
+    Alg? nextAlg = _fetchNextAlg();
+    if (requeueAfter != null) {
+      widget.algProvider.requeue(requeueAfter);
+      nextAlg ??= _fetchNextAlg();
+    }
+    if (nextAlg != null) {
+      nextAlgs.insert(0, nextAlg);
+    }
+    alg = nextAlgs.isEmpty ? null : nextAlgs.removeLast();
+    if (alg != null) {
+      stopwatch.start();
+    }
+  }
+
+  // Review mode's escape hatch for a case that won't go under target: logged as
+  // an error, dropped from the rest of the run, no time recorded.
+  void _skipPressCase() {
+    if (_cubeMode || !isReady || isPressed || alg == null) return;
+    final skipped = alg!;
+    setState(() {
+      mistakes.add(
+          AlgMistake(mistakes.length + 1, skipped, AlgMistakeKind.skipped));
+      widget.algProvider.skip(skipped.name);
+      stopwatch.reset();
+      _advancePressCase();
+    });
+    if (alg == null) _finishPressSession();
+  }
+
+  Future<void> _finishPressSession() async {
+    final timesCopy = List<AlgTime>.from(times);
+    final mistakesCopy = List<AlgMistake>.from(mistakes);
+    final totalTimeMs = _elapsedSessionMs();
+    if (widget.practiceType.isSetBased) {
       setState(() {
-        isReady = false;
+        times.clear();
+        mistakes.clear();
+        timerStartTime = null;
       });
+    }
 
-      if (result == "repeat_all") {
-        widget.algProvider.reset(skippedAlgs: skippedAlgs);
-      } else if (result == "repeat_target_time") {
-        for (AlgTime algTime in timesCopy) {
-          if (isUnderTargetTime(algTime.timeMs, _targetTime)) {
-            skippedAlgs.add(algTime.alg.name);
-          }
+    final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => _buildSummary(timesCopy, totalTimeMs,
+                algMistakes: mistakesCopy)));
+
+    setState(() {
+      isReady = false;
+    });
+
+    if (result == "repeat_all") {
+      widget.algProvider.reset(skippedAlgs: skippedAlgs);
+    } else if (result == "repeat_target_time") {
+      for (AlgTime algTime in timesCopy) {
+        if (isUnderTargetTime(algTime.timeMs, _targetTime)) {
+          skippedAlgs.add(algTime.alg.name);
         }
-        widget.algProvider.reset(skippedAlgs: skippedAlgs);
-      } else {
-        if (mounted && context.mounted) {
-          Navigator.pop(context);
-        }
+      }
+      widget.algProvider.reset(skippedAlgs: skippedAlgs);
+    } else {
+      if (mounted && context.mounted) {
+        Navigator.pop(context);
       }
     }
   }
+
+  bool get _reviewActive =>
+      widget.repeatUntilUnderTarget && widget.practiceType.isSetBased;
 
   bool get _isRecordingRun => isRecordingRun(
         practiceType: widget.practiceType,
@@ -563,9 +610,13 @@ class _TimerScreenState extends State<TimerScreen> {
       });
     }
     // A resync cost the case its honest time: no mistake, but no time either —
-    // so back in the pool rather than dropped from the run.
+    // so back in the pool rather than dropped from the run. Review mode also
+    // requeues a clean solve that stayed over target.
+    final overTarget = !spoiled &&
+        _reviewActive &&
+        !isUnderTargetTime(split.total.inMilliseconds, _targetTime);
     _advanceCubeCase(_cubeRun!.expectedFacelets ?? _currentFacelets,
-        requeueAfter: spoiled ? finished.name : null);
+        requeueAfter: spoiled || overTarget ? finished.name : null);
     _flashAdvance();
     _blockRequeueBriefly();
   }
@@ -1033,7 +1084,9 @@ class _TimerScreenState extends State<TimerScreen> {
             ? _buildCubeRun(theme, p, progress, timerText)
             : _buildCubeCountdown(theme, p))
         : isReady
-        ? Listener(
+        ? Stack(
+            children: [
+              Listener(
             behavior: HitTestBehavior.translucent,
             onPointerDown: (_) => _onTapDown(),
             onPointerUp: (_) => _onTapUp(),
@@ -1088,6 +1141,27 @@ class _TimerScreenState extends State<TimerScreen> {
                 ),
               ],
             ),
+          ),
+              // Review mode's give-up control. Deliberately small and tucked in
+              // a corner: the whole screen is the hold-to-time surface, and a
+              // stray press must not skip a case. Sits above the Listener in
+              // the stack, so its taps never reach the timer.
+              if (_reviewActive)
+                Positioned(
+                  right: 14,
+                  bottom: 20,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                    onPressed: isPressed ? null : _skipPressCase,
+                    icon: const Icon(Icons.skip_next, size: 16),
+                    label: Text(AppLocalizations.of(context)!.smartCubeSkip,
+                        style: const TextStyle(fontSize: 12)),
+                  ),
+                ),
+            ],
           )
         : Center(
             child: Countdown(

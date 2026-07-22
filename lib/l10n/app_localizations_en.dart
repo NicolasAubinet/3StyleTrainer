@@ -309,6 +309,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Turn off \'Show next alg\' to record times';
 
   @override
+  String get repeatUntilUnderTarget => 'Repeat until under target';
+
+  @override
+  String get repeatUntilUnderTargetTooltip =>
+      'To finish the session, every case must be solved under the target time. A slower solve puts the case back into the run. Skip gives up on a case and logs it as an error.';
+
+  @override
   String get deleteTimeConfirmTitle => 'Delete time';
 
   @override

@@ -18,10 +18,11 @@ class AlgSetSelectorScreen extends StatefulWidget {
   final AlgType algType;
   final List<CustomSet> customSets;
   final int algsShownInAdvance;
+  final bool repeatUntilUnderTarget;
 
   AlgSetSelectorScreen(
       this.targetTime, this.raceTime, this.algType, this.algsShownInAdvance,
-      {this.customSets = const []});
+      {this.customSets = const [], this.repeatUntilUnderTarget = false});
 
   @override
   State<AlgSetSelectorScreen> createState() => _AlgSetSelectorScreenState();
@@ -412,6 +413,7 @@ class _AlgSetSelectorScreenState extends State<AlgSetSelectorScreen> {
           getAlgProvider(),
           widget.algType,
           widget.algsShownInAdvance,
+          repeatUntilUnderTarget: widget.repeatUntilUnderTarget,
         ),
       ),
     );

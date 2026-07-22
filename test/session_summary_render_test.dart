@@ -94,6 +94,53 @@ void main() {
     expect(find.text('6 (3)'), findsOneWidget);
   });
 
+  testWidgets('repeated attempts count cases, not attempts, in Hit target',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 900));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        // BA over target then under, as a repeat-until-under-target run
+        // produces; XT under on its only attempt.
+        algTimes: [
+          const AlgTime(1, 1200, Alg("BA"), timestamp: 1),
+          const AlgTime(2, 700, Alg("BA"), timestamp: 2),
+          const AlgTime(3, 800, Alg("XT"), timestamp: 3),
+        ],
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 12000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    // 3 attempts, but 2 cases — both with a best attempt under target.
+    expect(find.text('2/2'), findsOneWidget);
+  });
+
+  testWidgets('a review-mode skip shows the errors section without a cube',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 900));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _sampleTimes(),
+        mistakes: [const AlgMistake(1, Alg("VU"), AlgMistakeKind.skipped)],
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 12000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.scrollUntilVisible(find.text('Skipped'), 120);
+    expect(find.text('ERRORS (1)'), findsOneWidget);
+    // The solved tile carries the error parenthetical even with no cube.
+    expect(find.text('6 (1)'), findsOneWidget);
+  });
+
   testWidgets('tapping an errored case shows every attempt in full',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 900));

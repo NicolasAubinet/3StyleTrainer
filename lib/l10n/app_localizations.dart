@@ -640,6 +640,18 @@ abstract class AppLocalizations {
   /// **'Turn off \'Show next alg\' to record times'**
   String get recordTimesDisabledReason;
 
+  /// No description provided for @repeatUntilUnderTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat until under target'**
+  String get repeatUntilUnderTarget;
+
+  /// No description provided for @repeatUntilUnderTargetTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'To finish the session, every case must be solved under the target time. A slower solve puts the case back into the run. Skip gives up on a case and logs it as an error.'**
+  String get repeatUntilUnderTargetTooltip;
+
   /// No description provided for @deleteTimeConfirmTitle.
   ///
   /// In en, this message translates to:

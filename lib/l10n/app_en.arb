@@ -117,6 +117,8 @@
   "noRecordedTimes": "No recorded times",
   "recordTimes": "Record times",
   "recordTimesDisabledReason": "Turn off 'Show next alg' to record times",
+  "repeatUntilUnderTarget": "Repeat until under target",
+  "repeatUntilUnderTargetTooltip": "To finish the session, every case must be solved under the target time. A slower solve puts the case back into the run. Skip gives up on a case and logs it as an error.",
   "deleteTimeConfirmTitle": "Delete time",
   "deleteTimeConfirmMessage": "Delete this recorded time?",
   "exportData": "Export data",

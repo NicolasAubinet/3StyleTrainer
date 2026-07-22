@@ -31,11 +31,21 @@ class MenuScreen extends StatefulWidget {
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
+/// One entry of the menu's options panel; [tooltip] (if any) shows on a tap of
+/// the label.
+class _MenuOption {
+  final String label;
+  final Widget trailing;
+  final String? tooltip;
+  const _MenuOption(this.label, this.trailing, {this.tooltip});
+}
+
 class _MenuScreenState extends State<MenuScreen> {
   double _targetTime = DEFAULT_TARGET_TIME;
   double _raceTime = DEFAULT_RACE_TIME;
   bool _showNextAlg = false;
   bool _recordTimes = true;
+  bool _repeatUnderTarget = false;
   PracticeType _practiceType = PracticeType.sets;
   WeaknessSource _weaknessSource = WeaknessSource.slowestTime;
   SlowestMode _slowestMode = SlowestMode.topN;
@@ -77,6 +87,7 @@ class _MenuScreenState extends State<MenuScreen> {
       _raceTime = prefs.getDouble("race_time") ?? DEFAULT_RACE_TIME;
       _showNextAlg = prefs.getBool("show_next_alg") ?? false;
       _recordTimes = prefs.getBool("record_times") ?? true;
+      _repeatUnderTarget = prefs.getBool("repeat_until_under_target") ?? false;
       final practiceTypeName = prefs.getString("practice_type");
       if (practiceTypeName != null) {
         _practiceType = PracticeType.values.byName(practiceTypeName);
@@ -128,6 +139,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ParityAlgProvider(),
               algType,
               algsShownInAdvance,
+              repeatUntilUnderTarget: _repeatUnderTarget,
             ),
           ),
         ).then((_) => _loadPreferences());
@@ -148,6 +160,7 @@ class _MenuScreenState extends State<MenuScreen> {
             algType,
             algsShownInAdvance,
             customSets: customSets,
+            repeatUntilUnderTarget: _repeatUnderTarget,
           ),
         ),
       ).then((_) => _loadPreferences());
@@ -225,6 +238,7 @@ class _MenuScreenState extends State<MenuScreen> {
               CustomProvider(selection.algs),
               algType,
               algsShownInAdvance,
+              repeatUntilUnderTarget: _repeatUnderTarget,
             ),
           ),
         ).then((_) => _loadPreferences());
@@ -316,7 +330,7 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  (String, Widget)? _buildTimeField(AppLocalizations l10n) {
+  _MenuOption? _buildTimeField(AppLocalizations l10n) {
     final bool isSetBased = _practiceType.isSetBased;
     final String label;
     final double value;
@@ -337,7 +351,7 @@ class _MenuScreenState extends State<MenuScreen> {
     }
 
     final p = context.palette;
-    return (
+    return _MenuOption(
       label,
       Container(
         width: 64,
@@ -366,9 +380,9 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  (String, Widget)? _buildShowNextAlg(AppLocalizations l10n) {
+  _MenuOption? _buildShowNextAlg(AppLocalizations l10n) {
     if (_practiceType == PracticeType.letterPairsList) return null;
-    return (
+    return _MenuOption(
       l10n.showNextAlg,
       Switch(
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -381,7 +395,23 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  (String, Widget)? _buildRecordTimes(AppLocalizations l10n) {
+  _MenuOption? _buildRepeatUnderTarget(AppLocalizations l10n) {
+    if (!_practiceType.isSetBased) return null;
+    return _MenuOption(
+      l10n.repeatUntilUnderTarget,
+      tooltip: l10n.repeatUntilUnderTargetTooltip,
+      Switch(
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        value: _repeatUnderTarget,
+        onChanged: (v) {
+          _setPref((prefs) => prefs.setBool("repeat_until_under_target", v));
+          setState(() => _repeatUnderTarget = v);
+        },
+      ),
+    );
+  }
+
+  _MenuOption? _buildRecordTimes(AppLocalizations l10n) {
     if (_practiceType != PracticeType.timeRace) return null;
     final enabled = !_showNextAlg;
     final sw = Switch(
@@ -394,7 +424,7 @@ class _MenuScreenState extends State<MenuScreen> {
             }
           : null,
     );
-    return (
+    return _MenuOption(
       l10n.recordTimes,
       enabled
           ? sw
@@ -410,19 +440,28 @@ class _MenuScreenState extends State<MenuScreen> {
 
   /// One row inside the grouped options panel. Fixed height so every option
   /// lines up regardless of whether the control is a switch or a number field.
-  Widget _optionRow(String label, Widget trailing) {
+  /// With a tooltip, tapping the label shows it.
+  Widget _optionRow(_MenuOption option) {
     final p = context.palette;
+    Widget label = Text(option.label,
+        style: TextStyle(fontSize: 14, color: p.textMuted));
+    if (option.tooltip != null) {
+      label = Tooltip(
+        message: option.tooltip!,
+        triggerMode: TooltipTriggerMode.tap,
+        showDuration: const Duration(seconds: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+        child: label,
+      );
+    }
     return SizedBox(
       height: 48,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            Expanded(
-              child: Text(label,
-                  style: TextStyle(fontSize: 14, color: p.textMuted)),
-            ),
-            trailing,
+            Expanded(child: label),
+            option.trailing,
           ],
         ),
       ),
@@ -437,8 +476,9 @@ class _MenuScreenState extends State<MenuScreen> {
     final options = [
       _buildTimeField(l10n),
       _buildShowNextAlg(l10n),
+      _buildRepeatUnderTarget(l10n),
       _buildRecordTimes(l10n),
-    ].whereType<(String, Widget)>().toList();
+    ].whereType<_MenuOption>().toList();
 
     return AppScaffold(
       title: "3-Style Trainer",
@@ -528,7 +568,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           indent: 16,
                           endIndent: 16,
                         ),
-                      _optionRow(options[i].$1, options[i].$2),
+                      _optionRow(options[i]),
                     ],
                   ],
                 ),

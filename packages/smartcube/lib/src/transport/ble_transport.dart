@@ -57,6 +57,9 @@ abstract class BleCharacteristic {
   /// Subscribe to notifications on this characteristic.
   Future<void> enableNotifications();
 
+  /// Read the characteristic's current value (a GATT read, not a notification).
+  Future<List<int>> read();
+
   Future<void> write(List<int> data, {bool withoutResponse = false});
 }
 

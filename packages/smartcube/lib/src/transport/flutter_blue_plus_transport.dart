@@ -95,6 +95,9 @@ class _FbpCharacteristic implements BleCharacteristic {
   Future<void> enableNotifications() => _chr.setNotifyValue(true);
 
   @override
+  Future<List<int>> read() => _chr.read();
+
+  @override
   Future<void> write(List<int> data, {bool withoutResponse = false}) =>
       _chr.write(data, withoutResponse: withoutResponse);
 }

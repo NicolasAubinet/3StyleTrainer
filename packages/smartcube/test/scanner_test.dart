@@ -66,6 +66,8 @@ class _FakeChr implements BleCharacteristic {
   @override
   Future<void> enableNotifications() async {}
   @override
+  Future<List<int>> read() async => const [];
+  @override
   Future<void> write(List<int> data, {bool withoutResponse = false}) async =>
       written.add(data);
 }

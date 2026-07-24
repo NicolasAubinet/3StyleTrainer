@@ -675,4 +675,52 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteUnavailableNotRecorded =>
       'This time wasn\'t recorded, nothing to delete';
+
+  @override
+  String get algStatsTitle => 'Alg stats';
+
+  @override
+  String get statsViewTimes => 'Times';
+
+  @override
+  String get statsViewErrors => 'Errors';
+
+  @override
+  String totalErrors(Object count) {
+    return 'Total errors: $count';
+  }
+
+  @override
+  String get columnErrorCount => 'Errors';
+
+  @override
+  String errorsBreakdownWrong(Object count) {
+    return '$count wrong';
+  }
+
+  @override
+  String errorsBreakdownRequeued(Object count) {
+    return '$count requeued';
+  }
+
+  @override
+  String errorsBreakdownSkipped(Object count) {
+    return '$count skipped';
+  }
+
+  @override
+  String errorsLastSeen(Object date) {
+    return 'Last: $date';
+  }
+
+  @override
+  String get noRecordedErrors => 'No recorded errors yet';
+
+  @override
+  String get noRecordedErrorsHint => 'Errors are logged from smart-cube runs.';
+
+  @override
+  String deletedError(Object alg) {
+    return 'Deleted $alg error';
+  }
 }

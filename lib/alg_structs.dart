@@ -83,6 +83,30 @@ class AlgMistake {
       {this.executed, this.moves, this.movesReconstructed = true});
 }
 
+// Aggregated mistakes for one alg (built from the mistakes history): how many
+// times it went wrong, the breakdown by kind, and when it last happened.
+class AlgMistakeStats {
+  final String alg;
+  final int count;
+  final Map<AlgMistakeKind, int> kindCounts;
+  final int lastTimestamp;
+
+  const AlgMistakeStats(
+      this.alg, this.count, this.kindCounts, this.lastTimestamp);
+}
+
+// A single recorded slip, for the per-case error detail list. [kind] is null
+// only if an unknown kind name was stored.
+class AlgMistakeEntry {
+  final AlgMistakeKind? kind;
+  final String? executed;
+  final String? moves;
+  final int timestamp;
+
+  const AlgMistakeEntry(
+      {required this.kind, required this.timestamp, this.executed, this.moves});
+}
+
 // Aggregated times for a single alg, built from the results history. The split
 // averages (recognition/execution) cover only smart-cube rows and are null when
 // no such row exists; splitCount is how many rows carry a split.

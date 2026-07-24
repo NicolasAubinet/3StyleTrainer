@@ -326,5 +326,17 @@
       }
     }
   },
-  "deleteUnavailableNotRecorded": "This time wasn't recorded, nothing to delete"
+  "deleteUnavailableNotRecorded": "This time wasn't recorded, nothing to delete",
+  "algStatsTitle": "Alg stats",
+  "statsViewTimes": "Times",
+  "statsViewErrors": "Errors",
+  "totalErrors": "Total errors: {count}",
+  "columnErrorCount": "Errors",
+  "errorsBreakdownWrong": "{count} wrong",
+  "errorsBreakdownRequeued": "{count} requeued",
+  "errorsBreakdownSkipped": "{count} skipped",
+  "errorsLastSeen": "Last: {date}",
+  "noRecordedErrors": "No recorded errors yet",
+  "noRecordedErrorsHint": "Errors are logged from smart-cube runs.",
+  "deletedError": "Deleted {alg} error"
 }

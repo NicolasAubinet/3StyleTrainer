@@ -17,6 +17,8 @@ class AppSegmentedControl<T> extends StatelessWidget {
   final T selected;
   final ValueChanged<T> onChanged;
   final ValueChanged<T>? onDisabledTap;
+  // A shorter variant for spots where the full-height control feels heavy.
+  final bool dense;
 
   const AppSegmentedControl({
     super.key,
@@ -24,13 +26,14 @@ class AppSegmentedControl<T> extends StatelessWidget {
     required this.selected,
     required this.onChanged,
     this.onDisabledTap,
+    this.dense = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     return Container(
-      padding: const EdgeInsets.all(5),
+      padding: EdgeInsets.all(dense ? 4 : 5),
       decoration: BoxDecoration(
         color: p.panel,
         borderRadius: BorderRadius.circular(16),
@@ -48,7 +51,7 @@ class AppSegmentedControl<T> extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 120),
                 margin: const EdgeInsets.symmetric(horizontal: 2),
-                padding: const EdgeInsets.symmetric(vertical: 9),
+                padding: EdgeInsets.symmetric(vertical: dense ? 6 : 9),
                 decoration: BoxDecoration(
                   // Selected: filled accent. Unselected: subtle outlined chip so
                   // it's clear the others are also selectable states.

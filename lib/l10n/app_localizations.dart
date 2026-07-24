@@ -1245,6 +1245,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This time wasn\'t recorded, nothing to delete'**
   String get deleteUnavailableNotRecorded;
+
+  /// No description provided for @algStatsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Alg stats'**
+  String get algStatsTitle;
+
+  /// No description provided for @statsViewTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Times'**
+  String get statsViewTimes;
+
+  /// No description provided for @statsViewErrors.
+  ///
+  /// In en, this message translates to:
+  /// **'Errors'**
+  String get statsViewErrors;
+
+  /// No description provided for @totalErrors.
+  ///
+  /// In en, this message translates to:
+  /// **'Total errors: {count}'**
+  String totalErrors(Object count);
+
+  /// No description provided for @columnErrorCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Errors'**
+  String get columnErrorCount;
+
+  /// No description provided for @errorsBreakdownWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} wrong'**
+  String errorsBreakdownWrong(Object count);
+
+  /// No description provided for @errorsBreakdownRequeued.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} requeued'**
+  String errorsBreakdownRequeued(Object count);
+
+  /// No description provided for @errorsBreakdownSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} skipped'**
+  String errorsBreakdownSkipped(Object count);
+
+  /// No description provided for @errorsLastSeen.
+  ///
+  /// In en, this message translates to:
+  /// **'Last: {date}'**
+  String errorsLastSeen(Object date);
+
+  /// No description provided for @noRecordedErrors.
+  ///
+  /// In en, this message translates to:
+  /// **'No recorded errors yet'**
+  String get noRecordedErrors;
+
+  /// No description provided for @noRecordedErrorsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Errors are logged from smart-cube runs.'**
+  String get noRecordedErrorsHint;
+
+  /// No description provided for @deletedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {alg} error'**
+  String deletedError(Object alg);
 }
 
 class _AppLocalizationsDelegate

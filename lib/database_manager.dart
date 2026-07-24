@@ -360,6 +360,100 @@ class DatabaseManager {
     ];
   }
 
+  AlgMistakeKind? _parseMistakeKind(String? name) {
+    for (final k in AlgMistakeKind.values) {
+      if (k.name == name) return k;
+    }
+    return null;
+  }
+
+  // Per-case mistake aggregates for the errors stats view: count, kind
+  // breakdown, and last-seen timestamp, optionally bounded to [sinceMs].
+  Future<List<AlgMistakeStats>> getAlgMistakeStats(AlgType algType,
+      {int? sinceMs}) async {
+    if (!isUsingDatabase()) {
+      return List.empty();
+    }
+
+    String where = "algType = ?";
+    List<Object> whereArgs = [algType.name];
+    if (sinceMs != null) {
+      where += " AND timestamp >= ?";
+      whereArgs.add(sinceMs);
+    }
+
+    final rows = await _database.query(MISTAKES,
+        columns: ['alg', 'kind', 'timestamp'],
+        where: where,
+        whereArgs: whereArgs);
+
+    final Map<String, int> counts = {};
+    final Map<String, Map<AlgMistakeKind, int>> kinds = {};
+    final Map<String, int> last = {};
+    for (final row in rows) {
+      final alg = row['alg'] as String;
+      final ts = (row['timestamp'] as num).toInt();
+      counts[alg] = (counts[alg] ?? 0) + 1;
+      last[alg] = ts > (last[alg] ?? 0) ? ts : last[alg]!;
+      final kind = _parseMistakeKind(row['kind'] as String?);
+      if (kind != null) {
+        final m = kinds.putIfAbsent(alg, () => {});
+        m[kind] = (m[kind] ?? 0) + 1;
+      }
+    }
+
+    return [
+      for (final alg in counts.keys)
+        AlgMistakeStats(alg, counts[alg]!, kinds[alg] ?? const {}, last[alg]!),
+    ];
+  }
+
+  // Every recorded slip for one case, newest first — the error detail list.
+  Future<List<AlgMistakeEntry>> getAlgMistakes(AlgType algType, String alg,
+      {int? sinceMs}) async {
+    if (!isUsingDatabase()) {
+      return List.empty();
+    }
+
+    String where = "algType = ? AND alg = ?";
+    List<Object> whereArgs = [algType.name, alg];
+    if (sinceMs != null) {
+      where += " AND timestamp >= ?";
+      whereArgs.add(sinceMs);
+    }
+
+    final rows = await _database.query(MISTAKES,
+        columns: ['kind', 'executed', 'moves', 'timestamp'],
+        where: where,
+        whereArgs: whereArgs,
+        orderBy: "timestamp DESC, id DESC");
+
+    return [
+      for (final row in rows)
+        AlgMistakeEntry(
+          kind: _parseMistakeKind(row['kind'] as String?),
+          timestamp: (row['timestamp'] as num).toInt(),
+          executed: row['executed'] as String?,
+          moves: row['moves'] as String?,
+        ),
+    ];
+  }
+
+  // Delete one recorded slip, keyed by content (algType, alg, timestamp — the
+  // same key import de-dups on, unique per slip) so an undo re-insert round-trips
+  // cleanly. Undo re-adds it via [importRecordedMistakes].
+  Future<void> deleteMistake(AlgType algType, String alg, int timestamp) async {
+    if (!isUsingDatabase()) {
+      return;
+    }
+
+    await _database.delete(
+      MISTAKES,
+      where: "algType = ? AND alg = ? AND timestamp = ?",
+      whereArgs: [algType.name, alg, timestamp],
+    );
+  }
+
   // Every recorded mistake, for export.
   Future<List<RecordedMistake>> getAllRecordedMistakes() async {
     if (!isUsingDatabase()) {

@@ -128,4 +128,72 @@ void main() {
     expect(c.startCase('AD', solved), isFalse);
     expect(c.expectedFacelets, isNull);
   });
+
+  test('addBaseline lets the shown pair complete from a botched state', () {
+    final c = make(AlgType.Corner);
+    c.startCase('AD', solved);
+    c.onMove();
+    // A botch settles on some other case's state; register it as a candidate.
+    final botched =
+        ThreeStyleGeometry.expectedAfterPair(solved, 'AB', AlgType.Corner)!;
+    expect(c.onState(botched), isNull);
+    expect(c.addBaseline('AD', botched), isTrue);
+    // AD executed from the botched state now completes — no undo/reset needed.
+    final fromBotch =
+        ThreeStyleGeometry.expectedAfterPair(botched, 'AD', AlgType.Corner)!;
+    expect(c.onState(fromBotch), isNotNull);
+    expect(c.phase, CubePhase.complete);
+  });
+
+  test('a mid-alg pause baseline never blocks completion from the start', () {
+    final c = make(AlgType.Corner);
+    final e = ThreeStyleGeometry.expectedAfterPair(solved, 'AD', AlgType.Corner)!;
+    c.startCase('AD', solved);
+    c.onMove();
+    // User pauses mid-alg on a non-completing intermediate state.
+    final mid =
+        ThreeStyleGeometry.expectedAfterPair(solved, 'AB', AlgType.Corner)!;
+    expect(c.onState(mid), isNull);
+    c.addBaseline('AD', mid);
+    // Finishing the alg reaches Δ_AD(start) — still completes via baseline 0.
+    expect(c.onState(e), isNotNull);
+    expect(c.phase, CubePhase.complete);
+  });
+
+  test('extra baselines never let a wrong alg auto-complete', () {
+    final c = make(AlgType.Corner);
+    c.startCase('AD', solved);
+    c.onMove();
+    final b1 =
+        ThreeStyleGeometry.expectedAfterPair(solved, 'AB', AlgType.Corner)!;
+    c.addBaseline('AD', b1);
+    // DA (AD inverted) from either baseline matches no held expected state.
+    final wrongFromSolved =
+        ThreeStyleGeometry.expectedAfterPair(solved, 'DA', AlgType.Corner)!;
+    final wrongFromB1 =
+        ThreeStyleGeometry.expectedAfterPair(b1, 'DA', AlgType.Corner)!;
+    expect(c.onState(wrongFromSolved), isNull);
+    expect(c.onState(wrongFromB1), isNull);
+    expect(c.phase, CubePhase.execution);
+  });
+
+  test('startFacelets tracks the most recent baseline', () {
+    final c = make(AlgType.Corner);
+    c.startCase('AD', solved);
+    expect(c.startFacelets, solved);
+    c.onMove();
+    final b1 =
+        ThreeStyleGeometry.expectedAfterPair(solved, 'AB', AlgType.Corner)!;
+    c.addBaseline('AD', b1);
+    expect(c.startFacelets, b1);
+  });
+
+  test('duplicate baselines are ignored', () {
+    final c = make(AlgType.Corner);
+    c.startCase('AD', solved);
+    c.onMove();
+    // Re-adding the case-start state is a no-op; the latest stays put.
+    expect(c.addBaseline('AD', solved), isTrue);
+    expect(c.startFacelets, solved);
+  });
 }

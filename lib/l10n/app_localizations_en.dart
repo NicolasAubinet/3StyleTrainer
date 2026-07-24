@@ -121,6 +121,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get practiceTypeLetterPairsList => 'Letter pairs list';
 
   @override
+  String letterPairsNextPrompt(String pair) {
+    return 'Next: $pair';
+  }
+
+  @override
+  String get letterPairsAllDone => 'All done!';
+
+  @override
+  String get letterPairsRestart => 'Restart';
+
+  @override
   String get completedAlgs => 'Completed algs: ';
 
   @override

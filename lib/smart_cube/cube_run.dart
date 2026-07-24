@@ -25,17 +25,16 @@ class CaseSplit {
   Duration get total => recognition + execution;
 }
 
-/// Drives the cube-side of a case: split each case into recognition (pair shown
-/// → first move) and execution (first move → expected state), and detect correct
-/// completion. Pure Dart and UI-agnostic — the widget feeds it moves/states and
-/// reacts to the returned events.
+/// Drives the cube-side of a case: splits it into recognition (pair shown →
+/// first move) and execution (first move → expected state) and detects
+/// completion. Pure Dart and UI-agnostic.
 ///
-/// Completion is judged by *state*, relative to wherever the cube starts: a case
-/// is done only when the cube reaches `Δ_pair ∘ startState` (see
-/// [ThreeStyleGeometry]). Because the check is relative, a run can begin from any
-/// state (no forced solve between runs). A wrong alg never reaches that state, so
-/// it can never auto-advance. Corner, edge, 2-flip, 2-twist and parity pairs are
-/// supported ([supports]); Custom resolves to one of those by scheme detection.
+/// A case completes when the cube reaches the pair's expected end-state from
+/// *any* baseline it has rested at — the case-start state plus any added via
+/// [addBaseline] (a mid-alg pause, or a botch the user recovers from). Because
+/// the check is full-state equality, extra baselines only ever catch a real
+/// execution, never fabricate one, and a wrong alg can never auto-advance.
+/// Supports corner, edge, 2-flip, 2-twist and parity pairs ([supports]).
 class CubeRunController {
   final AlgType algType;
   final DateTime Function() _now;
@@ -45,8 +44,14 @@ class CubeRunController {
 
   CubePhase phase = CubePhase.idle;
 
-  String? _startFacelets; // S — baseline at case start
-  String? _expected; // E = Δ_pair ∘ S
+  // Candidate baselines and their expected end-states (parallel lists), oldest
+  // first. Index 0 is the case-start state and is never evicted.
+  final List<String> _baselines = [];
+  final List<String> _expecteds = [];
+  // Bounds the candidate set against pathological flailing; index 0 is kept.
+  static const int _maxBaselines = 12;
+
+  String? _matched; // the expected state onState last completed on
   DateTime? _shownAt;
   DateTime? _firstMoveAt;
   Duration? _recognition;
@@ -66,22 +71,43 @@ class CubeRunController {
   /// is at run start). Returns `false` if the pair has no expected-state
   /// geometry, in which case the case can't be cube-completed.
   bool startCase(String pair, String currentFacelets) {
-    _startFacelets = currentFacelets;
-    _expected =
-        ThreeStyleGeometry.expectedAfterPair(currentFacelets, pair, algType);
+    _baselines.clear();
+    _expecteds.clear();
+    _matched = null;
     _shownAt = _now();
     _firstMoveAt = null;
     _recognition = null;
     phase = CubePhase.recognition;
-    return _expected != null;
+    return _addBaseline(pair, currentFacelets);
   }
 
-  // Move the baseline onto [currentFacelets] (after a wrong case) so the shown
-  // pair can be executed from here; timing and phase are left untouched.
+  /// Replace the candidate set with a single baseline on [currentFacelets],
+  /// e.g. after a resync or a baseline corrected before the case moved. Timing
+  /// and phase are left untouched.
   void rebaseline(String pair, String currentFacelets) {
-    _startFacelets = currentFacelets;
-    _expected =
-        ThreeStyleGeometry.expectedAfterPair(currentFacelets, pair, algType);
+    _baselines.clear();
+    _expecteds.clear();
+    _matched = null;
+    _addBaseline(pair, currentFacelets);
+  }
+
+  /// Add another candidate baseline on [facelets] — a mid-case rest (pause or
+  /// botch) — keeping the earlier ones. De-dupes and preserves the case-start
+  /// baseline when capping. Returns `false` if [pair] can't be mapped from here.
+  bool addBaseline(String pair, String facelets) => _addBaseline(pair, facelets);
+
+  bool _addBaseline(String pair, String facelets) {
+    if (_baselines.contains(facelets)) return _expecteds.isNotEmpty;
+    final expected =
+        ThreeStyleGeometry.expectedAfterPair(facelets, pair, algType);
+    if (expected == null) return false;
+    _baselines.add(facelets);
+    _expecteds.add(expected);
+    if (_baselines.length > _maxBaselines) {
+      _baselines.removeAt(1); // keep the case-start baseline at index 0
+      _expecteds.removeAt(1);
+    }
+    return true;
   }
 
   /// Feed a move. Returns the recognition split the instant the *first* move of
@@ -95,18 +121,23 @@ class CubeRunController {
   }
 
   /// Feed a full-state snapshot. Returns the completed [CaseSplit] the instant
-  /// the cube reaches the expected state; `null` while the case is unfinished.
+  /// the cube reaches an expected state (from any baseline); `null` while the
+  /// case is unfinished.
   CaseSplit? onState(String facelets) {
-    if (phase != CubePhase.execution || _expected == null) return null;
-    if (facelets != _expected) return null;
+    if (phase != CubePhase.execution) return null;
+    if (!_expecteds.contains(facelets)) return null;
+    _matched = facelets;
     final execution = _now().difference(_firstMoveAt!);
     phase = CubePhase.complete;
     return CaseSplit(_recognition!, execution);
   }
 
-  /// The cube's expected end-state for the current case, or `null` if unmapped.
-  String? get expectedFacelets => _expected;
+  /// The cube's end-state for the case: the matched candidate once complete,
+  /// else the case-start expected state; `null` if unmapped.
+  String? get expectedFacelets =>
+      _matched ?? (_expecteds.isEmpty ? null : _expecteds.first);
 
-  /// The current case's baseline (start) facelets.
-  String? get startFacelets => _startFacelets;
+  /// The most recent candidate baseline — the reference wrong-case feedback is
+  /// judged against; `null` before the case starts.
+  String? get startFacelets => _baselines.isEmpty ? null : _baselines.last;
 }

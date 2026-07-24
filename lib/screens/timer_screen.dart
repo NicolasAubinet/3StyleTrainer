@@ -394,6 +394,14 @@ class _TimerScreenState extends State<TimerScreen> {
         normFacelets, start, _cubeAlgType!, _pairPool);
     if (wrong != null && wrong != shown) {
       _onCubeError(shown, AlgMistakeKind.wrongCase, executed: wrong);
+      return;
+    }
+
+    // A pause mid-alg or a botched state: remember it as a baseline so finishing
+    // — or redoing — the shown pair from here still completes (see
+    // CubeRunController).
+    if (_cubeRun!.phase == CubePhase.execution) {
+      _cubeRun!.addBaseline(shown, normFacelets);
     }
   }
 

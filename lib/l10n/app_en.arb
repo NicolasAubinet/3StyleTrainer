@@ -49,6 +49,16 @@
   "practiceTypeTimeRaceShort": "Race",
   "practiceTypeSlowest": "Slowest",
   "practiceTypeLetterPairsList": "Letter pairs list",
+  "letterPairsNextPrompt": "Next: {pair}",
+  "@letterPairsNextPrompt": {
+    "placeholders": {
+      "pair": {
+        "type": "String"
+      }
+    }
+  },
+  "letterPairsAllDone": "All done!",
+  "letterPairsRestart": "Restart",
   "completedAlgs": "Completed algs: ",
   "again": "Again",
   "targetTime": "Target time (seconds): ",

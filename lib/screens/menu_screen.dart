@@ -248,7 +248,8 @@ class _MenuScreenState extends State<MenuScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) => LetterPairsListScreen(algProvider)),
+            builder: (context) =>
+                LetterPairsListScreen(algProvider, algType)),
       );
     }
   }

@@ -298,6 +298,24 @@ abstract class AppLocalizations {
   /// **'Letter pairs list'**
   String get practiceTypeLetterPairsList;
 
+  /// No description provided for @letterPairsNextPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Next: {pair}'**
+  String letterPairsNextPrompt(String pair);
+
+  /// No description provided for @letterPairsAllDone.
+  ///
+  /// In en, this message translates to:
+  /// **'All done!'**
+  String get letterPairsAllDone;
+
+  /// No description provided for @letterPairsRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get letterPairsRestart;
+
   /// No description provided for @completedAlgs.
   ///
   /// In en, this message translates to:

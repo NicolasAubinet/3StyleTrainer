@@ -144,7 +144,14 @@
   "dateRangeLastMonth": "Last month",
   "dateRangeLastWeek": "Last week",
   "dateRangeToday": "Today",
-  "noRecordedTimes": "No recorded times",
+  "noRecordedTimes": "No recorded times yet",
+  "noRecordedTimesHint": "Times are recorded in {mode} mode with \"{toggle}\" turned on.",
+  "@noRecordedTimesHint": {
+    "placeholders": {
+      "mode": {},
+      "toggle": {}
+    }
+  },
   "recordTimes": "Record times",
   "recordTimesDisabledReason": "Turn off 'Show next alg' to record times",
   "repeatUntilUnderTarget": "Repeat until under target",

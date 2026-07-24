@@ -643,8 +643,14 @@ abstract class AppLocalizations {
   /// No description provided for @noRecordedTimes.
   ///
   /// In en, this message translates to:
-  /// **'No recorded times'**
+  /// **'No recorded times yet'**
   String get noRecordedTimes;
+
+  /// No description provided for @noRecordedTimesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Times are recorded in {mode} mode with \"{toggle}\" turned on.'**
+  String noRecordedTimesHint(Object mode, Object toggle);
 
   /// No description provided for @recordTimes.
   ///

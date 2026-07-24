@@ -342,6 +342,36 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     );
   }
 
+  // Times are only written in Time race with "Record times" on, so a bare screen
+  // confused users — spell out how to get data (plan §33).
+  Widget _emptyState(AppPalette p, AppLocalizations l10n) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.timer_outlined, size: 48, color: p.textFaint),
+            const SizedBox(height: 16),
+            Text(l10n.noRecordedTimes,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: p.textMuted)),
+            const SizedBox(height: 8),
+            Text(
+              l10n.noRecordedTimesHint(
+                  l10n.practiceTypeTimeRaceShort, l10n.recordTimes),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, height: 1.4, color: p.textFaint),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
@@ -355,10 +385,7 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     if (_loading) {
       content = const Center(child: CircularProgressIndicator());
     } else if (_stats.isEmpty) {
-      content = Center(
-        child: Text(l10n.noRecordedTimes,
-            style: TextStyle(fontSize: 16, color: p.textMuted)),
-      );
+      content = _emptyState(p, l10n);
     } else {
       content = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

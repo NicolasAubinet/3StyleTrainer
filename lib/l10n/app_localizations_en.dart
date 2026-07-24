@@ -310,7 +310,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dateRangeToday => 'Today';
 
   @override
-  String get noRecordedTimes => 'No recorded times';
+  String get noRecordedTimes => 'No recorded times yet';
+
+  @override
+  String noRecordedTimesHint(Object mode, Object toggle) {
+    return 'Times are recorded in $mode mode with \"$toggle\" turned on.';
+  }
 
   @override
   String get recordTimes => 'Record times';

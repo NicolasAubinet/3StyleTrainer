@@ -260,7 +260,7 @@
   "typeSubtitleLetters": "24-letter scheme",
   "typeSubtitleFlips": "edge-flip cases",
   "typeSubtitleTwists": "corner-twist cases",
-  "typeSubtitleCustom": "Sets mode only",
+  "typeSubtitleCustom": "Create your own sets",
   "twists": "2Twists",
   "parity": "Parity",
   "typeSubtitleParity": "UF/UR + 2 corners",

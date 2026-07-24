@@ -579,7 +579,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get typeSubtitleTwists => 'corner-twist cases';
 
   @override
-  String get typeSubtitleCustom => 'Sets mode only';
+  String get typeSubtitleCustom => 'Create your own sets';
 
   @override
   String get twists => '2Twists';

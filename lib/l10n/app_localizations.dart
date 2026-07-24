@@ -1087,7 +1087,7 @@ abstract class AppLocalizations {
   /// No description provided for @typeSubtitleCustom.
   ///
   /// In en, this message translates to:
-  /// **'Sets mode only'**
+  /// **'Create your own sets'**
   String get typeSubtitleCustom;
 
   /// No description provided for @twists.

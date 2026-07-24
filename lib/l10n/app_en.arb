@@ -23,21 +23,35 @@
   "smartCubeParityBuffersNotAdjacent": "Smart-cube parity works only when your edge buffer is adjacent to your corner buffer — using press timing",
   "smartCubeWrongCase": "You executed {pair}",
   "@smartCubeWrongCase": {
-    "placeholders": { "pair": { "type": "String" } }
+    "placeholders": {
+      "pair": {
+        "type": "String"
+      }
+    }
   },
   "smartCubeWrongOrientation": "Looks like {pair}, but held {top} top / {front} front",
   "@smartCubeWrongOrientation": {
     "placeholders": {
-      "pair": { "type": "String" },
-      "top": { "type": "String" },
-      "front": { "type": "String" }
+      "pair": {
+        "type": "String"
+      },
+      "top": {
+        "type": "String"
+      },
+      "front": {
+        "type": "String"
+      }
     }
   },
   "smartCubeSwitchOrientation": "Switch to {top} / {front} & requeue",
   "@smartCubeSwitchOrientation": {
     "placeholders": {
-      "top": { "type": "String" },
-      "front": { "type": "String" }
+      "top": {
+        "type": "String"
+      },
+      "front": {
+        "type": "String"
+      }
     }
   },
   "sessionSummary": "Session summary",
@@ -76,8 +90,12 @@
   "selectSetsToPractice": "Select sets to practice ({count} selected, {algCount} algs)",
   "@selectSetsToPractice": {
     "placeholders": {
-      "count": { "type": "int" },
-      "algCount": { "type": "int" }
+      "count": {
+        "type": "int"
+      },
+      "algCount": {
+        "type": "int"
+      }
     }
   },
   "selectAtLeastOneSet": "Select at least one set",
@@ -86,7 +104,9 @@
   "setAlgCount": "{count} algs",
   "@setAlgCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "average": "Average: {average}",
@@ -147,15 +167,27 @@
   "importRecordedTimesCount": "{count, plural, =1{1 recorded time imported} other{{count} recorded times imported}}",
   "importCustomSetsCount": "{count, plural, =1{1 custom set imported} other{{count} custom sets imported}}",
   "@importRecordedTimesCount": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "@importCustomSetsCount": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "importSettingsApplied": "Settings applied",
   "importSkippedCustomSets": "{count, plural, =1{1 custom set skipped (name already exists)} other{{count} custom sets skipped (names already exist)}}",
   "@importSkippedCustomSets": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "clearAllTimes": "Clear all times",
   "clearAllTimesConfirmMessage": "Are you sure you want to delete ALL your times?",
@@ -193,7 +225,11 @@
   "practiceTypeLetterPairsShort": "Pairs",
   "slowestSheetTitle": "Slowest {type}",
   "@slowestSheetTitle": {
-    "placeholders": { "type": { "type": "String" } }
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
   },
   "slowestModeTopN": "Top N",
   "slowestModeThreshold": "Above time",
@@ -201,12 +237,20 @@
   "slowestThresholdLabel": "Slower than (seconds)",
   "slowestCasesCount": "{count, plural, =0{No cases} =1{1 case} other{{count} cases}}",
   "@slowestCasesCount": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "slowestNoTimes": "No recorded times to practice yet",
   "mostFailedSheetTitle": "Most failed {type}",
   "@mostFailedSheetTitle": {
-    "placeholders": { "type": { "type": "String" } }
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
   },
   "weaknessSourceSlowest": "Slowest",
   "weaknessSourceMostFailed": "Most failed",
@@ -222,11 +266,22 @@
   "typeSubtitleParity": "UF/UR + 2 corners",
   "statsSolvesCount": "{count} solves",
   "@statsSolvesCount": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "statsSpread": "{min}–{max}s",
   "@statsSpread": {
-    "placeholders": { "min": { "type": "String" }, "max": { "type": "String" } }
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
   },
   "totalSolves": "Total solves: {count}",
   "globalAvg": "Global avg: {avg}",
@@ -240,7 +295,11 @@
   "summaryTarget": "Target",
   "mistakeExecuted": "Executed {pair}",
   "@mistakeExecuted": {
-    "placeholders": { "pair": { "type": "String" } }
+    "placeholders": {
+      "pair": {
+        "type": "String"
+      }
+    }
   },
   "mistakeRequeued": "Requeued",
   "mistakeSkipped": "Skipped",
@@ -252,8 +311,12 @@
   "deletedTime": "Deleted {alg} ({time}s)",
   "@deletedTime": {
     "placeholders": {
-      "alg": { "type": "String" },
-      "time": { "type": "String" }
+      "alg": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
     }
   },
   "deleteUnavailableNotRecorded": "This time wasn't recorded, nothing to delete"

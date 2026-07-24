@@ -7,7 +7,9 @@ import '../l10n/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../utils.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/glass_panel.dart';
 import '../widgets/sort_header.dart';
+import '../widgets/swipeable_row.dart';
 
 enum _SortColumn { dateTime, recognition, execution, total }
 
@@ -37,6 +39,7 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   // Sort: by solve time or by date/time (default). Not persisted.
   final SortState<_SortColumn> _sort = SortState(
       column: _SortColumn.dateTime, direction: SortDirection.descending);
+  final ValueNotifier<Object?> _openRow = ValueNotifier<Object?>(null);
 
   // The split columns only appear once this case has smart-cube attempts.
   bool get _hasSplits => _results.any((r) => r.recognitionMs != null);
@@ -58,6 +61,12 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _openRow.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -93,41 +102,42 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
     });
   }
 
-  void _confirmDelete(AlgResult result) async {
-    bool confirmed = false;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.deleteTimeConfirmTitle),
-        content: Text(AppLocalizations.of(context)!.deleteTimeConfirmMessage),
-        actions: [
-          TextButton(
-            child: Text(AppLocalizations.of(context)!.cancel),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          TextButton(
-            child: Text(AppLocalizations.of(context)!.delete),
-            onPressed: () {
-              confirmed = true;
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      ),
-    );
+  // Delete by content (not id) so an undo re-insert round-trips cleanly without
+  // the row's id going stale (see deleteRecordedResult / insertResult).
+  void _deleteRow(AlgResult result) {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      _results.removeWhere((r) => r.id == result.id);
+      _openRow.value = null;
+    });
+    DatabaseManager().deleteRecordedResult(
+        widget.algType, widget.alg, result.resultMs, result.timestamp);
 
-    if (confirmed) {
-      DatabaseManager().deleteResult(result.id);
-      setState(() {
-        _results.removeWhere((r) => r.id == result.id);
-      });
-    }
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text.rich(algTextSpan(
+            l10n.deletedTime(
+                widget.alg, timeToString(result.resultMs, fractionDigits: 2)),
+            const TextStyle())),
+        action: SnackBarAction(
+          label: l10n.undo,
+          onPressed: () {
+            DatabaseManager().insertResult(
+                widget.algType, widget.alg, result.resultMs,
+                timestamp: result.timestamp,
+                recognitionMs: result.recognitionMs);
+            setState(() {
+              _results.add(result);
+              _applySort(_results);
+            });
+          },
+        ),
+      ));
   }
 
   // Keep these widths in sync between the header and the rows so columns align.
-  // Kept tight so the date column has room to show the full date on its line.
   static const double _timeColumnWidth = 58;
-  static const double _deleteColumnWidth = 34;
   static const double _splitColumnWidth = 44;
   // Gap between the split columns and the total.
   static const double _splitGap = 6;
@@ -145,8 +155,8 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   Widget _buildHeader() {
     final l10n = AppLocalizations.of(context)!;
     return Padding(
-      // Card margin (4) + row padding (16), so headers sit over their values.
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      // Row padding (16) so headers sit over their values.
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
         children: [
           Expanded(child: _sortHeader(l10n.columnDateTime, _SortColumn.dateTime)),
@@ -160,7 +170,6 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
           _sortHeader(_hasSplits ? l10n.columnTotal : l10n.columnResult,
               _SortColumn.total,
               width: _timeColumnWidth, align: TextAlign.right),
-          SizedBox(width: _deleteColumnWidth),
         ],
       ),
     );
@@ -183,12 +192,13 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
     );
   }
 
-  Widget _buildRow(ThemeData theme, AlgResult result) {
+  Widget _buildRow(ThemeData theme, AlgResult result, bool peekHint) {
     final date = DateTime.fromMillisecondsSinceEpoch(result.timestamp);
     final p = context.palette;
     final cellStyle = theme.textTheme.labelLarge;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+    final card = GlassPanel(
+      radius: 10,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
         children: [
           Expanded(
@@ -221,16 +231,22 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
                 style: cellStyle,
                 textAlign: TextAlign.right),
           ),
-          SizedBox(
-            width: _deleteColumnWidth,
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              icon: Icon(Icons.delete),
-              color: context.palette.textMuted,
-              onPressed: () => _confirmDelete(result),
-            ),
-          ),
         ],
+      ),
+    );
+
+    return Padding(
+      key: ValueKey(result.id),
+      padding: const EdgeInsets.only(bottom: 7),
+      child: SwipeableRow(
+        rowId: result.id,
+        openRow: _openRow,
+        enabled: true,
+        peekHint: peekHint,
+        deleteLabel: AppLocalizations.of(context)!.delete,
+        radius: 10,
+        onDelete: () => _deleteRow(result),
+        child: card,
       ),
     );
   }
@@ -238,7 +254,6 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final p = context.palette;
 
     Widget content;
     if (_loading) {
@@ -252,14 +267,12 @@ class _AlgResultDetailsScreenState extends State<AlgResultDetailsScreen> {
       content = Column(
         children: [
           _buildHeader(),
+          const SizedBox(height: 6),
           Expanded(
-            child: Card(
-              color: p.panel,
-              child: ListView.builder(
-                itemCount: _results.length,
-                itemBuilder: (context, index) =>
-                    _buildRow(theme, _results[index]),
-              ),
+            child: ListView.builder(
+              itemCount: _results.length,
+              itemBuilder: (context, index) =>
+                  _buildRow(theme, _results[index], index == 0),
             ),
           ),
         ],

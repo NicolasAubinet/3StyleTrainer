@@ -100,6 +100,7 @@ class GanDriver extends CubeDriver {
       id: peripheral.id,
       name: peripheral.name,
       brand: CubeBrand.gan,
+      macAddress: mac,
     );
     final cube = GanCube._(
       device,

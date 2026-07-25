@@ -24,12 +24,15 @@ class DiscoveredCube {
   /// hello handshake carries.
   final bool needsMac;
 
+  final String? macAddress;
+
   const DiscoveredCube({
     required this.id,
     required this.name,
     required this.brand,
     this.modelName,
     this.needsMac = false,
+    this.macAddress,
   });
 
   @override

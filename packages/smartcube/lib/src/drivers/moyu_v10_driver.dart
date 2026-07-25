@@ -60,6 +60,7 @@ class MoyuV10Driver extends CubeDriver {
       name: peripheral.name,
       brand: CubeBrand.moyuV10,
       modelName: modelName(adv),
+      macAddress: mac,
     );
     final cube = MoyuV10Cube._(
       device,

@@ -731,4 +731,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String deletedError(Object alg) {
     return 'Deleted $alg error';
   }
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get copiedToClipboard => 'Copied to clipboard';
+
+  @override
+  String get smartCubeMac => 'MAC';
+
+  @override
+  String get aboutSection => 'About';
+
+  @override
+  String aboutVersion(String version) {
+    return '3-Style Trainer $version';
+  }
+
+  @override
+  String get aboutFeedback =>
+      'Found a bug or have a suggestion? Get in touch. Smart-cube support is new, so reports are welcome.';
+
+  @override
+  String get contact => 'Contact';
 }

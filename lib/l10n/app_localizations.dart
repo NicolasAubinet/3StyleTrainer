@@ -1329,6 +1329,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deleted {alg} error'**
   String deletedError(Object alg);
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get copiedToClipboard;
+
+  /// No description provided for @smartCubeMac.
+  ///
+  /// In en, this message translates to:
+  /// **'MAC'**
+  String get smartCubeMac;
+
+  /// No description provided for @aboutSection.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get aboutSection;
+
+  /// No description provided for @aboutVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'3-Style Trainer {version}'**
+  String aboutVersion(String version);
+
+  /// No description provided for @aboutFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Found a bug or have a suggestion? Get in touch. Smart-cube support is new, so reports are welcome.'**
+  String get aboutFeedback;
+
+  /// No description provided for @contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contact;
 }
 
 class _AppLocalizationsDelegate

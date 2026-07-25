@@ -7,6 +7,7 @@ import '../smart_cube_manager.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_palette.dart';
 import '../theme/theme_scope.dart';
+import 'copyable_value.dart';
 
 /// App-bar button reflecting the smart-cube connection: a subtle Bluetooth icon
 /// when idle, and the battery % when connected. Tap opens the connect sheet.
@@ -312,6 +313,7 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
   }
 
   Widget _connectedBody(AppLocalizations l10n, AppPalette p) {
+    final mac = _mgr.macAddress;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -333,6 +335,10 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
             ),
           ],
         ),
+        if (mac != null) ...[
+          const SizedBox(height: 6),
+          CopyableValue(label: l10n.smartCubeMac, value: mac),
+        ],
         const SizedBox(height: 20),
         _disconnectButton(l10n),
       ],

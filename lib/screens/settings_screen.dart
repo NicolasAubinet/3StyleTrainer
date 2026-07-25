@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:three_style_trainer/alg_structs.dart';
+import 'package:three_style_trainer/app_info.dart';
 import 'package:three_style_trainer/database_manager.dart';
 import 'package:three_style_trainer/export_data.dart';
 import 'package:three_style_trainer/import_service.dart';
@@ -18,6 +19,7 @@ import '../theme/theme_controller.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_segmented_control.dart';
+import '../widgets/copyable_value.dart';
 import '../widgets/data_category_dialog.dart';
 import '../widgets/glass_panel.dart';
 import '../widgets/tap_select_all.dart';
@@ -650,6 +652,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: p.bad)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+              _sectionLabel(l10n.aboutSection),
+              GlassPanel(
+                padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.aboutVersion(APP_VERSION),
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: p.textPrimary)),
+                    const SizedBox(height: 6),
+                    Text(l10n.aboutFeedback,
+                        style: TextStyle(fontSize: 12, color: p.textFaint)),
+                    const SizedBox(height: 4),
+                    CopyableValue(label: l10n.contact, value: CONTACT_EMAIL),
                   ],
                 ),
               ),

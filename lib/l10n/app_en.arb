@@ -340,5 +340,19 @@
   "errorsLastSeen": "Last: {date}",
   "noRecordedErrors": "No recorded errors yet",
   "noRecordedErrorsHint": "Errors are logged from smart-cube runs.",
-  "deletedError": "Deleted {alg} error"
+  "deletedError": "Deleted {alg} error",
+  "copy": "Copy",
+  "copiedToClipboard": "Copied to clipboard",
+  "smartCubeMac": "MAC",
+  "aboutSection": "About",
+  "aboutVersion": "3-Style Trainer {version}",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutFeedback": "Found a bug or have a suggestion? Get in touch. Smart-cube support is new, so reports are welcome.",
+  "contact": "Contact"
 }

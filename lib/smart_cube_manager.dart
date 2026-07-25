@@ -26,6 +26,8 @@ class SmartCubeManager {
   final ValueNotifier<int?> battery = ValueNotifier(null);
   final ValueNotifier<String?> cubeName = ValueNotifier(null);
 
+  String? get macAddress => _cube?.device.macAddress ?? _macAddress;
+
   final _moveCtrl = StreamController<CubeMove>.broadcast();
   final _stateCtrl = StreamController<CubeState>.broadcast();
   final _resyncCtrl = StreamController<CubeState>.broadcast();

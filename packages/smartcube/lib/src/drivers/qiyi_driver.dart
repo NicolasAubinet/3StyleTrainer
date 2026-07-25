@@ -54,6 +54,7 @@ class QiyiDriver extends CubeDriver {
       id: peripheral.id,
       name: peripheral.name,
       brand: CubeBrand.qiyi,
+      macAddress: mac,
     );
     final cube = QiyiCube._(device, peripheral, QiyiParser(macBytes(mac)));
     try {

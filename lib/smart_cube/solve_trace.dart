@@ -26,7 +26,9 @@ class SolveTrace {
     required String front,
     String? result,
   }) {
-    if (kIsWeb || _disabled || moves.isEmpty) return;
+    // Debug builds only: a release install must not litter its own directory
+    // with trace files nobody asked for.
+    if (!kDebugMode || kIsWeb || _disabled || moves.isEmpty) return;
     // On mobile the working directory is not writable; don't keep retrying.
     if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       _disabled = true;

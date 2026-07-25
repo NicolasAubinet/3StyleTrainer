@@ -146,6 +146,27 @@ class ThreeStyleGeometry {
     return null;
   }
 
+  /// The pair — other than [shown] — that the settled cube matches from any of
+  /// [baselines] (oldest first, so the case-start state answers first).
+  ///
+  /// Completion accepts the expected state from any baseline, so this must too,
+  /// or a pause mid-alg would quietly stop a wrong alg being named. Completing
+  /// [shown] wins over every other reading: 3-cycles compose, so a correct solve
+  /// is also some *other* case measured from an earlier rest (AD from the start
+  /// is BD from an AB rest).
+  static String? executedOtherPair(String currentFacelets,
+      List<String> baselines, AlgType algType, Iterable<String> candidatePairs,
+      {required String shown}) {
+    for (final b in baselines) {
+      if (isPairComplete(currentFacelets, b, shown, algType)) return null;
+    }
+    for (final b in baselines) {
+      final p = matchingPair(currentFacelets, b, algType, candidatePairs);
+      if (p != null && p != shown) return p;
+    }
+    return null;
+  }
+
   /// The facelet-move list (source → destination) for a case, or `null` if the
   /// pair can't be mapped under [algType].
   static List<(int, int)>? _cycle(String pair, AlgType algType) {

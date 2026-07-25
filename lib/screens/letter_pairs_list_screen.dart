@@ -133,7 +133,7 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
     if (!mounted || _currentPair != pair) return;
     if (_cubeRun!.phase != CubePhase.recognition) return;
     final norm = _normalise(state.facelets);
-    if (norm == _cubeRun!.startFacelets) return;
+    if (norm == _cubeRun!.caseStartFacelets) return;
     _cubeRun!.rebaseline(pair, norm);
   }
 
@@ -186,13 +186,14 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
 
   void _updateFeedback(String normFacelets) {
     final shown = _currentPair;
-    final start = _cubeRun!.startFacelets;
-    if (shown == null || start == null) return;
+    final baselines = _cubeRun!.baselines;
+    if (shown == null || baselines.isEmpty) return;
     if (_cubeRun!.phase != CubePhase.execution) return;
 
-    final wrong = ThreeStyleGeometry.matchingPair(
-        normFacelets, start, _cubeAlgType!, _pairPool);
-    if (wrong != null && wrong != shown) {
+    final wrong = ThreeStyleGeometry.executedOtherPair(
+        normFacelets, baselines, _cubeAlgType!, _pairPool,
+        shown: shown);
+    if (wrong != null) {
       // A full, clean case — just not the demanded one. Keep demanding it, and
       // remember this state so the shown pair can be executed from here.
       _cubeRun!.addBaseline(shown, normFacelets);

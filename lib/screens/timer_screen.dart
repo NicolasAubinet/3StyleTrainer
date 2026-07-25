@@ -372,8 +372,8 @@ class _TimerScreenState extends State<TimerScreen> {
   // Hints are sticky (kept until the case completes or a new one starts).
   void _updateFeedback(String rawFacelets, String normFacelets) {
     final shown = alg?.name;
-    final start = _cubeRun?.startFacelets;
-    if (shown == null || start == null) return;
+    final baselines = _cubeRun?.baselines ?? const <String>[];
+    if (shown == null || baselines.isEmpty) return;
 
     if (!_orientationConfirmed && _caseRawStart != null) {
       final o = detectExecutedOrientation(
@@ -390,9 +390,10 @@ class _TimerScreenState extends State<TimerScreen> {
       }
     }
 
-    final wrong = ThreeStyleGeometry.matchingPair(
-        normFacelets, start, _cubeAlgType!, _pairPool);
-    if (wrong != null && wrong != shown) {
+    final wrong = ThreeStyleGeometry.executedOtherPair(
+        normFacelets, baselines, _cubeAlgType!, _pairPool,
+        shown: shown);
+    if (wrong != null) {
       _onCubeError(shown, AlgMistakeKind.wrongCase, executed: wrong);
       return;
     }
@@ -578,7 +579,7 @@ class _TimerScreenState extends State<TimerScreen> {
     // baseline is what the split is measured against.
     if (_cubeRun!.phase != CubePhase.recognition) return;
     final norm = _normalise(state.facelets);
-    if (norm == _cubeRun!.startFacelets) return;
+    if (norm == _cubeRun!.caseStartFacelets) return;
     _cubeRun!.rebaseline(pair, norm);
     _caseRawStart = state.facelets;
   }

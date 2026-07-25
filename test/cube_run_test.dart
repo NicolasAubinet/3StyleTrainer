@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcube/smartcube.dart';
+import 'package:three_style_trainer/alg_provider.dart';
 import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/smart_cube/cube_run.dart';
 import 'package:three_style_trainer/smart_cube/three_style_geometry.dart';
@@ -213,15 +214,18 @@ void main() {
     expect(c.phase, CubePhase.execution);
   });
 
-  test('startFacelets tracks the most recent baseline', () {
+  test('baselines are exposed oldest first, case start pinned at index 0', () {
     final c = make(AlgType.Corner);
     c.startCase('AD', solved);
-    expect(c.startFacelets, solved);
+    expect(c.baselines, [solved]);
+    expect(c.caseStartFacelets, solved);
     c.onMove();
     final b1 =
         ThreeStyleGeometry.expectedAfterPair(solved, 'AB', AlgType.Corner)!;
     c.addBaseline('AD', b1);
-    expect(c.startFacelets, b1);
+    expect(c.baselines, [solved, b1]);
+    expect(c.caseStartFacelets, solved,
+        reason: 'a mid-case baseline must not move the case-start reference');
   });
 
   test('duplicate baselines are ignored', () {
@@ -230,6 +234,79 @@ void main() {
     c.onMove();
     // Re-adding the case-start state is a no-op; the latest stays put.
     expect(c.addBaseline('AD', solved), isTrue);
-    expect(c.startFacelets, solved);
+    expect(c.baselines, [solved]);
+  });
+
+  group('a wrong alg is named whatever the user rested at', () {
+    // Shown AD, user executes DA (a different case) instead.
+    final pool = enumerateAlgs(AlgType.Corner);
+    String wrongEnd(String from) =>
+        ThreeStyleGeometry.expectedAfterPair(from, 'DA', AlgType.Corner)!;
+
+    test('executed straight through from the case start', () {
+      final c = make(AlgType.Corner);
+      c.startCase('AD', solved);
+      c.onMove();
+      final end = wrongEnd(solved);
+      expect(c.onState(end), isNull, reason: 'DA is not AD');
+      expect(
+          ThreeStyleGeometry.executedOtherPair(
+              end, c.baselines, AlgType.Corner, pool,
+              shown: 'AD'),
+          'DA');
+    });
+
+    test('executed with a pause part-way through', () {
+      final c = make(AlgType.Corner);
+      c.startCase('AD', solved);
+      c.onMove();
+      // The >500ms hesitation that used to hide the mistake.
+      final pause =
+          ThreeStyleGeometry.expectedAfterPair(solved, 'AB', AlgType.Corner)!;
+      c.addBaseline('AD', pause);
+      final end = wrongEnd(solved);
+      expect(c.onState(end), isNull);
+      expect(
+          ThreeStyleGeometry.executedOtherPair(
+              end, c.baselines, AlgType.Corner, pool,
+              shown: 'AD'),
+          'DA',
+          reason: 'a pause must not stop the wrong alg being named');
+    });
+
+    test('executed from a botched state the user rested at', () {
+      final c = make(AlgType.Corner);
+      c.startCase('AD', solved);
+      c.onMove();
+      final botch =
+          ThreeStyleGeometry.expectedAfterPair(solved, 'AB', AlgType.Corner)!;
+      c.addBaseline('AD', botch);
+      final end = wrongEnd(botch); // DA executed from the botched state
+      expect(
+          ThreeStyleGeometry.executedOtherPair(
+              end, c.baselines, AlgType.Corner, pool,
+              shown: 'AD'),
+          'DA');
+    });
+
+    test('the shown case executed correctly is never called wrong', () {
+      final c = make(AlgType.Corner);
+      c.startCase('AD', solved);
+      c.onMove();
+      final pause =
+          ThreeStyleGeometry.expectedAfterPair(solved, 'AB', AlgType.Corner)!;
+      c.addBaseline('AD', pause);
+      final end =
+          ThreeStyleGeometry.expectedAfterPair(solved, 'AD', AlgType.Corner)!;
+      expect(
+          ThreeStyleGeometry.executedOtherPair(
+              end, c.baselines, AlgType.Corner, pool,
+              shown: 'AD'),
+          isNull);
+      final split = c.onState(end);
+      expect(split, isNotNull);
+      expect(split!.recovered, isFalse,
+          reason: 'pausing mid-alg is not a botch');
+    });
   });
 }

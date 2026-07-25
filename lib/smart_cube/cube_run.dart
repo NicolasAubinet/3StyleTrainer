@@ -145,7 +145,11 @@ class CubeRunController {
   String? get expectedFacelets =>
       _matched ?? (_expecteds.isEmpty ? null : _expecteds.first);
 
-  /// The most recent candidate baseline — the reference wrong-case feedback is
-  /// judged against; `null` before the case starts.
-  String? get startFacelets => _baselines.isEmpty ? null : _baselines.last;
+  /// Every candidate baseline, oldest first; index 0 is the case-start state.
+  /// Wrong-case feedback is judged against all of them, the same way completion
+  /// is (see [ThreeStyleGeometry.executedOtherPair]).
+  List<String> get baselines => List.unmodifiable(_baselines);
+
+  /// The state the case was shown in; `null` before the case starts.
+  String? get caseStartFacelets => _baselines.isEmpty ? null : _baselines.first;
 }

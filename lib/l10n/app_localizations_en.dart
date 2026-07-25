@@ -84,6 +84,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String smartCubeRecovered(String pair) {
+    return 'You solved $pair from a botched state';
+  }
+
+  @override
   String smartCubeWrongOrientation(String pair, String top, String front) {
     return 'Looks like $pair, but held $top top / $front front';
   }
@@ -653,6 +658,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mistakeSkipped => 'Skipped';
 
   @override
+  String get mistakeRecovered => 'Solved from a botched state';
+
+  @override
   String get mistakeNoMoves => 'No moves recorded';
 
   @override
@@ -706,6 +714,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String errorsBreakdownSkipped(Object count) {
     return '$count skipped';
+  }
+
+  @override
+  String errorsBreakdownRecovered(Object count) {
+    return '$count recovered';
   }
 
   @override

@@ -305,9 +305,11 @@ class _AlgTimesScreenState extends State<AlgTimesScreen> {
     final wrong = s.kindCounts[AlgMistakeKind.wrongCase] ?? 0;
     final requeued = s.kindCounts[AlgMistakeKind.requeued] ?? 0;
     final skipped = s.kindCounts[AlgMistakeKind.skipped] ?? 0;
+    final recovered = s.kindCounts[AlgMistakeKind.recovered] ?? 0;
     if (wrong > 0) parts.add(l10n.errorsBreakdownWrong(wrong));
     if (requeued > 0) parts.add(l10n.errorsBreakdownRequeued(requeued));
     if (skipped > 0) parts.add(l10n.errorsBreakdownSkipped(skipped));
+    if (recovered > 0) parts.add(l10n.errorsBreakdownRecovered(recovered));
     return parts.join(" · ");
   }
 

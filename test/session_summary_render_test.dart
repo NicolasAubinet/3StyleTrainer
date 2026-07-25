@@ -119,6 +119,30 @@ void main() {
     expect(find.text('2/2'), findsOneWidget);
   });
 
+  testWidgets('a recovered case reads as solved from a botched state',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 900));
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: _sampleTimes(),
+        mistakes: [
+          const AlgMistake(1, Alg("VU"), AlgMistakeKind.recovered,
+              moves: "R M U2 M' U2")
+        ],
+        cubeDriven: true,
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 12000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.scrollUntilVisible(find.text('Solved from a botched state'), 120);
+    expect(find.text('ERRORS (1)'), findsOneWidget);
+  });
+
   testWidgets('a review-mode skip shows the errors section without a cube',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 900));

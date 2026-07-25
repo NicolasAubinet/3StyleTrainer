@@ -232,6 +232,12 @@ abstract class AppLocalizations {
   /// **'You executed {pair}'**
   String smartCubeWrongCase(String pair);
 
+  /// No description provided for @smartCubeRecovered.
+  ///
+  /// In en, this message translates to:
+  /// **'You solved {pair} from a botched state'**
+  String smartCubeRecovered(String pair);
+
   /// No description provided for @smartCubeWrongOrientation.
   ///
   /// In en, this message translates to:
@@ -1204,6 +1210,12 @@ abstract class AppLocalizations {
   /// **'Skipped'**
   String get mistakeSkipped;
 
+  /// No description provided for @mistakeRecovered.
+  ///
+  /// In en, this message translates to:
+  /// **'Solved from a botched state'**
+  String get mistakeRecovered;
+
   /// No description provided for @mistakeNoMoves.
   ///
   /// In en, this message translates to:
@@ -1293,6 +1305,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} skipped'**
   String errorsBreakdownSkipped(Object count);
+
+  /// No description provided for @errorsBreakdownRecovered.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} recovered'**
+  String errorsBreakdownRecovered(Object count);
 
   /// No description provided for @errorsLastSeen.
   ///

@@ -502,6 +502,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         return l10n.mistakeSkipped;
       case AlgMistakeKind.requeued:
         return l10n.mistakeRequeued;
+      case AlgMistakeKind.recovered:
+        return l10n.mistakeRecovered;
     }
   }
 

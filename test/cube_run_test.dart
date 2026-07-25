@@ -102,7 +102,10 @@ void main() {
     final target =
         ThreeStyleGeometry.expectedAfterPair(afterWrong, 'AD', AlgType.Corner)!;
     expect(c.expectedFacelets, target);
-    expect(c.onState(target), isNotNull);
+    final split = c.onState(target);
+    expect(split, isNotNull);
+    // A re-baseline replaces the start state, so this counts as solved from it.
+    expect(split!.recovered, isFalse);
     expect(c.phase, CubePhase.complete);
   });
 
@@ -138,11 +141,42 @@ void main() {
         ThreeStyleGeometry.expectedAfterPair(solved, 'AB', AlgType.Corner)!;
     expect(c.onState(botched), isNull);
     expect(c.addBaseline('AD', botched), isTrue);
-    // AD executed from the botched state now completes — no undo/reset needed.
+    // AD executed from the botched state now completes — no undo/reset needed —
+    // but off a later baseline, so it counts as a recovery.
     final fromBotch =
         ThreeStyleGeometry.expectedAfterPair(botched, 'AD', AlgType.Corner)!;
-    expect(c.onState(fromBotch), isNotNull);
+    final split = c.onState(fromBotch);
+    expect(split, isNotNull);
+    expect(split!.recovered, isTrue);
     expect(c.phase, CubePhase.complete);
+  });
+
+  test('a stray move before the alg completes as a recovery', () {
+    final c = make(AlgType.Corner);
+    c.startCase('AD', solved);
+    c.onMove();
+    // One R, then a pause; AD from there completes, but the R stays on the cube.
+    final afterR = (CubieCube()..applyMove(Face.R, false)).toFaceCube();
+    c.addBaseline('AD', afterR);
+    final done =
+        ThreeStyleGeometry.expectedAfterPair(afterR, 'AD', AlgType.Corner)!;
+    final split = c.onState(done);
+    expect(split, isNotNull);
+    expect(split!.recovered, isTrue);
+  });
+
+  test('moves that cancel out still complete from the start baseline', () {
+    final c = make(AlgType.Corner);
+    final e = ThreeStyleGeometry.expectedAfterPair(solved, 'AD', AlgType.Corner)!;
+    c.startCase('AD', solved);
+    c.onMove();
+    // R R' mid-alg: the pause adds a baseline, but the alg still lands on
+    // Δ_AD(start) — honest, not a recovery.
+    final afterR = (CubieCube()..applyMove(Face.R, false)).toFaceCube();
+    c.addBaseline('AD', afterR);
+    final split = c.onState(e);
+    expect(split, isNotNull);
+    expect(split!.recovered, isFalse);
   });
 
   test('a mid-alg pause baseline never blocks completion from the start', () {
@@ -155,8 +189,10 @@ void main() {
         ThreeStyleGeometry.expectedAfterPair(solved, 'AB', AlgType.Corner)!;
     expect(c.onState(mid), isNull);
     c.addBaseline('AD', mid);
-    // Finishing the alg reaches Δ_AD(start) — still completes via baseline 0.
-    expect(c.onState(e), isNotNull);
+    // Finishing the alg reaches Δ_AD(start) — completes via baseline 0, honest.
+    final split = c.onState(e);
+    expect(split, isNotNull);
+    expect(split!.recovered, isFalse);
     expect(c.phase, CubePhase.complete);
   });
 

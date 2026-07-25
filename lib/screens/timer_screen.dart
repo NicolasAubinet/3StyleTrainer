@@ -416,7 +416,8 @@ class _TimerScreenState extends State<TimerScreen> {
     // A wrong-case detection IS a completed execution — it fires on the other
     // pair's full expected state, whose centres are provably home (Δ_pair
     // never moves them) — so the solve-path physics apply and wides are
-    // recoverable. Requeue/skip carry no such guarantee.
+    // recoverable. Requeue/skip carry no such guarantee, nor does a recovery:
+    // its stray moves can leave the drift open.
     //
     // Reconstructed off the UI thread (see describeAsync); the mistake row is
     // patched and persisted when the replay lands — the summary reads it later.
@@ -449,10 +450,12 @@ class _TimerScreenState extends State<TimerScreen> {
     // back in the pool to be retried later.
     final skipping = kind == AlgMistakeKind.skipped;
     if (skipping) widget.algProvider.skip(shown);
+    final carried = switch (kind) {
+      AlgMistakeKind.recovered => _CubeFeedback.recovered(shown),
+      _ => executed == null ? null : _CubeFeedback.wrongCase(executed),
+    };
     _advanceCubeCase(_currentFacelets,
-        requeueAfter: skipping ? null : shown,
-        keepFeedback:
-            executed == null ? null : _CubeFeedback.wrongCase(executed));
+        requeueAfter: skipping ? null : shown, keepFeedback: carried);
     _flashAdvance(error: true);
     _blockRequeueBriefly();
   }
@@ -462,9 +465,10 @@ class _TimerScreenState extends State<TimerScreen> {
   // case only refines the row, upward only — a named wrong pair beats a bare
   // requeue or skip, and a terminal skip beats a requeue.
   static const _mistakeRank = {
-    AlgMistakeKind.requeued: 0,
-    AlgMistakeKind.skipped: 1,
-    AlgMistakeKind.wrongCase: 2,
+    AlgMistakeKind.recovered: 0,
+    AlgMistakeKind.requeued: 1,
+    AlgMistakeKind.skipped: 2,
+    AlgMistakeKind.wrongCase: 3,
   };
 
   void _persistMistake(
@@ -582,6 +586,13 @@ class _TimerScreenState extends State<TimerScreen> {
     final finished = alg;
     if (finished == null) return;
     final spoiled = _caseSpoiled; // starting the next case clears the flag
+    // Solved from stray moves still on the cube: it advances, as an error with no
+    // time. A resync moved the baseline itself, so it stays excused instead.
+    if (split.recovered && !spoiled) {
+      _orientationConfirmed = true; // the alg still matched in the assumed frame
+      _onCubeError(finished.name, AlgMistakeKind.recovered);
+      return;
+    }
     stopwatch.stop();
     final caseMoves = List<CubeMove>.of(_caseMoves);
     setState(() {
@@ -1066,10 +1077,15 @@ class _TimerScreenState extends State<TimerScreen> {
         ),
       );
     }
+    final message = switch (fb.kind) {
+      _FeedbackKind.resynced => l10n.smartCubeResynced,
+      _FeedbackKind.recovered => l10n.smartCubeRecovered(fb.pair),
+      _ => l10n.smartCubeWrongCase(fb.pair),
+    };
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
       child: Text(
-        fb.isResynced ? l10n.smartCubeResynced : l10n.smartCubeWrongCase(fb.pair),
+        message,
         textAlign: TextAlign.center,
         style: textStyle,
       ),
@@ -1212,7 +1228,7 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 }
 
-enum _FeedbackKind { wrongCase, orientation, resynced }
+enum _FeedbackKind { wrongCase, recovered, orientation, resynced }
 
 class _CubeFeedback {
   final _FeedbackKind kind;
@@ -1224,6 +1240,10 @@ class _CubeFeedback {
       : kind = _FeedbackKind.wrongCase,
         top = null,
         front = null;
+  const _CubeFeedback.recovered(this.pair)
+      : kind = _FeedbackKind.recovered,
+        top = null,
+        front = null;
   const _CubeFeedback.orientation(this.pair, this.top, this.front)
       : kind = _FeedbackKind.orientation;
   const _CubeFeedback.resynced()
@@ -1233,7 +1253,6 @@ class _CubeFeedback {
         front = null;
 
   bool get isOrientation => kind == _FeedbackKind.orientation;
-  bool get isResynced => kind == _FeedbackKind.resynced;
 
   @override
   bool operator ==(Object o) =>

@@ -20,7 +20,12 @@ enum CubePhase {
 class CaseSplit {
   final Duration recognition;
   final Duration execution;
-  const CaseSplit(this.recognition, this.execution);
+
+  /// Completed from a mid-case baseline, not the state the case was shown in:
+  /// the alg was right, the cube wasn't — so the time isn't honest.
+  final bool recovered;
+
+  const CaseSplit(this.recognition, this.execution, {this.recovered = false});
 
   Duration get total => recognition + execution;
 }
@@ -33,7 +38,9 @@ class CaseSplit {
 /// *any* baseline it has rested at — the case-start state plus any added via
 /// [addBaseline] (a mid-alg pause, or a botch the user recovers from). Because
 /// the check is full-state equality, extra baselines only ever catch a real
-/// execution, never fabricate one, and a wrong alg can never auto-advance.
+/// execution, never fabricate one, and a wrong alg can never auto-advance. Only
+/// the case-start baseline gives an honest time; the rest come back
+/// [CaseSplit.recovered].
 /// Supports corner, edge, 2-flip, 2-twist and parity pairs ([supports]).
 class CubeRunController {
   final AlgType algType;
@@ -122,14 +129,16 @@ class CubeRunController {
 
   /// Feed a full-state snapshot. Returns the completed [CaseSplit] the instant
   /// the cube reaches an expected state (from any baseline); `null` while the
-  /// case is unfinished.
+  /// case is unfinished. A match on a later baseline means stray moves are still
+  /// on the cube: [CaseSplit.recovered].
   CaseSplit? onState(String facelets) {
     if (phase != CubePhase.execution) return null;
-    if (!_expecteds.contains(facelets)) return null;
+    final matched = _expecteds.indexOf(facelets);
+    if (matched < 0) return null;
     _matched = facelets;
     final execution = _now().difference(_firstMoveAt!);
     phase = CubePhase.complete;
-    return CaseSplit(_recognition!, execution);
+    return CaseSplit(_recognition!, execution, recovered: matched > 0);
   }
 
   /// The cube's end-state for the case: the matched candidate once complete,

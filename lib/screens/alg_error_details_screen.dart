@@ -69,6 +69,8 @@ class _AlgErrorDetailsScreenState extends State<AlgErrorDetailsScreen> {
         return l10n.mistakeRequeued;
       case AlgMistakeKind.skipped:
         return l10n.mistakeSkipped;
+      case AlgMistakeKind.recovered:
+        return l10n.mistakeRecovered;
       case null:
         return "–";
     }

@@ -29,6 +29,14 @@
       }
     }
   },
+  "smartCubeRecovered": "You solved {pair} from a botched state",
+  "@smartCubeRecovered": {
+    "placeholders": {
+      "pair": {
+        "type": "String"
+      }
+    }
+  },
   "smartCubeWrongOrientation": "Looks like {pair}, but held {top} top / {front} front",
   "@smartCubeWrongOrientation": {
     "placeholders": {
@@ -310,6 +318,7 @@
   },
   "mistakeRequeued": "Requeued",
   "mistakeSkipped": "Skipped",
+  "mistakeRecovered": "Solved from a botched state",
   "mistakeNoMoves": "No moves recorded",
   "rawMovesNote": "Raw reading — slices not reconstructed",
   "pillFastest": "Fastest",
@@ -335,6 +344,7 @@
   "errorsBreakdownWrong": "{count} wrong",
   "errorsBreakdownRequeued": "{count} requeued",
   "errorsBreakdownSkipped": "{count} skipped",
+  "errorsBreakdownRecovered": "{count} recovered",
   "errorsLastSeen": "Last: {date}",
   "noRecordedErrors": "No recorded errors yet",
   "noRecordedErrorsHint": "Errors are logged from smart-cube runs.",

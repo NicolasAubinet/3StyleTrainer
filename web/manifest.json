@@ -1,11 +1,11 @@
 {
-    "name": "three_style_trainer",
-    "short_name": "three_style_trainer",
+    "name": "3-Style Trainer",
+    "short_name": "3-Style Trainer",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "3-Style Trainer",
+    "background_color": "#1B1F24",
+    "theme_color": "#1B1F24",
+    "description": "3-Style Trainer for Blindsolving",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

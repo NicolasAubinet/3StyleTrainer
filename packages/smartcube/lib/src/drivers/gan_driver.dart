@@ -247,7 +247,7 @@ class GanCube implements SmartCube {
   void _pullState() {
     _anchorTimer?.cancel();
     _request(GanRequest.facelets);
-    _anchorTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+    _anchorTimer = Timer.periodic(anchorRetryInterval, (t) {
       if (!_protocol.needsAnchor || _connection != CubeConnection.ready) {
         t.cancel();
         return;

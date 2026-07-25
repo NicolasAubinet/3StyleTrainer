@@ -429,10 +429,8 @@ class _TimerScreenState extends State<TimerScreen> {
     final row =
         AlgMistake(mistakes.length + 1, Alg(shown), kind, executed: executed);
     mistakes.add(row);
-    MoveReconstruction.describeAsync(caseMoves,
-            cube: SmartCubeManager().cube,
-            completed: kind == AlgMistakeKind.wrongCase)
-        .then((replay) {
+    _reconstructAfterFrame(caseMoves,
+        completed: kind == AlgMistakeKind.wrongCase, then: (replay) {
       _traceCase('$shown!${kind.name}', replay?.notation, moves: caseMoves);
       _patchMistake(row, replay);
     });
@@ -446,6 +444,17 @@ class _TimerScreenState extends State<TimerScreen> {
             executed == null ? null : _CubeFeedback.wrongCase(executed));
     _flashAdvance(error: true);
     _blockRequeueBriefly();
+  }
+
+  // After the frame that shows the next case, never in it: the isolate spawn
+  // costs the UI thread milliseconds, and the replay only has to beat the summary.
+  void _reconstructAfterFrame(List<CubeMove> moves,
+      {required bool completed, required void Function(ReplayMoves?) then}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      MoveReconstruction.describeAsync(moves,
+              cube: SmartCubeManager().cube, completed: completed)
+          .then(then);
+    });
   }
 
   // Fill in the slip's moves and write it to the errors history.
@@ -633,9 +642,7 @@ class _TimerScreenState extends State<TimerScreen> {
       // claim `completed`: the stray moves it recovered from may leave the drift
       // open, unlike a clean solve's guaranteed home centres.
       final slip = recovered ? mistakes.last : null;
-      MoveReconstruction.describeAsync(caseMoves,
-              cube: SmartCubeManager().cube, completed: !recovered)
-          .then((replay) {
+      _reconstructAfterFrame(caseMoves, completed: !recovered, then: (replay) {
         _traceCase(recovered ? '${finished.name}!recovered' : finished.name,
             replay?.notation,
             moves: caseMoves);
@@ -804,6 +811,12 @@ class _TimerScreenState extends State<TimerScreen> {
     final shown = alg?.name;
     if (shown == null) return;
     final norm = _normalise(state.facelets);
+    // The anchor can land just after the same state completed a case, leaving the
+    // *next* one standing here untouched: nothing was missed, so don't spoil it.
+    if (_cubeRun!.phase == CubePhase.recognition &&
+        norm == _cubeRun!.caseStartFacelets) {
+      return;
+    }
     _cubeRun!.rebaseline(shown, norm);
     _caseRawStart = state.facelets;
     _caseSpoiled = true;

@@ -2,6 +2,10 @@ import 'model/connection.dart';
 import 'smart_cube.dart';
 import 'transport/ble_transport.dart';
 
+/// How often a driver re-asks for the cube's state while its model is
+/// un-anchored. Nothing is emitted meanwhile, so this is the stall the user feels.
+const Duration anchorRetryInterval = Duration(milliseconds: 250);
+
 /// Advertisement data a driver inspects to decide whether it handles a device.
 class CubeAdvertisement {
   final String id;

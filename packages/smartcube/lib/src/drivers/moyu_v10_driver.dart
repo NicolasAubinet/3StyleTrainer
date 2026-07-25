@@ -210,7 +210,7 @@ class MoyuV10Cube implements SmartCube {
   void _pullState() {
     _anchorTimer?.cancel();
     _write.write(_parser.encodeRequest(MoyuV10Parser.opStatus));
-    _anchorTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+    _anchorTimer = Timer.periodic(anchorRetryInterval, (t) {
       if (!_parser.needsAnchor || _connection != CubeConnection.ready) {
         t.cancel();
         return;

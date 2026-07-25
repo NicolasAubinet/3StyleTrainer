@@ -22,7 +22,7 @@ class CaseSplit {
   final Duration execution;
 
   /// Completed from a mid-case baseline, not the state the case was shown in:
-  /// the alg was right, the cube wasn't — so the time isn't honest.
+  /// the alg was right, the cube wasn't.
   final bool recovered;
 
   const CaseSplit(this.recognition, this.execution, {this.recovered = false});
@@ -38,9 +38,8 @@ class CaseSplit {
 /// *any* baseline it has rested at — the case-start state plus any added via
 /// [addBaseline] (a mid-alg pause, or a botch the user recovers from). Because
 /// the check is full-state equality, extra baselines only ever catch a real
-/// execution, never fabricate one, and a wrong alg can never auto-advance. Only
-/// the case-start baseline gives an honest time; the rest come back
-/// [CaseSplit.recovered].
+/// execution, never fabricate one, and a wrong alg can never auto-advance. A
+/// completion off any later baseline comes back [CaseSplit.recovered].
 /// Supports corner, edge, 2-flip, 2-twist and parity pairs ([supports]).
 class CubeRunController {
   final AlgType algType;

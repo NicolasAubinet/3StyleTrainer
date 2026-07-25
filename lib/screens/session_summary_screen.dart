@@ -511,7 +511,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   // what the cube saw each time — the pair actually executed, or nothing
   // recognizable (the user requeued it) — plus the moves it saw you turn. The
   // moves are clipped to one line; tapping the row shows every attempt in full.
-  // No time and no swipe-to-delete: nothing was recorded.
+  // No time and no swipe-to-delete here — a recovered case keeps its time, but
+  // in the times list, where it can be deleted like any other.
   Widget _mistakeRow(
       List<AlgMistake> group, int row, AppPalette p, AppLocalizations l10n) {
     // Identical attempts collapse: two GA slips read "Executed GA", not twice.

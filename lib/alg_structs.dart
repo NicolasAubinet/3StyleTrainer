@@ -64,7 +64,8 @@ enum AlgMistakeKind { wrongCase, requeued, skipped, recovered }
 
 // A case that went wrong in a cube-driven run: it was abandoned so it has no
 // honest time and never reaches the results history. A requeued case goes back
-// in the pool; a skipped one is dropped from the rest of the session.
+// in the pool; a skipped one is dropped from the rest of the session. The
+// exception is [AlgMistakeKind.recovered]: it completed and keeps its time.
 class AlgMistake {
   final int index;
   final Alg alg;

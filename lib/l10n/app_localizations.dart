@@ -232,12 +232,6 @@ abstract class AppLocalizations {
   /// **'You executed {pair}'**
   String smartCubeWrongCase(String pair);
 
-  /// No description provided for @smartCubeRecovered.
-  ///
-  /// In en, this message translates to:
-  /// **'You solved {pair} from a botched state'**
-  String smartCubeRecovered(String pair);
-
   /// No description provided for @smartCubeWrongOrientation.
   ///
   /// In en, this message translates to:

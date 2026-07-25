@@ -29,14 +29,6 @@
       }
     }
   },
-  "smartCubeRecovered": "You solved {pair} from a botched state",
-  "@smartCubeRecovered": {
-    "placeholders": {
-      "pair": {
-        "type": "String"
-      }
-    }
-  },
   "smartCubeWrongOrientation": "Looks like {pair}, but held {top} top / {front} front",
   "@smartCubeWrongOrientation": {
     "placeholders": {

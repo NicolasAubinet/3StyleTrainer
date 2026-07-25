@@ -84,11 +84,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String smartCubeRecovered(String pair) {
-    return 'You solved $pair from a botched state';
-  }
-
-  @override
   String smartCubeWrongOrientation(String pair, String top, String front) {
     return 'Looks like $pair, but held $top top / $front front';
   }

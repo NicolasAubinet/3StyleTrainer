@@ -61,6 +61,9 @@ class SessionSummaryScreen extends StatefulWidget {
   // Cases that went wrong (cube-driven runs only). They have no honest time, so
   // they stay out of the times list and its stats, and get their own section.
   final List<AlgMistake> mistakes;
+  // Bumped when a move reconstruction lands after this screen opened, patching
+  // a row in place. Without it a late row would stay unopenable until reopened.
+  final Listenable? revision;
   // The cube drove the run: it alone can spot mistakes, so it alone gets the
   // errors tile — shown even at zero, so the summary keeps one shape.
   final bool cubeDriven;
@@ -84,6 +87,7 @@ class SessionSummaryScreen extends StatefulWidget {
       {super.key,
       required this.algTimes,
       this.mistakes = const [],
+      this.revision,
       this.cubeDriven = false,
       required this.algType,
       this.onTargetTimeChanged,
@@ -129,6 +133,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
     super.initState();
     _computeAnchors();
     _applySort();
+    widget.revision?.addListener(_onRowsPatched);
 
     _buttonsActivationTimer = Timer(
         Duration(milliseconds: BUTTON_PRESS_DELAY_MS),
@@ -139,9 +144,16 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
 
   @override
   void dispose() {
+    widget.revision?.removeListener(_onRowsPatched);
     _buttonsActivationTimer.cancel();
     _openRow.dispose();
     super.dispose();
+  }
+
+  // A row was swapped for its reconstructed version. Order and anchors are keyed
+  // on times, which the swap leaves alone, so just rebuild.
+  void _onRowsPatched() {
+    if (mounted) setState(() {});
   }
 
   bool get _isRecording => widget.onDeleteFromDb != null;

@@ -677,4 +677,50 @@ void main() {
     // the same run doesn't revert to the value it was started with.
     expect(reported, 1.2);
   });
+
+  // The last case of a run reaches the summary before its move reconstruction
+  // finishes, so the summary has to take the row when it lands.
+  testWidgets('a reconstruction landing after the summary opens is picked up',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 900));
+    final times = [
+      const AlgTime(1, 770, Alg("BA"),
+          timestamp: 1, recognitionMs: 300, moves: "M U M' U'"),
+      const AlgTime(2, 900, Alg("VU"), timestamp: 2, recognitionMs: 400),
+    ];
+    final revision = ValueNotifier(0);
+    addTearDown(revision.dispose);
+
+    await tester.pumpWidget(_host(
+      SessionSummaryScreen(
+        algTimes: times,
+        revision: revision,
+        cubeDriven: true,
+        algType: AlgType.Corner,
+        targetTime: 0.85,
+        practiceType: PracticeType.sets,
+        totalTimeMs: 12000,
+      ),
+      AppPalette.slate,
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    // VU is built with no moves, so its row is inert. Don't tap it here: a tap
+    // rebuilds the row on its own and would mask the notifier doing the work.
+
+    // What the timer does when the replay lands: swap the row in place, bump.
+    final i = times.indexWhere((t) => t.alg.name == "VU");
+    times[i] = AlgTime(times[i].index, times[i].timeMs, times[i].alg,
+        timestamp: times[i].timestamp,
+        recognitionMs: times[i].recognitionMs,
+        moves: "R U R' U'");
+    revision.value++;
+    await tester.pumpAndSettle();
+
+    // The same row now opens its moves without the summary being reopened.
+    await tester.tap(find.text('VU'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text("R U R' U'"), findsOneWidget);
+  });
 }

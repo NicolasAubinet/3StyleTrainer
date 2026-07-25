@@ -113,6 +113,13 @@ class _TimerScreenState extends State<TimerScreen> {
   final List<CubeMove> _caseMoves = [];
   static const int _MAX_STORED_MOVES = 120;
 
+  // The lists the open summary is showing. A reconstruction finishes after its
+  // case does — often after the summary is up — so it patches these too and
+  // bumps the revision, and the row becomes openable where it stands.
+  List<AlgTime>? _summaryTimes;
+  List<AlgMistake>? _summaryMistakes;
+  final ValueNotifier<int> _summaryRevision = ValueNotifier(0);
+
   // How long the cube must sit still before a non-completing state is judged a
   // mistake. Algs are meant to flow, so a pause this long already means you've
   // stopped — waiting any longer just leaves the error hanging unexplained.
@@ -231,11 +238,7 @@ class _TimerScreenState extends State<TimerScreen> {
       });
     }
 
-    final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => _buildSummary(timesCopy, totalTimeMs,
-                algMistakes: mistakesCopy)));
+    final result = await _pushSummary(timesCopy, totalTimeMs, mistakesCopy);
 
     setState(() {
       isReady = false;
@@ -275,6 +278,7 @@ class _TimerScreenState extends State<TimerScreen> {
     return SessionSummaryScreen(
       algTimes: algTimes,
       mistakes: algMistakes,
+      revision: _summaryRevision,
       cubeDriven: _cubeMode,
       algType: widget.algType,
       targetTime: _targetTime,
@@ -425,13 +429,12 @@ class _TimerScreenState extends State<TimerScreen> {
     final row =
         AlgMistake(mistakes.length + 1, Alg(shown), kind, executed: executed);
     mistakes.add(row);
-    final slot = mistakes.length - 1;
     MoveReconstruction.describeAsync(caseMoves,
             cube: SmartCubeManager().cube,
             completed: kind == AlgMistakeKind.wrongCase)
         .then((replay) {
       _traceCase('$shown!${kind.name}', replay?.notation, moves: caseMoves);
-      _patchMistake(row, slot, replay);
+      _patchMistake(row, replay);
     });
     // Skip drops the case from the rest of the run; every other error puts it
     // back in the pool to be retried later.
@@ -445,21 +448,32 @@ class _TimerScreenState extends State<TimerScreen> {
     _blockRequeueBriefly();
   }
 
-  // Fill in the slip's moves and write it to the errors history. [slot] guards
-  // against the run restarting while the replay was in flight.
-  void _patchMistake(AlgMistake row, int slot, ReplayMoves? replay) {
-    if (replay != null &&
-        slot < mistakes.length &&
-        identical(mistakes[slot], row)) {
-      mistakes[slot] = AlgMistake(row.index, row.alg, row.kind,
-          executed: row.executed,
-          moves: replay.notation,
-          movesReconstructed: replay.reconstructed);
+  // Fill in the slip's moves and write it to the errors history.
+  void _patchMistake(AlgMistake row, ReplayMoves? replay) {
+    if (replay != null) {
+      _replaceRow(mistakes, _summaryMistakes, row,
+          AlgMistake(row.index, row.alg, row.kind,
+              executed: row.executed,
+              moves: replay.notation,
+              movesReconstructed: replay.reconstructed));
     }
     if (widget.algType != AlgType.Custom) {
       _persistMistake(row.alg.name, row.kind, row.executed, replay?.notation);
     }
     if (mounted) setState(() {});
+  }
+
+  // Swap a reconstructed row into the live run and into the summary if one is
+  // open on it. Matched by identity, so a restarted run simply finds neither.
+  void _replaceRow<T>(
+      List<T> live, List<T>? summary, T row, T patched) {
+    final i = live.indexOf(row);
+    if (i >= 0) live[i] = patched;
+    final j = summary?.indexOf(row) ?? -1;
+    if (j >= 0) {
+      summary![j] = patched;
+      _summaryRevision.value++;
+    }
   }
 
   // Errors are worth keeping whatever the run's timing settings — unlike a time,
@@ -614,29 +628,28 @@ class _TimerScreenState extends State<TimerScreen> {
     if (spoiled) {
       _traceCase(finished.name, null, moves: caseMoves);
     } else {
-      final slot = times.length - 1;
-      final row = times[slot];
+      final row = times.last;
       // The recovered case's error row shares this one reconstruction. It can't
       // claim `completed`: the stray moves it recovered from may leave the drift
       // open, unlike a clean solve's guaranteed home centres.
       final slip = recovered ? mistakes.last : null;
-      final slipSlot = mistakes.length - 1;
       MoveReconstruction.describeAsync(caseMoves,
               cube: SmartCubeManager().cube, completed: !recovered)
           .then((replay) {
         _traceCase(recovered ? '${finished.name}!recovered' : finished.name,
             replay?.notation,
             moves: caseMoves);
-        if (slip != null) _patchMistake(slip, slipSlot, replay);
+        if (slip != null) _patchMistake(slip, replay);
         if (replay == null) return;
-        // The run may have restarted while the replay was in flight; only
-        // patch the slot if it still holds our row.
-        if (slot >= times.length || !identical(times[slot], row)) return;
-        times[slot] = AlgTime(row.index, row.timeMs, row.alg,
-            timestamp: row.timestamp,
-            recognitionMs: row.recognitionMs,
-            moves: replay.notation,
-            movesReconstructed: replay.reconstructed);
+        _replaceRow(
+            times,
+            _summaryTimes,
+            row,
+            AlgTime(row.index, row.timeMs, row.alg,
+                timestamp: row.timestamp,
+                recognitionMs: row.recognitionMs,
+                moves: replay.notation,
+                movesReconstructed: replay.reconstructed));
         if (mounted) setState(() {});
       });
     }
@@ -710,6 +723,21 @@ class _TimerScreenState extends State<TimerScreen> {
     }
   }
 
+  // Show the summary, registering its lists so in-flight replays can patch them.
+  Future<Object?> _pushSummary(
+      List<AlgTime> algTimes, int totalTimeMs, List<AlgMistake> algMistakes) {
+    _summaryTimes = algTimes;
+    _summaryMistakes = algMistakes;
+    return Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => _buildSummary(algTimes, totalTimeMs,
+                algMistakes: algMistakes))).whenComplete(() {
+      _summaryTimes = null;
+      _summaryMistakes = null;
+    });
+  }
+
   void _finishCubeSession() async {
     List<AlgTime> timesCopy = List.from(times);
     List<AlgMistake> mistakesCopy = List.from(mistakes);
@@ -727,11 +755,7 @@ class _TimerScreenState extends State<TimerScreen> {
   // (mirrors the press/release flows, unified for sets and time race).
   Future<void> _showSummaryAndReset(List<AlgTime> timesCopy, int totalTimeMs,
       List<AlgMistake> mistakesCopy) async {
-    final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => _buildSummary(timesCopy, totalTimeMs,
-                algMistakes: mistakesCopy)));
+    final result = await _pushSummary(timesCopy, totalTimeMs, mistakesCopy);
     if (!mounted) return;
     setState(() {
       isReady = false;
@@ -803,11 +827,7 @@ class _TimerScreenState extends State<TimerScreen> {
       timerStartTime = null;
     });
 
-    final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => _buildSummary(timesCopy, totalTimeMs,
-                algMistakes: mistakesCopy)));
+    final result = await _pushSummary(timesCopy, totalTimeMs, mistakesCopy);
 
     setState(() {
       isReady = false;
@@ -876,6 +896,7 @@ class _TimerScreenState extends State<TimerScreen> {
     _stateSub?.cancel();
     _moveSub?.cancel();
     _resyncSub?.cancel();
+    _summaryRevision.dispose();
     SmartCubeManager().connection.removeListener(_onConnectionChanged);
     ServicesBinding.instance.keyboard.removeHandler(_onKey);
   }

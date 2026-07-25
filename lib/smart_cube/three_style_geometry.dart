@@ -147,13 +147,9 @@ class ThreeStyleGeometry {
   }
 
   /// The pair — other than [shown] — that the settled cube matches from any of
-  /// [baselines] (oldest first, so the case-start state answers first).
-  ///
-  /// Completion accepts the expected state from any baseline, so this must too,
-  /// or a pause mid-alg would quietly stop a wrong alg being named. Completing
-  /// [shown] wins over every other reading: 3-cycles compose, so a correct solve
-  /// is also some *other* case measured from an earlier rest (AD from the start
-  /// is BD from an AB rest).
+  /// [baselines] (oldest first), mirroring completion so a pause mid-alg can't
+  /// hide a wrong alg. Completing [shown] wins: 3-cycles compose, so a correct
+  /// solve is also another case measured from an earlier rest.
   static String? executedOtherPair(String currentFacelets,
       List<String> baselines, AlgType algType, Iterable<String> candidatePairs,
       {required String shown}) {

@@ -83,5 +83,11 @@ void _registerBuiltInDrivers() {
 /// override the default `flutter_blue_plus` backend (e.g. for tests).
 CubeScanner createCubeScanner({BleTransport? transport}) {
   _registerBuiltInDrivers();
-  return DefaultCubeScanner(transport ?? FlutterBluePlusTransport());
+  return DefaultCubeScanner(
+    transport ??
+        FlutterBluePlusTransport(
+          webOptionalServices:
+              CubeDriverRegistry.instance.gattServiceUuids.toList(),
+        ),
+  );
 }

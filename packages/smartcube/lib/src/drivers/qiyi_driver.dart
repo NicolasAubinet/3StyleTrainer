@@ -36,6 +36,9 @@ class QiyiDriver extends CubeDriver {
   List<String> get serviceUuids => const [];
 
   @override
+  List<String> get gattServiceUuids => const [serviceUuid];
+
+  @override
   bool needsExplicitMac(CubeAdvertisement adv) => deriveMac(adv) == null;
 
   @override

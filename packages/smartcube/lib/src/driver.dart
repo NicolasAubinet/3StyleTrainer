@@ -36,6 +36,12 @@ abstract class CubeDriver {
   /// Service UUIDs this driver claims, for name-less devices.
   List<String> get serviceUuids;
 
+  /// GATT services this driver opens once connected. Usually the same as
+  /// [serviceUuids], but a driver may match on a name yet still need services
+  /// it never advertises. Web Bluetooth refuses access to any service not
+  /// declared up front, so these are what get passed as `optionalServices`.
+  List<String> get gattServiceUuids => serviceUuids;
+
   bool matches(CubeAdvertisement adv) {
     final name = adv.name;
     if (name != null && namePrefixes.any(name.startsWith)) return true;
@@ -70,6 +76,10 @@ class CubeDriverRegistry {
   void register(CubeDriver driver) => _drivers.add(driver);
 
   Iterable<CubeDriver> get drivers => List.unmodifiable(_drivers);
+
+  /// Every GATT service any registered driver may open, normalised.
+  Set<String> get gattServiceUuids =>
+      _drivers.expand((d) => d.gattServiceUuids).map(normalizeUuid).toSet();
 
   CubeDriver? driverFor(CubeAdvertisement adv) {
     for (final d in _drivers) {

@@ -35,6 +35,9 @@ class GiikerDriver extends CubeDriver {
   List<String> get serviceUuids => const [dataServiceUuid];
 
   @override
+  List<String> get gattServiceUuids => const [dataServiceUuid, rwServiceUuid];
+
+  @override
   String? modelName(CubeAdvertisement adv) {
     final name = adv.name;
     if (name == null) return null;

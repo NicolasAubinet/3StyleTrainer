@@ -10,9 +10,17 @@ class FlutterBluePlusTransport implements BleTransport {
   /// [BluetoothDevice] object instead of reconstructing it.
   final Map<String, BluetoothDevice> _seen = {};
 
+  /// Services to declare as `optionalServices` on web. Web Bluetooth blocks
+  /// access to any service not named in `requestDevice`, so an undeclared one
+  /// fails at discovery with a `SecurityError`. Ignored on other platforms.
+  final List<Guid> _webOptionalServices;
+
+  FlutterBluePlusTransport({List<String> webOptionalServices = const []})
+      : _webOptionalServices = webOptionalServices.map(Guid.new).toList();
+
   @override
   Stream<BleScanResult> scan() async* {
-    await FlutterBluePlus.startScan();
+    await FlutterBluePlus.startScan(webOptionalServices: _webOptionalServices);
     yield* FlutterBluePlus.onScanResults.expand((batch) => batch).map(_toResult);
   }
 

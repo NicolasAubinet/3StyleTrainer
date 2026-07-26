@@ -172,6 +172,84 @@ abstract class AppLocalizations {
   /// **'AA:BB:CC:DD:EE:FF'**
   String get smartCubeMacHint;
 
+  /// No description provided for @smartCubeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'What a smart cube does'**
+  String get smartCubeHelp;
+
+  /// No description provided for @smartCubeIntroBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A Bluetooth smart cube reports every turn as you make it. Pair one and the trainer follows the cube itself.'**
+  String get smartCubeIntroBody;
+
+  /// No description provided for @smartCubeIntroTimingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The timer runs itself'**
+  String get smartCubeIntroTimingTitle;
+
+  /// No description provided for @smartCubeIntroTimingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'No holding, no tapping. Each case starts on your first turn and stops the instant the alg lands.'**
+  String get smartCubeIntroTimingBody;
+
+  /// No description provided for @smartCubeIntroSplitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognition and execution, timed apart'**
+  String get smartCubeIntroSplitTitle;
+
+  /// No description provided for @smartCubeIntroSplitBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The trainer knows when you started turning, so every case splits into thinking time and turning time.'**
+  String get smartCubeIntroSplitBody;
+
+  /// No description provided for @smartCubeIntroErrorsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Errors are caught and remembered'**
+  String get smartCubeIntroErrorsTitle;
+
+  /// No description provided for @smartCubeIntroErrorsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Execute the wrong alg and it names the pair you actually did. Every mistake is logged per alg and feeds a Most failed practice source.'**
+  String get smartCubeIntroErrorsBody;
+
+  /// No description provided for @smartCubeIntroMovesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'See the moves you turned'**
+  String get smartCubeIntroMovesTitle;
+
+  /// No description provided for @smartCubeIntroMovesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap any case in the summary to see the exact sequence the cube saw. Useful for working out where an alg went wrong.'**
+  String get smartCubeIntroMovesBody;
+
+  /// No description provided for @smartCubeIntroModelsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Works with most smart cubes'**
+  String get smartCubeIntroModelsTitle;
+
+  /// No description provided for @smartCubeIntroModelsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'MoYu, GAN, QiYi, GoCube / Rubik\'s Connected, Giiker.'**
+  String get smartCubeIntroModelsBody;
+
+  /// No description provided for @smartCubeIntroDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get smartCubeIntroDone;
+
   /// No description provided for @smartCubeRecognition.
   ///
   /// In en, this message translates to:

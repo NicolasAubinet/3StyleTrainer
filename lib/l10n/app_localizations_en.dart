@@ -49,6 +49,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartCubeMacHint => 'AA:BB:CC:DD:EE:FF';
 
   @override
+  String get smartCubeHelp => 'What a smart cube does';
+
+  @override
+  String get smartCubeIntroBody =>
+      'A Bluetooth smart cube reports every turn as you make it. Pair one and the trainer follows the cube itself.';
+
+  @override
+  String get smartCubeIntroTimingTitle => 'The timer runs itself';
+
+  @override
+  String get smartCubeIntroTimingBody =>
+      'No holding, no tapping. Each case starts on your first turn and stops the instant the alg lands.';
+
+  @override
+  String get smartCubeIntroSplitTitle =>
+      'Recognition and execution, timed apart';
+
+  @override
+  String get smartCubeIntroSplitBody =>
+      'The trainer knows when you started turning, so every case splits into thinking time and turning time.';
+
+  @override
+  String get smartCubeIntroErrorsTitle => 'Errors are caught and remembered';
+
+  @override
+  String get smartCubeIntroErrorsBody =>
+      'Execute the wrong alg and it names the pair you actually did. Every mistake is logged per alg and feeds a Most failed practice source.';
+
+  @override
+  String get smartCubeIntroMovesTitle => 'See the moves you turned';
+
+  @override
+  String get smartCubeIntroMovesBody =>
+      'Tap any case in the summary to see the exact sequence the cube saw. Useful for working out where an alg went wrong.';
+
+  @override
+  String get smartCubeIntroModelsTitle => 'Works with most smart cubes';
+
+  @override
+  String get smartCubeIntroModelsBody =>
+      'MoYu, GAN, QiYi, GoCube / Rubik\'s Connected, Giiker.';
+
+  @override
+  String get smartCubeIntroDone => 'Got it';
+
+  @override
   String get smartCubeRecognition => 'Recognition';
 
   @override

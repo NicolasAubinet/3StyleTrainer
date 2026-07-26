@@ -96,6 +96,7 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
   StreamSubscription<DiscoveredCube>? _scanSub;
   bool _connecting = false;
   bool _closing = false;
+  bool _showIntro = false;
   String? _error;
 
   CubeConnection get _conn => _mgr.connection.value;
@@ -209,39 +210,143 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              _ready
-                  ? l10n.smartCubeConnected
-                  : _reconnecting
-                      ? l10n.smartCube
-                      : l10n.smartCubeConnectTitle,
-              style: TextStyle(
-                  color: p.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 16),
-            if (_ready)
-              _connectedBody(l10n, p)
-            else if (_reconnecting)
-              _reconnectingBody(l10n, p)
-            else if (_connecting)
-              _busy(l10n.smartCubeConnecting, p)
-            else
-              _scanBody(l10n, p),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: TextStyle(color: p.bad, fontSize: 13)),
-            ],
-          ],
-        ),
+        child: _showIntro ? _introPanel(l10n, p) : _pairingPanel(l10n, p),
       ),
     );
   }
+
+  Widget _pairingPanel(AppLocalizations l10n, AppPalette p) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sheetTitle(
+          _ready
+              ? l10n.smartCubeConnected
+              : _reconnecting
+                  ? l10n.smartCube
+                  : l10n.smartCubeConnectTitle,
+          p,
+          trailing: IconButton(
+            icon: const Icon(Icons.help_outline, size: 22),
+            color: p.textMuted,
+            tooltip: l10n.smartCubeHelp,
+            visualDensity: VisualDensity.compact,
+            onPressed: () => setState(() => _showIntro = true),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (_ready)
+          _connectedBody(l10n, p)
+        else if (_reconnecting)
+          _reconnectingBody(l10n, p)
+        else if (_connecting)
+          _busy(l10n.smartCubeConnecting, p)
+        else
+          _scanBody(l10n, p),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          Text(_error!, style: TextStyle(color: p.bad, fontSize: 13)),
+        ],
+      ],
+    );
+  }
+
+  Widget _sheetTitle(String title, AppPalette p, {Widget? trailing}) => Row(
+        children: [
+          Expanded(
+            child: Text(title,
+                style: TextStyle(
+                    color: p.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700)),
+          ),
+          if (trailing != null) trailing,
+        ],
+      );
+
+  // What a smart cube buys you, behind the sheet's help button. The scan keeps
+  // running underneath, so cubes are already listed on the way back.
+  Widget _introPanel(AppLocalizations l10n, AppPalette p) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sheetTitle(
+          l10n.smartCubeHelp,
+          p,
+          trailing: IconButton(
+            icon: const Icon(Icons.close, size: 22),
+            color: p.textMuted,
+            visualDensity: VisualDensity.compact,
+            onPressed: () => setState(() => _showIntro = false),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(l10n.smartCubeIntroBody,
+            style: TextStyle(color: p.textMuted, fontSize: 13.5, height: 1.35)),
+        Flexible(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                _introItem(p, Icons.timer_outlined, l10n.smartCubeIntroTimingTitle,
+                    l10n.smartCubeIntroTimingBody),
+                _introItem(p, Icons.splitscreen_outlined,
+                    l10n.smartCubeIntroSplitTitle, l10n.smartCubeIntroSplitBody),
+                _introItem(p, Icons.error_outline,
+                    l10n.smartCubeIntroErrorsTitle, l10n.smartCubeIntroErrorsBody),
+                _introItem(p, Icons.timeline, l10n.smartCubeIntroMovesTitle,
+                    l10n.smartCubeIntroMovesBody),
+                _introItem(p, Icons.view_in_ar, l10n.smartCubeIntroModelsTitle,
+                    l10n.smartCubeIntroModelsBody),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        FilledButton(
+          onPressed: () => setState(() => _showIntro = false),
+          child: Text(l10n.smartCubeIntroDone),
+        ),
+      ],
+    );
+  }
+
+  Widget _introItem(AppPalette p, IconData icon, String title, String body) =>
+      Padding(
+        padding: const EdgeInsets.only(top: 18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: p.accent.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: p.accent, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: TextStyle(
+                          color: p.textPrimary,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(body,
+                      style: TextStyle(
+                          color: p.textMuted, fontSize: 12.5, height: 1.35)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _busy(String label, AppPalette p) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 24),

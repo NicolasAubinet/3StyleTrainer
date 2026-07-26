@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:three_style_trainer/alg_structs.dart';
 import 'package:three_style_trainer/app_info.dart';
 import 'package:three_style_trainer/database_manager.dart';
@@ -92,6 +93,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       previousChars.add(char);
     }
     return null;
+  }
+
+  Future<void> _openCubench() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final failed = AppLocalizations.of(context)!.cubenchOpenFailed;
+    final ok = await launchUrl(Uri.parse(CUBENCH_PLAY_STORE_URL),
+        mode: LaunchMode.externalApplication);
+    if (!ok) messenger.showSnackBar(SnackBar(content: Text(failed)));
   }
 
   Widget _sectionLabel(String text) {
@@ -672,6 +681,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: TextStyle(fontSize: 12, color: p.textFaint)),
                     const SizedBox(height: 4),
                     CopyableValue(label: l10n.contact, value: CONTACT_EMAIL),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+              _sectionLabel(l10n.otherAppsSection),
+              GlassPanel(
+                onTap: _openCubench,
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: Image.asset('assets/icon/cubench.png',
+                          width: 30, height: 30, filterQuality: FilterQuality.medium),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l10n.cubenchName,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: p.textPrimary)),
+                          const SizedBox(height: 2),
+                          Text(l10n.cubenchTagline,
+                              style:
+                                  TextStyle(fontSize: 12, color: p.textFaint)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.open_in_new, color: p.textFaint, size: 18),
                   ],
                 ),
               ),

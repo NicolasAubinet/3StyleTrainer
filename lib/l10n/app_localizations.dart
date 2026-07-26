@@ -1449,6 +1449,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contact'**
   String get contact;
+
+  /// No description provided for @otherAppsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Also by me'**
+  String get otherAppsSection;
+
+  /// No description provided for @cubenchName.
+  ///
+  /// In en, this message translates to:
+  /// **'Cubench'**
+  String get cubenchName;
+
+  /// No description provided for @cubenchTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'My speedcubing timer for Android.'**
+  String get cubenchTagline;
+
+  /// No description provided for @cubenchOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the Play Store'**
+  String get cubenchOpenFailed;
 }
 
 class _AppLocalizationsDelegate

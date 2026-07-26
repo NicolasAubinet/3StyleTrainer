@@ -801,4 +801,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contact => 'Contact';
+
+  @override
+  String get otherAppsSection => 'Also by me';
+
+  @override
+  String get cubenchName => 'Cubench';
+
+  @override
+  String get cubenchTagline => 'My speedcubing timer for Android.';
+
+  @override
+  String get cubenchOpenFailed => 'Could not open the Play Store';
 }

@@ -367,5 +367,9 @@
     }
   },
   "aboutFeedback": "Found a bug or have a suggestion? Get in touch. Smart-cube support is new, so reports are welcome.",
-  "contact": "Contact"
+  "contact": "Contact",
+  "otherAppsSection": "Also by me",
+  "cubenchName": "Cubench",
+  "cubenchTagline": "My speedcubing timer for Android.",
+  "cubenchOpenFailed": "Could not open the Play Store"
 }

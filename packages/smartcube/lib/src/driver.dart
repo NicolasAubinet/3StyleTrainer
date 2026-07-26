@@ -1,10 +1,16 @@
 import 'model/connection.dart';
+import 'model/cube_error.dart';
 import 'smart_cube.dart';
 import 'transport/ble_transport.dart';
 
 /// How often a driver re-asks for the cube's state while its model is
 /// un-anchored. Nothing is emitted meanwhile, so this is the stall the user feels.
 const Duration anchorRetryInterval = Duration(milliseconds: 250);
+
+/// How long a driver keeps asking for a decodable message during the handshake
+/// before it blames the MAC and throws [CubeMacRejectedException]. Generous: a
+/// slow link must not be mistaken for a wrong key.
+const Duration defaultMacProbeTimeout = Duration(seconds: 4);
 
 /// Advertisement data a driver inspects to decide whether it handles a device.
 class CubeAdvertisement {

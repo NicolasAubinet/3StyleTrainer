@@ -59,7 +59,14 @@ class SmartCubeManager {
     _macAddress = macAddress;
     connection.value = CubeConnection.connecting;
     cubeName.value = device.modelName ?? device.name;
-    await _openCube();
+    try {
+      await _openCube();
+    } catch (_) {
+      // The first dial failed, so there is nothing to reconnect to and no
+      // half-set-up session to leave lying around for the next attempt.
+      _cleanup();
+      rethrow;
+    }
   }
 
   Future<void> _openCube() async {

@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:smartcube/smartcube.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../app_info.dart';
+import '../settings.dart';
 import '../smart_cube_manager.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_palette.dart';
@@ -149,10 +152,11 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
   }
 
   Future<void> _connect(DiscoveredCube d) async {
-    String? mac;
-    if (d.needsMac) {
-      mac = await _promptMac();
-      if (mac == null) return;
+    final saved = Settings().getSmartCubeMac(d.name);
+    String? typed;
+    if (saved == null && d.needsMac) {
+      typed = await _promptMac();
+      if (typed == null) return;
     }
     setState(() {
       _connecting = true;
@@ -160,7 +164,21 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
     });
     await _stopScan();
     try {
-      await _mgr.connect(d, macAddress: mac);
+      try {
+        await _mgr.connect(d, macAddress: typed ?? saved);
+      } on CubeMacRejectedException {
+        // The MAC we worked out was wrong, so nothing the cube said could be
+        // read. Only the user can supply the real one; on web it is the one
+        // thing the browser will not tell us. A saved MAC that stopped working
+        // lands here too and gets replaced.
+        if (!mounted) rethrow;
+        final retyped = await _promptMac();
+        if (retyped == null) rethrow;
+        await _mgr.connect(d, macAddress: retyped);
+        typed = retyped;
+      }
+      // It worked, so remember it and stop asking.
+      if (typed != null) Settings().setSmartCubeMac(d.name, typed);
       if (mounted) {
         final messenger = ScaffoldMessenger.of(context);
         final msg = AppLocalizations.of(context)!.smartCubeConnectedToast;
@@ -181,6 +199,36 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
     }
   }
 
+  Future<void> _openLink(String url) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final failed = AppLocalizations.of(context)!.smartCubeMacLinkFailed;
+    final ok =
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    if (!ok) messenger.showSnackBar(SnackBar(content: Text(failed)));
+  }
+
+  Widget _macLink(String label, String url) {
+    final p = context.palette;
+    return InkWell(
+      onTap: () => _openLink(url),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.open_in_new, size: 14, color: p.accent),
+            SizedBox(width: 6),
+            Text(label,
+                style: TextStyle(
+                    color: p.accent,
+                    decoration: TextDecoration.underline,
+                    decorationColor: p.accent)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<String?> _promptMac() {
     final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
@@ -188,10 +236,27 @@ class _SmartCubeConnectSheetState extends State<_SmartCubeConnectSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.smartCubeMacTitle),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(hintText: l10n.smartCubeMacHint),
+        // Scrollable: two links and a field leave little room on a phone in
+        // landscape, where the keyboard takes most of the height.
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.smartCubeMacOneTime),
+              SizedBox(height: 10),
+              Text(l10n.smartCubeMacFind),
+              SizedBox(height: 6),
+              _macLink(l10n.smartCubeMacAndroidLink, ANDROID_PLAY_STORE_URL),
+              _macLink(l10n.smartCubeMacWindowsLink, WINDOWS_RELEASES_URL),
+              SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(hintText: l10n.smartCubeMacHint),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(

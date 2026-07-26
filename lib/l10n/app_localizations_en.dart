@@ -49,6 +49,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartCubeMacHint => 'AA:BB:CC:DD:EE:FF';
 
   @override
+  String get smartCubeMacOneTime =>
+      'One-time setup: the MAC is saved for this cube.';
+
+  @override
+  String get smartCubeMacFind =>
+      'The Android and Windows versions show it while a cube is connected:';
+
+  @override
+  String get smartCubeMacAndroidLink => 'Android version';
+
+  @override
+  String get smartCubeMacWindowsLink => 'Windows version';
+
+  @override
+  String get smartCubeMacLinkFailed => 'Could not open the link';
+
+  @override
   String get smartCubeHelp => 'What a smart cube does';
 
   @override

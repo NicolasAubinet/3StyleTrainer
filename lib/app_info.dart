@@ -8,3 +8,12 @@ const String CONTACT_EMAIL = 'NanoTimerCube@gmail.com';
 /// Cubench, the same author's Android speedcubing timer.
 const String CUBENCH_PLAY_STORE_URL =
     'https://play.google.com/store/apps/details?id=com.cube.nanotimer';
+
+/// This app's own builds, pointed at from the web build's MAC prompt: both read
+/// a smart cube's MAC off the advertisement and show it, which the browser
+/// cannot. `/releases/latest` redirects to the newest release on its own, so it
+/// needs no updating per release.
+const String ANDROID_PLAY_STORE_URL =
+    'https://play.google.com/store/apps/details?id=com.nanocube.three_style_trainer';
+const String WINDOWS_RELEASES_URL =
+    'https://github.com/NicolasAubinet/3StyleTrainer/releases/latest';

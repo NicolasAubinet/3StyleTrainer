@@ -31,6 +31,15 @@ void main() {
         CubieCube.solvedFacelet);
   });
 
+  test('a state packet decrypted with the wrong MAC does not anchor', () {
+    // The V11 shares the V10's name family but not its OUI, so the name-derived
+    // MAC can be one byte off. Garbage must not pass for a cube state, or the
+    // driver reports ready and then never sees a move.
+    final wrongKey = MoyuV10Parser(GanCipher.macBytes('CF:30:16:02:52:88'));
+    expect(wrongKey.parse(c163, 1000), isEmpty);
+    expect(wrongKey.needsAnchor, isTrue);
+  });
+
   test('move packet after a state anchor yields the move and resulting state', () {
     final parser = newParser();
     parser.parse(c163, 1000); // anchor at solved, moveCnt 5

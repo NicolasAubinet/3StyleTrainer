@@ -172,6 +172,36 @@ abstract class AppLocalizations {
   /// **'AA:BB:CC:DD:EE:FF'**
   String get smartCubeMacHint;
 
+  /// No description provided for @smartCubeMacOneTime.
+  ///
+  /// In en, this message translates to:
+  /// **'One-time setup: the MAC is saved for this cube.'**
+  String get smartCubeMacOneTime;
+
+  /// No description provided for @smartCubeMacFind.
+  ///
+  /// In en, this message translates to:
+  /// **'The Android and Windows versions show it while a cube is connected:'**
+  String get smartCubeMacFind;
+
+  /// No description provided for @smartCubeMacAndroidLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Android version'**
+  String get smartCubeMacAndroidLink;
+
+  /// No description provided for @smartCubeMacWindowsLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Windows version'**
+  String get smartCubeMacWindowsLink;
+
+  /// No description provided for @smartCubeMacLinkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the link'**
+  String get smartCubeMacLinkFailed;
+
   /// No description provided for @smartCubeHelp.
   ///
   /// In en, this message translates to:

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_style_trainer/alg_structs.dart';
@@ -14,6 +16,10 @@ class Settings {
   // Physical holding orientation for smart-cube completion detection.
   CubeColour _cubeTopColour = CubeColour.white;
   CubeColour _cubeFrontColour = CubeColour.green;
+  // MACs the user had to type, keyed by advertised cube name. Only web asks:
+  // every other platform reads the real MAC off the advertisement. Written on a
+  // successful connect only, so a stored MAC is one that worked.
+  Map<String, String> _smartCubeMacs = {};
 
   static final Settings _singleton = Settings._internal();
 
@@ -66,6 +72,27 @@ class Settings {
       _cubeTopColour = CubeColour.white;
       _cubeFrontColour = CubeColour.green;
     }
+
+    String? smartCubeMacs = prefs.getString("smart_cube_macs");
+    if (smartCubeMacs != null) {
+      try {
+        _smartCubeMacs = Map<String, String>.from(jsonDecode(smartCubeMacs));
+      } catch (_) {
+        // Unreadable, so start over rather than refuse to launch.
+        _smartCubeMacs = {};
+      }
+    }
+  }
+
+  /// The MAC last used to connect [cubeName] successfully, if one was typed in.
+  String? getSmartCubeMac(String cubeName) => _smartCubeMacs[cubeName];
+
+  void setSmartCubeMac(String cubeName, String mac) async {
+    if (_smartCubeMacs[cubeName] == mac) return;
+    _smartCubeMacs[cubeName] = mac;
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString("smart_cube_macs", jsonEncode(_smartCubeMacs));
   }
 
   static CubeColour _parseColour(String? name, CubeColour fallback) =>

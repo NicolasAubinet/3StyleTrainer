@@ -3,6 +3,7 @@ import 'dart:async';
 import '../crypto/gan_cipher.dart';
 import '../driver.dart';
 import '../model/connection.dart';
+import '../model/cube_error.dart';
 import '../model/cube_move.dart';
 import '../model/cube_state.dart';
 import '../reconstruct/timing_quality.dart';
@@ -19,6 +20,12 @@ class MoyuV10Driver extends CubeDriver {
   static const String serviceUuid = '0783b03e-7735-b5a0-1760-a305d2795cb0';
   static const String readChrUuid = '0783b03e-7735-b5a0-1760-a305d2795cb1';
   static const String writeChrUuid = '0783b03e-7735-b5a0-1760-a305d2795cb2';
+
+  /// How long the handshake waits for a decodable answer before blaming the MAC.
+  /// Overridable so tests need not wait out the real one.
+  final Duration macProbeTimeout;
+
+  MoyuV10Driver({this.macProbeTimeout = defaultMacProbeTimeout});
 
   @override
   CubeBrand get brand => CubeBrand.moyuV10;
@@ -66,6 +73,7 @@ class MoyuV10Driver extends CubeDriver {
       device,
       peripheral,
       MoyuV10Parser(GanCipher.macBytes(mac)),
+      macProbeTimeout,
     );
     try {
       await cube._start();
@@ -150,7 +158,10 @@ class MoyuV10Cube implements SmartCube {
   CubeConnection _connection = CubeConnection.connecting;
   bool _resyncPending = false;
 
-  MoyuV10Cube._(this.device, this._peripheral, this._parser);
+  final Duration _macProbeTimeout;
+
+  MoyuV10Cube._(
+      this.device, this._peripheral, this._parser, this._macProbeTimeout);
 
   Future<void> _start() async {
     final services = await _peripheral.discoverServices();
@@ -175,9 +186,40 @@ class MoyuV10Cube implements SmartCube {
     });
 
     await _write.write(_parser.encodeRequest(MoyuV10Parser.opInfo));
-    await _write.write(_parser.encodeRequest(MoyuV10Parser.opStatus));
+    await _awaitAnchor();
     await _write.write(_parser.encodeRequest(MoyuV10Parser.opPower));
     _setConnection(CubeConnection.ready);
+  }
+
+  /// Ask for the cube's state until it answers with one that decodes. The key
+  /// comes from the MAC, so a wrong MAC leaves the link up while every packet
+  /// decodes to noise — this is where that gets caught, rather than handing back
+  /// a cube that never reports a move.
+  Future<void> _awaitAnchor() async {
+    if (!_parser.needsAnchor) return;
+    final anchored = Completer<void>();
+    final sub = _stateCtrl.stream.listen((_) {
+      if (!anchored.isCompleted) anchored.complete();
+    });
+    // A request can be lost the same way a move can, so keep asking — but not
+    // into a link that already dropped, which would only raise write after
+    // failed write until the timeout.
+    final retry = Timer.periodic(anchorRetryInterval, (t) {
+      if (_connection == CubeConnection.lost) {
+        t.cancel();
+        return;
+      }
+      _write.write(_parser.encodeRequest(MoyuV10Parser.opStatus));
+    });
+    try {
+      await _write.write(_parser.encodeRequest(MoyuV10Parser.opStatus));
+      await anchored.future.timeout(_macProbeTimeout);
+    } on TimeoutException {
+      throw CubeMacRejectedException(device.macAddress ?? '?');
+    } finally {
+      retry.cancel();
+      await sub.cancel();
+    }
   }
 
   void _onData(List<int> raw) {

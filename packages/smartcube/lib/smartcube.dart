@@ -4,6 +4,7 @@
 library;
 
 export 'src/model/connection.dart';
+export 'src/model/cube_error.dart';
 export 'src/model/cube_move.dart';
 export 'src/model/cube_state.dart';
 export 'src/smart_cube.dart';

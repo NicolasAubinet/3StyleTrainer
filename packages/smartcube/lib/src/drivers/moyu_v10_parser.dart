@@ -117,9 +117,13 @@ class MoyuV10Parser {
 
       case 163:
         if (_prevMoveCnt != -1 && !_pullPending) return [];
+        final facelet = _parseFacelet(s.substring(8, 152));
+        // Garbage from a wrong key can pass for a state message, so only a
+        // legal facelet is allowed to anchor. Drop it without spending the
+        // pull request — the retry then still has one outstanding.
+        if (facelet == null) return [];
         _pullPending = false;
         _moveCnt = val(152, 160);
-        final facelet = _parseFacelet(s.substring(8, 152));
         _cube.fromFacelet(facelet);
         _prevMoveCnt = _moveCnt;
         return [MoyuStateEvent(CubeState(facelet))];
@@ -192,17 +196,28 @@ class MoyuV10Parser {
     return events;
   }
 
-  static String _parseFacelet(String faceletBits) {
+  /// Decode the facelet bits, or `null` when they cannot describe a real cube:
+  /// a colour code above 5, or a colour not appearing exactly 9 times. Both are
+  /// impossible from the cube and typical of a wrong decryption key.
+  static String? _parseFacelet(String faceletBits) {
     const faces = [2, 5, 0, 3, 4, 1]; // read URFDLB from the FBUDLR-ordered data
     const cs = 'FBUDLR';
     final out = StringBuffer();
+    final seen = List<int>.filled(cs.length, 0);
     for (var i = 0; i < 6; i++) {
       final base = faces[i] * 24;
       for (var j = 0; j < 8; j++) {
-        out.write(cs[int.parse(faceletBits.substring(base + j * 3, base + j * 3 + 3), radix: 2)]);
-        if (j == 3) out.write(cs[faces[i]]);
+        final c = int.parse(faceletBits.substring(base + j * 3, base + j * 3 + 3), radix: 2);
+        if (c >= cs.length) return null;
+        seen[c]++;
+        out.write(cs[c]);
+        if (j == 3) {
+          seen[faces[i]]++;
+          out.write(cs[faces[i]]);
+        }
       }
     }
+    if (seen.any((n) => n != 9)) return null;
     return out.toString();
   }
 }

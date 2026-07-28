@@ -3,7 +3,6 @@ import 'package:smartcube/smartcube.dart';
 import '../alg_provider.dart';
 import '../alg_structs.dart';
 import '../audio_edge_scheme.dart';
-import '../settings.dart';
 
 /// Bridges the app's SpeFFz sticker lettering to physical cube facelets (the
 /// [CubieCube] 54-facelet model the smart cube reports in), and computes, for a
@@ -55,13 +54,6 @@ class ThreeStyleGeometry {
     'DL': 6, 'DB': 7, 'FR': 8, 'FL': 9, 'BL': 10, 'BR': 11,
   };
 
-  // Edge buffer setting → CubieCube edge piece (physical, scheme-independent).
-  static const Map<EdgeBuffer, int> _edgePieceByBuffer = {
-    EdgeBuffer.UF: 1, EdgeBuffer.UB: 3, EdgeBuffer.UR: 0, EdgeBuffer.UL: 2,
-    EdgeBuffer.FR: 8, EdgeBuffer.FL: 9, EdgeBuffer.DF: 5, EdgeBuffer.DB: 7,
-    EdgeBuffer.DR: 4, EdgeBuffer.DL: 6,
-  };
-
   // Corner buffer piece → its two same-face edges (the parity swap candidates).
   static const Map<int, List<int>> _cornerBufferEdges = {
     0: [1, 0], // URF → UF, UR
@@ -71,6 +63,11 @@ class ThreeStyleGeometry {
     4: [5, 4], // DFR → DF, DR
     5: [6, 5], // DLF → DL, DF
   };
+
+  // Every corner facelet, for parity's exact corner comparison.
+  static final List<int> _allCornerFacelets = [
+    for (final f in CubieCube.cFacelet) ...f,
+  ];
 
   // Per-sticker resolved geometry, built once.
   static final Map<int, _Sticker> _cornerStickers = _buildStickers(
@@ -100,8 +97,12 @@ class ThreeStyleGeometry {
       String startFacelets, String pair, AlgType algType) {
     final cyc = _cycle(pair, algType);
     if (cyc == null) return null;
+    return _apply(startFacelets, cyc);
+  }
+
+  static String _apply(String startFacelets, List<(int, int)> moves) {
     final out = List<String>.from(startFacelets.split(''));
-    for (final (src, dst) in cyc) {
+    for (final (src, dst) in moves) {
       out[dst] = startFacelets[src];
     }
     return out.join();
@@ -110,6 +111,9 @@ class ThreeStyleGeometry {
   /// Is the cube (in [currentFacelets]) at the expected state for [pair]?
   static bool isPairComplete(
       String currentFacelets, String startFacelets, String pair, AlgType algType) {
+    if (algType == AlgType.Parity) {
+      return _parityComplete(currentFacelets, startFacelets, pair);
+    }
     final expected = expectedAfterPair(startFacelets, pair, algType);
     return expected != null && expected == currentFacelets;
   }
@@ -240,30 +244,67 @@ class ThreeStyleGeometry {
     return moves;
   }
 
-  // Parity "L": swap the buffer corner with the corner owning sticker L, and
-  // swap the edge buffer with the corner buffer's other same-face edge. Maps
-  // only when the edge buffer is adjacent to the corner buffer (else null).
+  // Parity "L": swap the buffer corner with the corner owning sticker L, plus a
+  // swap of two edges. Which two is the solver's choice and can even differ per
+  // alg, so the expected state carries the corner buffer's own same-face edges
+  // as a representative and completion takes any rigid swap (_parityComplete).
   static List<(int, int)>? _parity(String pair) {
-    final scheme = getAlgSets(AlgType.Parity);
-    final li = scheme.indexOf(pair);
+    final corners = _parityCornerSwap(pair);
+    final buffer = _cornerStickers[getBufferIndices(AlgType.Parity).first];
+    final edges = buffer == null ? null : _cornerBufferEdges[buffer.piece];
+    if (corners == null || edges == null) return null;
+    return [
+      ...corners,
+      ..._rigidCycle([(edges[0], 0), (edges[1], 0)], CubieCube.eFacelet, 2),
+    ];
+  }
+
+  static List<(int, int)>? _parityCornerSwap(String pair) {
+    final li = getAlgSets(AlgType.Parity).indexOf(pair);
     if (li < 0) return null;
     final target = _cornerStickers[li];
     final buffer = _cornerStickers[getBufferIndices(AlgType.Parity).first];
     if (target == null || buffer == null) return null;
+    return _rigidCycle([(buffer.piece, buffer.pos), (target.piece, target.pos)],
+        CubieCube.cFacelet, 3);
+  }
 
-    final edges = _cornerBufferEdges[buffer.piece];
-    final edgeBuffer = _edgePieceByBuffer[Settings().getEdgeBuffer()];
-    if (edges == null || edgeBuffer == null || !edges.contains(edgeBuffer)) {
-      return null;
+  // Parity completes on its corner swap plus a rigid swap of *any* two edges:
+  // solvers pick their own parity edge swap, and it can differ per alg. The
+  // corners are checked whole, so only which *edges* moved is left open — and
+  // landing the two of them flipped is still an error.
+  static bool _parityComplete(String current, String start, String pair) {
+    final corners = _parityCornerSwap(pair);
+    if (corners == null) return false;
+    final expected = _apply(start, corners);
+    for (final f in _allCornerFacelets) {
+      if (current[f] != expected[f]) return false;
     }
-    final otherEdge = edges[0] == edgeBuffer ? edges[1] : edges[0];
+    return _isOneRigidEdgeSwap(current, start);
+  }
 
-    return [
-      ..._rigidCycle([(buffer.piece, buffer.pos), (target.piece, target.pos)],
-          CubieCube.cFacelet, 3),
-      ..._rigidCycle(
-          [(edgeBuffer, 0), (otherEdge, 0)], CubieCube.eFacelet, 2),
-    ];
+  static bool _isOneRigidEdgeSwap(String current, String start) {
+    int a = -1, b = -1;
+    for (var e = 0; e < CubieCube.eFacelet.length; e++) {
+      final f = CubieCube.eFacelet[e];
+      if (current[f[0]] == start[f[0]] && current[f[1]] == start[f[1]]) continue;
+      if (a < 0) {
+        a = e;
+      } else if (b < 0) {
+        b = e;
+      } else {
+        return false; // more than two edges moved
+      }
+    }
+    if (b < 0) return false;
+    final fa = CubieCube.eFacelet[a];
+    final fb = CubieCube.eFacelet[b];
+    for (var k = 0; k < 2; k++) {
+      if (current[fa[k]] != start[fb[k]] || current[fb[k]] != start[fa[k]]) {
+        return false; // swapped, but flipped
+      }
+    }
+    return true;
   }
 
   // Rigid cycle of pieces ring[0]→ring[1]→…→ring[0]; each (piece, pos) gives the

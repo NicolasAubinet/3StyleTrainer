@@ -127,6 +127,31 @@ void main() {
     expect(c.phase, CubePhase.complete);
   });
 
+  test('parity completes on the solver\'s own edge swap', () {
+    final c = make(AlgType.Parity);
+    expect(c.startCase('A', solved), isTrue);
+    c.onMove();
+    // Corners as expected, but DF/DB swapped instead of the expected UF/UR.
+    final exp =
+        ThreeStyleGeometry.expectedAfterPair(solved, 'A', AlgType.Parity)!;
+    final own = _swapEdges(_swapEdges(exp, 1, 0), 5, 7);
+    expect(c.onState(own), isNotNull);
+    expect(c.phase, CubePhase.complete);
+    // The next case must baseline on where the cube really is, not on the
+    // representative end state.
+    expect(c.expectedFacelets, own);
+  });
+
+  test('parity does not complete on the corner swap alone', () {
+    final c = make(AlgType.Parity);
+    c.startCase('A', solved);
+    c.onMove();
+    final exp =
+        ThreeStyleGeometry.expectedAfterPair(solved, 'A', AlgType.Parity)!;
+    expect(c.onState(_swapEdges(exp, 1, 0)), isNull);
+    expect(c.phase, CubePhase.execution);
+  });
+
   test('startCase returns false when the pair has no geometry', () {
     final c = make(AlgType.Custom);
     expect(c.startCase('AD', solved), isFalse);
@@ -309,4 +334,16 @@ void main() {
           reason: 'pausing mid-alg is not a botch');
     });
   });
+}
+
+// Swap edge pieces [a] and [b] in [s].
+String _swapEdges(String s, int a, int b) {
+  final out = s.split('');
+  final fa = CubieCube.eFacelet[a];
+  final fb = CubieCube.eFacelet[b];
+  for (var k = 0; k < 2; k++) {
+    out[fa[k]] = s[fb[k]];
+    out[fb[k]] = s[fa[k]];
+  }
+  return out.join();
 }

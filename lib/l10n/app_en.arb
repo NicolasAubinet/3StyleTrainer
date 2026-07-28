@@ -38,7 +38,6 @@
   "smartCubeReconnectingHint": "The cube went to sleep or out of range. Turn a face to wake it — the run resumes on its own.",
   "smartCubeResynced": "Cube re-synced — execute the alg from here",
   "smartCubeSchemeUnrecognized": "Letter-pair scheme not recognized — using press timing",
-  "smartCubeParityBuffersNotAdjacent": "Smart-cube parity works only when your edge buffer is adjacent to your corner buffer — using press timing",
   "smartCubeWrongCase": "You executed {pair}",
   "@smartCubeWrongCase": {
     "placeholders": {
@@ -288,7 +287,7 @@
   "typeSubtitleCustom": "Create your own sets",
   "twists": "2Twists",
   "parity": "Parity",
-  "typeSubtitleParity": "UF/UR + 2 corners",
+  "typeSubtitleParity": "2 corners + 2 edges",
   "statsSolvesCount": "{count} solves",
   "@statsSolvesCount": {
     "placeholders": {

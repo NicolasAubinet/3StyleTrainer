@@ -138,10 +138,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Letter-pair scheme not recognized — using press timing';
 
   @override
-  String get smartCubeParityBuffersNotAdjacent =>
-      'Smart-cube parity works only when your edge buffer is adjacent to your corner buffer — using press timing';
-
-  @override
   String smartCubeWrongCase(String pair) {
     return 'You executed $pair';
   }
@@ -656,7 +652,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get parity => 'Parity';
 
   @override
-  String get typeSubtitleParity => 'UF/UR + 2 corners';
+  String get typeSubtitleParity => '2 corners + 2 edges';
 
   @override
   String statsSolvesCount(int count) {

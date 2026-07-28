@@ -252,9 +252,9 @@ void main() {
     });
   });
 
-  group('parity (UFR corner buffer, UF edge buffer)', () {
-    // "A" = target corner ULB (piece 2); swaps buffer URF (0) with it, and the
-    // edge buffer UF (1) with the corner buffer's other edge UR (0).
+  group('parity (UFR corner buffer)', () {
+    // "A" = target corner ULB (piece 2); swaps buffer URF (0) with it, plus two
+    // edges — the expected state uses the buffer's own UF (1) / UR (0).
     const pair = 'A';
     final involved = {..._cornerFacelets([0, 2]), ..._edgeFacelets([1, 0])};
 
@@ -286,6 +286,76 @@ void main() {
           ThreeStyleGeometry.isPairComplete(exp, solved, pair, AlgType.Parity),
           isTrue);
     });
+
+    // Solvers pick their own parity edge swap, and it can differ per alg, so
+    // the corner swap is what identifies the case.
+    test('completes on any rigid edge swap, not just the expected one', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.Parity)!;
+      for (final edges in [
+        [1, 3], // UF/UB
+        [0, 2], // UR/UL
+        [5, 7], // DF/DB — nowhere near either buffer
+        [8, 11], // FR/BR
+      ]) {
+        // Undo the expected UF/UR swap, then swap the solver's own pair.
+        final state =
+            _swapEdges(_swapEdges(exp, 1, 0), edges[0], edges[1]);
+        expect(
+            ThreeStyleGeometry.isPairComplete(
+                state, solved, pair, AlgType.Parity),
+            isTrue,
+            reason: 'edge swap ${edges[0]}/${edges[1]} must complete "A"');
+      }
+    });
+
+    test('a flipped edge swap does not complete', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.Parity)!;
+      final state =
+          _swapEdges(_swapEdges(exp, 1, 0), 1, 3, flipped: true);
+      expect(
+          ThreeStyleGeometry.isPairComplete(state, solved, pair, AlgType.Parity),
+          isFalse);
+    });
+
+    test('the corner swap alone does not complete', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.Parity)!;
+      expect(
+          ThreeStyleGeometry.isPairComplete(
+              _swapEdges(exp, 1, 0), solved, pair, AlgType.Parity),
+          isFalse,
+          reason: 'corners right but no edge swap is a half-executed alg');
+    });
+
+    test('more than two edges moved does not complete', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, pair, AlgType.Parity)!;
+      final state = _swapEdges(exp, 5, 7); // UF/UR swap plus a second one
+      expect(
+          ThreeStyleGeometry.isPairComplete(state, solved, pair, AlgType.Parity),
+          isFalse,
+          reason: 'an unfinished slice tail leaves four edges off home');
+    });
+
+    test('the wrong corner swap is reported as another pair', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, 'B', AlgType.Parity)!;
+      expect(
+          ThreeStyleGeometry.isPairComplete(exp, solved, pair, AlgType.Parity),
+          isFalse);
+      expect(
+          ThreeStyleGeometry.executedOtherPair(
+              exp, [solved], AlgType.Parity, ['A', 'B', 'C'],
+              shown: pair),
+          'B');
+    });
+
+    test('a different edge swap still names the executed pair', () {
+      final exp = ThreeStyleGeometry.expectedAfterPair(solved, 'B', AlgType.Parity)!;
+      final state = _swapEdges(_swapEdges(exp, 1, 0), 5, 7);
+      expect(
+          ThreeStyleGeometry.executedOtherPair(
+              state, [solved], AlgType.Parity, ['A', 'B', 'C'],
+              shown: pair),
+          'B');
+    });
   });
 
   group('detectAlgType for the new types', () {
@@ -308,3 +378,16 @@ void main() {
 Set<int> _edgeFacelets(List<int> pieces) => {
       for (final p in pieces) ...CubieCube.eFacelet[p],
     };
+
+// Swap edge pieces [a] and [b] in [s], optionally landing them flipped.
+String _swapEdges(String s, int a, int b, {bool flipped = false}) {
+  final out = s.split('');
+  final fa = CubieCube.eFacelet[a];
+  final fb = CubieCube.eFacelet[b];
+  for (var k = 0; k < 2; k++) {
+    final t = flipped ? 1 - k : k;
+    out[fa[t]] = s[fb[k]];
+    out[fb[t]] = s[fa[k]];
+  }
+  return out.join();
+}

@@ -37,9 +37,10 @@ class CaseSplit {
 /// A case completes when the cube reaches the pair's expected end-state from
 /// *any* baseline it has rested at — the case-start state plus any added via
 /// [addBaseline] (a mid-alg pause, or a botch the user recovers from). Because
-/// the check is full-state equality, extra baselines only ever catch a real
-/// execution, never fabricate one, and a wrong alg can never auto-advance. A
-/// completion off any later baseline comes back [CaseSplit.recovered].
+/// the check is full-state equality (parity aside — see [_matchIndex]), extra
+/// baselines only ever catch a real execution, never fabricate one, and a wrong
+/// alg can never auto-advance. A completion off any later baseline comes back
+/// [CaseSplit.recovered].
 /// Supports corner, edge, 2-flip, 2-twist and parity pairs ([supports]).
 class CubeRunController {
   final AlgType algType;
@@ -57,7 +58,8 @@ class CubeRunController {
   // Bounds the candidate set against pathological flailing; index 0 is kept.
   static const int _maxBaselines = 12;
 
-  String? _matched; // the expected state onState last completed on
+  String? _pair;
+  String? _matched; // the state onState last completed on
   DateTime? _shownAt;
   DateTime? _firstMoveAt;
   Duration? _recognition;
@@ -103,6 +105,7 @@ class CubeRunController {
   bool addBaseline(String pair, String facelets) => _addBaseline(pair, facelets);
 
   bool _addBaseline(String pair, String facelets) {
+    _pair = pair;
     if (_baselines.contains(facelets)) return _expecteds.isNotEmpty;
     final expected =
         ThreeStyleGeometry.expectedAfterPair(facelets, pair, algType);
@@ -132,7 +135,7 @@ class CubeRunController {
   /// on the cube: [CaseSplit.recovered].
   CaseSplit? onState(String facelets) {
     if (phase != CubePhase.execution) return null;
-    final matched = _expecteds.indexOf(facelets);
+    final matched = _matchIndex(facelets);
     if (matched < 0) return null;
     _matched = facelets;
     final execution = _now().difference(_firstMoveAt!);
@@ -140,8 +143,26 @@ class CubeRunController {
     return CaseSplit(_recognition!, execution, recovered: matched > 0);
   }
 
-  /// The cube's end-state for the case: the matched candidate once complete,
-  /// else the case-start expected state; `null` if unmapped.
+  // Which baseline the cube completed the case from, or -1. Parity is judged by
+  // predicate — any rigid edge swap goes, so its end state isn't a fixed string
+  // — every other type is exact state equality.
+  int _matchIndex(String facelets) {
+    final pair = _pair;
+    if (algType != AlgType.Parity || pair == null) {
+      return _expecteds.indexOf(facelets);
+    }
+    for (var i = 0; i < _baselines.length; i++) {
+      if (ThreeStyleGeometry.isPairComplete(
+          facelets, _baselines[i], pair, algType)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  /// The cube's end-state for the case: the state it completed on, else the
+  /// case-start expected state; `null` if unmapped. Read it after a completion —
+  /// parity's pre-completion value is only one of its legal end states.
   String? get expectedFacelets =>
       _matched ?? (_expecteds.isEmpty ? null : _expecteds.first);
 

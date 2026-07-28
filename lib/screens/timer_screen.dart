@@ -882,16 +882,13 @@ class _TimerScreenState extends State<TimerScreen> {
       _resyncSub = mgr.resyncs.listen(_onCubeResync);
       mgr.connection.addListener(_onConnectionChanged);
     } else if (mgr.isConnected) {
-      // Cube connected but this run isn't cube-drivable. Parity is unmappable
-      // only when the edge buffer isn't adjacent to the corner buffer — say so
-      // precisely; anything else is an unrecognized letter-pair scheme.
+      // Cube connected but this run isn't cube-drivable: an unrecognized
+      // letter-pair scheme is the only way left to get here.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(widget.algType == AlgType.Parity
-              ? l10n.smartCubeParityBuffersNotAdjacent
-              : l10n.smartCubeSchemeUnrecognized),
+          content: Text(l10n.smartCubeSchemeUnrecognized),
           duration: const Duration(seconds: 5),
         ));
       });

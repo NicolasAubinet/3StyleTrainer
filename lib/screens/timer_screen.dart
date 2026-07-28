@@ -559,6 +559,12 @@ class _TimerScreenState extends State<TimerScreen> {
       _mistakeRows.clear();
       _mistakeKinds.clear();
       nextAlgs.clear();
+      for (int i = 0; i < widget.algsShownInAdvance; ++i) {
+        Alg? nextAlg = _fetchNextAlg();
+        if (nextAlg != null) {
+          nextAlgs.add(nextAlg);
+        }
+      }
       _orientationConfirmed = false;
       _startCubeCase(_currentFacelets);
     });
@@ -577,11 +583,15 @@ class _TimerScreenState extends State<TimerScreen> {
     _caseSpoiled = false;
     _caseMoves.clear();
     _caseRawStart = _rawFacelets;
-    alg = _fetchNextAlg();
+    Alg? drawn = _fetchNextAlg();
     if (requeueAfter != null) {
       widget.algProvider.requeue(requeueAfter);
-      alg ??= _fetchNextAlg();
+      drawn ??= _fetchNextAlg();
     }
+    if (drawn != null) {
+      nextAlgs.insert(0, drawn);
+    }
+    alg = nextAlgs.isEmpty ? null : nextAlgs.removeLast();
     if (alg == null) return;
     _cubeRun!.startCase(alg!.name, fromFacelets);
     _verifyBaseline(alg!.name);

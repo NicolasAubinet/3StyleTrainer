@@ -49,6 +49,7 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
   bool _flash = false;
   async.Timer? _flashTimer;
   async.Timer? _feedbackTimer;
+  async.Timer? _baselineTimer;
 
   // Grid metrics captured during layout, for scrolling the cursor into view.
   int _crossAxisCount = 0;
@@ -57,6 +58,10 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
   // How long the cube must sit still before a non-completing state is judged.
   // Matches the timer.
   static const Duration _quietPeriod = Duration(milliseconds: 500);
+  // How long it must sit still before that state is remembered as a baseline.
+  // Matches the timer: shorter than the verdict, so the gap between two
+  // attempts counts.
+  static const Duration _baselineQuietPeriod = Duration(milliseconds: 150);
 
   bool get _cubeDriven => _cubeRun != null;
   bool get _done => _cursor >= _algs.length;
@@ -100,7 +105,7 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
     _moveSub?.cancel();
     _resyncSub?.cancel();
     _flashTimer?.cancel();
-    _feedbackTimer?.cancel();
+    _cancelQuietTimers();
     _scrollController.dispose();
     super.dispose();
   }
@@ -148,7 +153,7 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
   }
 
   void _onCaseComplete() {
-    _feedbackTimer?.cancel();
+    _cancelQuietTimers();
     final endState = _cubeRun!.expectedFacelets ?? _currentFacelets;
     setState(() {
       _wrongExecuted = null;
@@ -163,7 +168,7 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
   void _onCubeMove(CubeMove move) {
     if (!mounted || !_cubeDriven || _done) return;
     // Still turning: the last settled state wasn't the end of anything.
-    _feedbackTimer?.cancel();
+    _cancelQuietTimers();
     _cubeRun!.onMove();
     // Turning again means the carried wrong-case message has been read.
     if (_carriedWrong) {
@@ -177,11 +182,28 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
   // Diagnose only once the turning stops: many algs pass through another case's
   // finished state mid-execution, so a match seen while turning means nothing.
   void _scheduleFeedback(String normFacelets) {
-    _feedbackTimer?.cancel();
+    _cancelQuietTimers();
+    _baselineTimer = async.Timer(_baselineQuietPeriod, () {
+      if (!mounted || !_cubeDriven || _done) return;
+      _rememberRest(normFacelets);
+    });
     _feedbackTimer = async.Timer(_quietPeriod, () {
       if (!mounted || !_cubeDriven || _done) return;
       _updateFeedback(normFacelets);
     });
+  }
+
+  void _cancelQuietTimers() {
+    _feedbackTimer?.cancel();
+    _baselineTimer?.cancel();
+  }
+
+  // The cube stopped somewhere the case can't complete from: remember it, so
+  // finishing — or redoing — the shown pair from here still completes.
+  void _rememberRest(String normFacelets) {
+    final shown = _currentPair;
+    if (shown == null || _cubeRun!.phase != CubePhase.execution) return;
+    _cubeRun!.addBaseline(shown, normFacelets);
   }
 
   void _updateFeedback(String normFacelets) {
@@ -194,20 +216,13 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
         normFacelets, baselines, _cubeAlgType!, _pairPool,
         shown: shown);
     if (wrong != null) {
-      // A full, clean case — just not the demanded one. Keep demanding it, and
-      // remember this state so the shown pair can be executed from here.
-      _cubeRun!.addBaseline(shown, normFacelets);
+      // A full, clean case — just not the demanded one: keep demanding it.
       setState(() {
         _wrongExecuted = wrong;
         _carriedWrong = true;
       });
       _flashError();
-      return;
     }
-
-    // A pause mid-alg or a botch: remember it as a baseline so finishing — or
-    // redoing — the shown pair from here still completes.
-    _cubeRun!.addBaseline(shown, normFacelets);
   }
 
   void _flashError() {
@@ -224,7 +239,7 @@ class _LetterPairsListScreenState extends State<LetterPairsListScreen> {
     if (!mounted || !_cubeDriven || _done) return;
     final shown = _currentPair;
     if (shown == null) return;
-    _feedbackTimer?.cancel();
+    _cancelQuietTimers();
     _cubeRun!.rebaseline(shown, _normalise(state.facelets));
   }
 

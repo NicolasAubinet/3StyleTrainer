@@ -124,7 +124,12 @@ class _TimerScreenState extends State<TimerScreen> {
   // mistake. Algs are meant to flow, so a pause this long already means you've
   // stopped — waiting any longer just leaves the error hanging unexplained.
   static const Duration _FEEDBACK_QUIET_PERIOD = Duration(milliseconds: 500);
+  // How long it must sit still before that state is remembered as a baseline.
+  // Shorter than the verdict: the gap between two attempts has to count, or a
+  // case whose baseline the cube has left can never be completed.
+  static const Duration _BASELINE_QUIET_PERIOD = Duration(milliseconds: 150);
   async.Timer? _feedbackTimer;
+  async.Timer? _baselineTimer;
 
   // Brief flash on auto-advance: green on a clean completion, red on an error.
   bool _advanceFlash = false;
@@ -355,6 +360,9 @@ class _TimerScreenState extends State<TimerScreen> {
       _onCubeComplete(split);
       return;
     }
+    // The controller just took this as the case's start; keep the raw reading
+    // with it, so the orientation check still compares start against end.
+    if (_cubeRun?.phase == CubePhase.recognition) _caseRawStart = state.facelets;
     _scheduleFeedback(state.facelets, norm);
   }
 
@@ -363,11 +371,28 @@ class _TimerScreenState extends State<TimerScreen> {
   // match seen mid-execution means nothing, and acting on it would abandon a
   // case the user is executing correctly. Every move restarts the wait.
   void _scheduleFeedback(String rawFacelets, String normFacelets) {
-    _feedbackTimer?.cancel();
+    _cancelQuietTimers();
+    _baselineTimer = async.Timer(_BASELINE_QUIET_PERIOD, () {
+      if (!mounted || !isReady) return;
+      _rememberRest(normFacelets);
+    });
     _feedbackTimer = async.Timer(_FEEDBACK_QUIET_PERIOD, () {
       if (!mounted || !isReady) return;
       _updateFeedback(rawFacelets, normFacelets);
     });
+  }
+
+  void _cancelQuietTimers() {
+    _feedbackTimer?.cancel();
+    _baselineTimer?.cancel();
+  }
+
+  // The cube stopped somewhere the case can't complete from: remember it, so
+  // finishing — or redoing — the shown pair from here still completes.
+  void _rememberRest(String normFacelets) {
+    final shown = alg?.name;
+    if (shown == null || _cubeRun!.phase != CubePhase.execution) return;
+    _cubeRun!.addBaseline(shown, normFacelets);
   }
 
   // Hint whether a non-completing state means a different case (wrong pair) or
@@ -399,14 +424,6 @@ class _TimerScreenState extends State<TimerScreen> {
         shown: shown);
     if (wrong != null) {
       _onCubeError(shown, AlgMistakeKind.wrongCase, executed: wrong);
-      return;
-    }
-
-    // A pause mid-alg or a botched state: remember it as a baseline so finishing
-    // — or redoing — the shown pair from here still completes (see
-    // CubeRunController).
-    if (_cubeRun!.phase == CubePhase.execution) {
-      _cubeRun!.addBaseline(shown, normFacelets);
     }
   }
 
@@ -534,7 +551,7 @@ class _TimerScreenState extends State<TimerScreen> {
   void _onCubeMove(CubeMove move) {
     if (!mounted || !isReady || _awaitingResync) return;
     // Still turning: whatever the last state looked like, it wasn't the end.
-    _feedbackTimer?.cancel();
+    _cancelQuietTimers();
     if (_caseMoves.length < _MAX_STORED_MOVES) _caseMoves.add(move);
     // First move of a case ends recognition; refresh the phase indicator.
     final started = _cubeRun?.onMove() != null;
@@ -577,7 +594,7 @@ class _TimerScreenState extends State<TimerScreen> {
   // remaining case, in which case there's nothing else and it returns now.
   void _startCubeCase(String fromFacelets,
       {String? requeueAfter, _CubeFeedback? keepFeedback}) {
-    _feedbackTimer?.cancel();
+    _cancelQuietTimers();
     _feedback = keepFeedback;
     _carriedFeedback = keepFeedback != null;
     _caseSpoiled = false;
@@ -805,7 +822,7 @@ class _TimerScreenState extends State<TimerScreen> {
         c == CubeConnection.lost || c == CubeConnection.reconnecting;
     if (reconnecting) {
       _awaitingResync = true;
-      _feedbackTimer?.cancel();
+      _cancelQuietTimers();
     }
     if (reconnecting != _reconnecting) setState(() => _reconnecting = reconnecting);
   }
@@ -832,7 +849,7 @@ class _TimerScreenState extends State<TimerScreen> {
     _caseSpoiled = true;
     // Moves were missed, so what we collected no longer describes the attempt.
     _caseMoves.clear();
-    _feedbackTimer?.cancel();
+    _cancelQuietTimers();
     _setFeedback(_CubeFeedback.resynced());
   }
 
@@ -912,7 +929,7 @@ class _TimerScreenState extends State<TimerScreen> {
     refreshTimer.cancel();
     _advanceFlashTimer?.cancel();
     _requeueDebounce?.cancel();
-    _feedbackTimer?.cancel();
+    _cancelQuietTimers();
     _stateSub?.cancel();
     _moveSub?.cancel();
     _resyncSub?.cancel();

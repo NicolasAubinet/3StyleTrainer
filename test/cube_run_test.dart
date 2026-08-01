@@ -177,6 +177,36 @@ void main() {
     expect(c.phase, CubePhase.complete);
   });
 
+  group('a case baselined on a state the cube has already left', () {
+    // Where the cube really is: the case was baselined a turn before this.
+    final real = (CubieCube()..applyMove(Face.U, false)).toFaceCube();
+    final done =
+        ThreeStyleGeometry.expectedAfterPair(real, 'AD', AlgType.Corner)!;
+
+    test('a state seen before the first move re-anchors it', () {
+      final c = make(AlgType.Corner);
+      c.startCase('AD', solved);
+      // Nothing turned yet, so what the cube reports is where it is.
+      expect(c.onState(real), isNull);
+      expect(c.phase, CubePhase.recognition);
+      c.onMove();
+      expect(c.onState(done), isNotNull);
+    });
+
+    test('without that, executing the alg completes nothing', () {
+      final c = make(AlgType.Corner);
+      c.startCase('AD', solved);
+      c.onMove();
+      expect(c.onState(done), isNull);
+      // Only a rest, adopted as a baseline, makes the case completable again.
+      c.addBaseline('AD', done);
+      expect(
+          c.onState(
+              ThreeStyleGeometry.expectedAfterPair(done, 'AD', AlgType.Corner)!),
+          isNotNull);
+    });
+  });
+
   test('a stray move before the alg completes as a recovery', () {
     final c = make(AlgType.Corner);
     c.startCase('AD', solved);

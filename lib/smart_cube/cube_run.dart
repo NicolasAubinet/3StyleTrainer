@@ -35,8 +35,9 @@ class CaseSplit {
 /// completion. Pure Dart and UI-agnostic.
 ///
 /// A case completes when the cube reaches the pair's expected end-state from
-/// *any* baseline it has rested at — the case-start state plus any added via
-/// [addBaseline] (a mid-alg pause, or a botch the user recovers from). Because
+/// *any* baseline it has rested at — the case-start state, whatever the cube
+/// reports before the first move, and any added via [addBaseline] (a mid-alg
+/// pause, or a botch the user recovers from). Because
 /// the check is full-state equality (parity aside — see [_matchIndex]), extra
 /// baselines only ever catch a real execution, never fabricate one, and a wrong
 /// alg can never auto-advance. A completion off any later baseline comes back
@@ -133,7 +134,16 @@ class CubeRunController {
   /// the cube reaches an expected state (from any baseline); `null` while the
   /// case is unfinished. A match on a later baseline means stray moves are still
   /// on the cube: [CaseSplit.recovered].
+  ///
+  /// Before the first move nothing has been executed, so a state we did not
+  /// predict is simply where the cube is: it joins the candidates, and a case
+  /// baselined on a state the cube has left stays completable.
   CaseSplit? onState(String facelets) {
+    final pair = _pair;
+    if (phase == CubePhase.recognition && pair != null) {
+      _addBaseline(pair, facelets);
+      return null;
+    }
     if (phase != CubePhase.execution) return null;
     final matched = _matchIndex(facelets);
     if (matched < 0) return null;

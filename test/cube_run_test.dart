@@ -207,6 +207,20 @@ void main() {
     });
   });
 
+  test('re-baselining at the first move makes a clean solve honest', () {
+    final c = make(AlgType.Corner);
+    // Whatever we predicted, the cube reports this the moment it is turned.
+    final real = (CubieCube()..applyMove(Face.U, false)).toFaceCube();
+    c.startCase('AD', solved);
+    c.rebaseline('AD', real);
+    c.onMove();
+    final split = c.onState(
+        ThreeStyleGeometry.expectedAfterPair(real, 'AD', AlgType.Corner)!);
+    expect(split, isNotNull);
+    expect(split!.recovered, isFalse,
+        reason: 'the cube simply sat there — nothing to recover from');
+  });
+
   test('a stray move before the alg completes as a recovery', () {
     final c = make(AlgType.Corner);
     c.startCase('AD', solved);

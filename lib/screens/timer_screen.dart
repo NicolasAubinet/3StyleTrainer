@@ -87,6 +87,9 @@ class _TimerScreenState extends State<TimerScreen> {
   bool _carriedFeedback = false;
   // Un-normalised cube state at case start, for the orientation sweep.
   String? _caseRawStart;
+  // The last state the cube reported, un-normalised: at the case's first move,
+  // the reading from just before that turn.
+  String? _lastReading;
   bool _orientationConfirmed = false;
   // The cube re-synced mid-case, so its time is no longer honest: don't record
   // it. Not a user mistake — it never reaches the summary's errors.
@@ -354,6 +357,7 @@ class _TimerScreenState extends State<TimerScreen> {
 
   void _onCubeState(CubeState state) {
     if (!mounted || !isReady || _awaitingResync) return;
+    _lastReading = state.facelets;
     final norm = _normalise(state.facelets);
     final split = _cubeRun?.onState(norm);
     if (split != null) {
@@ -555,6 +559,7 @@ class _TimerScreenState extends State<TimerScreen> {
     if (_caseMoves.length < _MAX_STORED_MOVES) _caseMoves.add(move);
     // First move of a case ends recognition; refresh the phase indicator.
     final started = _cubeRun?.onMove() != null;
+    if (started) _baselineOnLastReading();
     // Turning again means the carried-over error message has served its purpose.
     if (_carriedFeedback) {
       _carriedFeedback = false;
@@ -562,6 +567,17 @@ class _TimerScreenState extends State<TimerScreen> {
     } else if (started) {
       setState(() {});
     }
+  }
+
+  // A case starts from where the cube was when it was turned, not from what we
+  // predicted when it came up: a move arrives before its own state, so the last
+  // reading is the cube one turn ago. Drift or a stray turn is absorbed here.
+  void _baselineOnLastReading() {
+    final shown = alg?.name;
+    final reading = _lastReading;
+    if (shown == null || reading == null) return;
+    _cubeRun!.rebaseline(shown, _normalise(reading));
+    _caseRawStart = reading;
   }
 
   // Arm from the cube's current physical state (no forced solve) once the
@@ -585,6 +601,9 @@ class _TimerScreenState extends State<TimerScreen> {
       _orientationConfirmed = false;
       _startCubeCase(_currentFacelets);
     });
+    // Once per run, not per case: the pull re-anchors the cube's own tracking,
+    // and every case is baselined on a fresh reading anyway.
+    if (alg != null) _verifyBaseline(alg!.name);
   }
 
   // Show the next case and baseline its completion check on [fromFacelets]
@@ -600,6 +619,9 @@ class _TimerScreenState extends State<TimerScreen> {
     _caseSpoiled = false;
     _caseMoves.clear();
     _caseRawStart = _rawFacelets;
+    // Seeded, not left over from the last case: the first case of a run has no
+    // reading yet, and the cube's own state is the freshest there is.
+    _lastReading = _rawFacelets;
     Alg? drawn = _fetchNextAlg();
     if (requeueAfter != null) {
       widget.algProvider.requeue(requeueAfter);
@@ -611,13 +633,12 @@ class _TimerScreenState extends State<TimerScreen> {
     alg = nextAlgs.isEmpty ? null : nextAlgs.removeLast();
     if (alg == null) return;
     _cubeRun!.startCase(alg!.name, fromFacelets);
-    _verifyBaseline(alg!.name);
     stopwatch
       ..reset()
       ..start();
   }
 
-  // Trust the cube over our own bookkeeping: pull its real state as the case
+  // Trust the cube over our own bookkeeping: pull its real state as the run
   // opens, so drift we failed to notice costs one baseline instead of the whole
   // session. Silent — the user has nothing to fix.
   void _verifyBaseline(String pair) async {

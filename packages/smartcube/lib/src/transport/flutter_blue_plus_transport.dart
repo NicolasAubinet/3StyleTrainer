@@ -105,7 +105,15 @@ class _FbpCharacteristic implements BleCharacteristic {
   @override
   Future<List<int>> read() => _chr.read();
 
+  /// Writes with whichever write type the characteristic actually declares:
+  /// QiYi's single fff6 characteristic is write-without-response only, and
+  /// asking for the unsupported type throws before a byte leaves the phone.
   @override
-  Future<void> write(List<int> data, {bool withoutResponse = false}) =>
-      _chr.write(data, withoutResponse: withoutResponse);
+  Future<void> write(List<int> data, {bool withoutResponse = false}) {
+    final props = _chr.properties;
+    final noResponse = withoutResponse
+        ? props.writeWithoutResponse || !props.write
+        : !props.write && props.writeWithoutResponse;
+    return _chr.write(data, withoutResponse: noResponse);
+  }
 }

@@ -63,13 +63,14 @@ class MoyuV10Parser {
   int _moveCnt = -1;
   int _deviceTime = 0;
   int _deviceTimeOffset = 0;
-  int _batteryLevel = 0;
+  int? _batteryLevel;
   bool _pullPending = false;
 
   MoyuV10Parser(List<int> macBytes)
       : _cipher = GanCipher.forMac(baseKey, baseIv, macBytes);
 
-  int get batteryLevel => _batteryLevel;
+  /// `null` until the cube has answered a power request.
+  int? get batteryLevel => _batteryLevel;
 
   CubeState get currentState => CubeState(_cube.toFaceCube());
 
@@ -129,8 +130,9 @@ class MoyuV10Parser {
         return [MoyuStateEvent(CubeState(facelet))];
 
       case 164:
-        _batteryLevel = val(8, 16);
-        return [MoyuBatteryEvent(_batteryLevel)];
+        final level = val(8, 16);
+        _batteryLevel = level;
+        return [MoyuBatteryEvent(level)];
 
       case 165:
         _moveCnt = val(88, 96);

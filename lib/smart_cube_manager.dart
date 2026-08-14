@@ -86,10 +86,10 @@ class SmartCubeManager {
     } finally {
       _opening = false;
     }
-    await _refreshBattery();
     _batteryTimer?.cancel();
     _batteryTimer =
         Timer.periodic(const Duration(seconds: 60), (_) => _refreshBattery());
+    unawaited(_primeBattery());
   }
 
   void _bind(SmartCube cube) {
@@ -175,6 +175,18 @@ class SmartCubeManager {
       await cube?.disconnect();
     } catch (_) {
       // Already gone — nothing left to close.
+    }
+  }
+
+  // No cube answers a battery read on the spot: the level arrives later as a
+  // notification (QiYi doesn't even have a request — it rides on the cube hello),
+  // so the read right after connecting always comes back empty. Keep asking
+  // until one lands, or the badge stays blank for a whole poll period.
+  Future<void> _primeBattery() async {
+    for (var i = 0; i < 15 && _cube != null && battery.value == null; i++) {
+      await _refreshBattery();
+      if (battery.value != null) return;
+      await Future<void>.delayed(const Duration(seconds: 1));
     }
   }
 

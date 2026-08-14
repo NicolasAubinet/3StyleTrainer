@@ -93,13 +93,15 @@ class QiyiParser {
   final Aes128 _aes = Aes128(fixedKey);
   final List<int> _mac;
 
-  int _batteryLevel = 0;
+  int? _batteryLevel;
   int _timeOffset = 0;
   bool _timeAnchored = false;
 
   QiyiParser(List<int> macBytes) : _mac = List<int>.of(macBytes);
 
-  int get batteryLevel => _batteryLevel;
+  /// `null` until the cube has reported one — 0 is a real level, not a
+  /// stand-in for "not known yet".
+  int? get batteryLevel => _batteryLevel;
 
   /// The first thing the app must write. The cube ignores everything — and
   /// reports nothing — until it has been told its own MAC.
@@ -180,8 +182,9 @@ class QiyiParser {
 
   List<QiyiEvent> _battery(List<int> msg, int length) {
     if (!_has(length, _batteryOffset)) return const [];
-    _batteryLevel = msg[_batteryOffset].clamp(0, 100);
-    return [QiyiBatteryEvent(_batteryLevel)];
+    final level = msg[_batteryOffset].clamp(0, 100);
+    _batteryLevel = level;
+    return [QiyiBatteryEvent(level)];
   }
 
   /// Facelets are 4-bit colour nibbles over 27 bytes, **low nibble first**, in

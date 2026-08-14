@@ -219,7 +219,13 @@ void main() {
     final events =
         newParser().parse(cubeHello(CubeState.solvedFacelets, battery: 255), 1000);
     expect(events.whereType<QiyiBatteryEvent>().single.level, 100);
-    expect(newParser().batteryLevel, 0);
+  });
+
+  test('battery is null until the cube reports one', () {
+    final parser = newParser();
+    expect(parser.batteryLevel, isNull);
+    parser.parse(cubeHello(CubeState.solvedFacelets, battery: 0), 1000);
+    expect(parser.batteryLevel, 0);
   });
 
   group('cube clock', () {

@@ -61,11 +61,12 @@ class GoCubeParser {
   ];
 
   final CubieCube _cube = CubieCube();
-  int _batteryLevel = 0;
+  int? _batteryLevel;
   bool _anchored = false;
   int? _baseHostMs;
 
-  int get batteryLevel => _batteryLevel;
+  /// `null` until the cube has answered a battery request.
+  int? get batteryLevel => _batteryLevel;
 
   CubeState get currentState => CubeState(_cube.toFaceCube());
 
@@ -97,8 +98,9 @@ class GoCubeParser {
         return _parseState(raw, msgLen);
       case msgBattery:
         if (msgLen < 1) return const [];
-        _batteryLevel = raw[3];
-        return [GoCubeBatteryEvent(_batteryLevel)];
+        final level = raw[3];
+        _batteryLevel = level;
+        return [GoCubeBatteryEvent(level)];
       default:
         return const [];
     }
